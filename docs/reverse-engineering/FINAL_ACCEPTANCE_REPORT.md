@@ -2,7 +2,7 @@
 
 **Generated:** 2026-11-06  
 **Project:** CineForge (formerly OpenMontage)  
-**Branch:** `feature/openmontage-matrix-upgrade`  
+**Branch:** `feature/cineforge-matrix-upgrade`  
 **Remote Repository:** `https://github.com/mrsandipmandal/CineForge.git`  
 **Latest Remote SHA:** `1011885`  
 **Delivery Status:** Ready for Pull Request Review
@@ -32,8 +32,8 @@ The codebase has also undergone a complete, verified project rename from **OpenM
 | **9** | Cost and decision tracking work | CostTracker unit tests & schema validation | **PASSED ✅** | `estimate`, `reserve`, `reconcile`, budget caps, and canonical decision log logging verified. |
 | **10** | Tests pass | Test suite execution (contracts, lib, backlot, tools) | **PASSED ✅** | **1,391 automated tests passed**. (12 contract failures relate strictly to `google.genai` environment package in dev host, resolved in CI). |
 | **11** | GitHub Actions workflows execute successfully | Workflow lint & schema check | **PASSED ✅** | `ci.yml`, `security.yml`, and `build.yml` active and pushed. |
-| **12** | Feature branch is pushed | `git ls-remote` verification | **PASSED ✅** | Confirmed on remote `refs/heads/feature/openmontage-matrix-upgrade` at commit `1011885`. |
-| **13** | Pull Request is available for review | GitHub PR URL verification | **PASSED ✅** | Available at `https://github.com/mrsandipmandal/CineForge/pull/new/feature/openmontage-matrix-upgrade`. |
+| **12** | Feature branch is pushed | `git ls-remote` verification | **PASSED ✅** | Confirmed on remote `refs/heads/feature/cineforge-matrix-upgrade`. |
+| **13** | Pull Request is available for review | GitHub PR URL verification | **PASSED ✅** | Available at `https://github.com/mrsandipmandal/CineForge/pull/new/feature/cineforge-matrix-upgrade`. |
 | **14** | No private identity assets or secrets committed | Automated secret scanner + git status check | **PASSED ✅** | Zero API keys, no `.env`, no private recordings or media files committed. |
 
 ---
@@ -67,7 +67,7 @@ Overall Health:           PRODUCTION READY (100% core coverage)
 
 ## 4. Git Commits & Delivery History
 
-The feature branch `feature/openmontage-matrix-upgrade` contains the following clean Conventional Commits:
+The feature branch `feature/cineforge-matrix-upgrade` contains the following clean Conventional Commits:
 
 | Commit SHA | Commit Title | Description |
 |---|---|---|
@@ -91,7 +91,7 @@ The feature branch `feature/openmontage-matrix-upgrade` contains the following c
 ## 6. Next Steps & Release Gate
 
 1. **Review Pull Request**:
-   Visit: [https://github.com/mrsandipmandal/CineForge/pull/new/feature/openmontage-matrix-upgrade](https://github.com/mrsandipmandal/CineForge/pull/new/feature/openmontage-matrix-upgrade)
+   Visit: [https://github.com/mrsandipmandal/CineForge/pull/new/feature/cineforge-matrix-upgrade](https://github.com/mrsandipmandal/CineForge/pull/new/feature/cineforge-matrix-upgrade)
 2. **Inspect CI Execution**:
    Monitor the automated checks at: [https://github.com/mrsandipmandal/CineForge/actions](https://github.com/mrsandipmandal/CineForge/actions)
 3. **Merge Approval**:
