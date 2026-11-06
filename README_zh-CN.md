@@ -22,18 +22,14 @@
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPLv3-blue.svg" alt="License"></a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/trending"><img src="https://img.shields.io/badge/%F0%9F%8F%86%20%231%20on%20GitHub%20Trending-Repository%20of%20the%20Day-8957E5?style=for-the-badge&labelColor=1a1a2e" alt="#1 on GitHub Trending — Repository of the Day"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPLv3-00ff66.svg?style=flat-square" alt="License"></a>
 </p>
 
 <p align="center"><strong>关注开发进展</strong></p>
 
 <p align="center">
-  <a href="https://www.youtube.com/@CineForge"><img src="https://img.shields.io/badge/YouTube-%40CineForge-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube"></a>
-  <a href="https://x.com/calesthioailabs"><img src="https://img.shields.io/badge/X-%40calesthioailabs-111111?style=for-the-badge&logo=x&logoColor=white" alt="X"></a>
+  <a href="https://www.youtube.com/@CineForgeLab"><img src="https://img.shields.io/badge/YouTube-%40CineForgeLab-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube"></a>
+  <a href="https://x.com/mr_sandipmandal"><img src="https://img.shields.io/badge/X-%40mr__sandipmandal-111111?style=for-the-badge&logo=x&logoColor=white" alt="X"></a>
   <a href="https://github.com/mrsandipmandal/CineForge/discussions"><img src="https://img.shields.io/badge/Community-GitHub%20Discussions-0b1220?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Discussions"></a>
 </p>
 
@@ -650,7 +646,7 @@ CineForge 被设计为高度可扩展的。最常见的两种贡献是：
 
 ## 联系方式
 
-有关更新、发布版以及幕后的开发记录，请关注 [@calesthioailabs](https://x.com/calesthioailabs)。
+有关更新、发布版以及幕后的开发记录，请关注 [@mr_sandipmandal](https://x.com/mr_sandipmandal) 以及 YouTube [@CineForgeLab](https://www.youtube.com/@CineForgeLab)。
 
 有关错误反馈、功能请求和工作流讨论，请使用 [GitHub Issues](https://github.com/mrsandipmandal/CineForge/issues) 和 [GitHub Discussions](https://github.com/mrsandipmandal/CineForge/discussions)，以确保每件事都能保持可见和可操作。
 
