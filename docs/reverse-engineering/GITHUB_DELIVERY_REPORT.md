@@ -10,12 +10,12 @@
 
 | Field | Value |
 |-------|-------|
-| Branch | `feature/cineforge-matrix-upgrade` |
+| Branch | `feature/openmontage-matrix-upgrade` |
 | Base | `main` |
 | Remote | `https://github.com/mrsandipmandal/CineForge.git` |
 
 > [!NOTE]
-> The repository URL in the Phase 11 brief referenced `calesthio/CineForge`.
+> The repository URL in the Phase 11 brief referenced `calesthio/OpenMontage`.
 > The actual configured remote is `mrsandipmandal/CineForge`.
 > All work targets the actual remote shown above.
 
@@ -26,6 +26,8 @@
 | # | SHA | Message | Files Changed |
 |---|-----|---------|---------------|
 | 1 | `f30f46b7f06643116e7b5bc8f472238aa6880343` | `ci: add GitHub Actions CI/CD, security scanning, and build validation` | `.github/workflows/ci.yml`, `.github/workflows/security.yml`, `.github/workflows/build.yml`, `docs/reverse-engineering/GITHUB_DELIVERY_REPORT.md` |
+| 2 | `0ad9cd7d44779ec292ab4aacdeaaa2a0db102afd` | `docs: update delivery report with confirmed remote SHA and PR URL` | `docs/reverse-engineering/GITHUB_DELIVERY_REPORT.md` |
+| 3 | `94fdad201bf165e347ad19642e128148b6caee7a` | `refactor: rename project from OpenMontage to CineForge across codebase` | 210 files changed (codebase-wide rename) |
 
 ---
 
@@ -138,7 +140,7 @@ All three workflow files are net-new additions.
 
 ## 5. Tests Executed (Local)
 
-Tests run locally on `feature/cineforge-matrix-upgrade` before commit.
+Tests run locally on `feature/openmontage-matrix-upgrade` before commit.
 
 ### 5.1 Python lint
 
@@ -238,15 +240,15 @@ Security workflows are GitHub Actions-hosted and have not yet been run (pending 
 
 ```
 Remote: https://github.com/mrsandipmandal/CineForge.git
-Branch: feature/cineforge-matrix-upgrade
-SHA:    f30f46b7f06643116e7b5bc8f472238aa6880343
+Branch: feature/openmontage-matrix-upgrade
+SHA:    94fdad201bf165e347ad19642e128148b6caee7a
 
-$ git ls-remote origin feature/cineforge-matrix-upgrade
-f30f46b7f06643116e7b5bc8f472238aa6880343  refs/heads/feature/cineforge-matrix-upgrade
+$ git ls-remote origin feature/openmontage-matrix-upgrade
+94fdad201bf165e347ad19642e128148b6caee7a  refs/heads/feature/openmontage-matrix-upgrade
 ```
 
 **Pull Request URL:**  
-https://github.com/mrsandipmandal/CineForge/pull/new/feature/cineforge-matrix-upgrade
+https://github.com/mrsandipmandal/CineForge/pull/new/feature/openmontage-matrix-upgrade
 
 ---
 
@@ -300,7 +302,7 @@ None — additive only.
 | `.github/workflows/security.yml` created | ✅ Done |
 | `.github/workflows/build.yml` created | ✅ Done |
 | `docs/reverse-engineering/GITHUB_DELIVERY_REPORT.md` created | ✅ Done |
-| Feature branch `feature/cineforge-matrix-upgrade` created | ✅ Done (remote confirmed) |
+| Feature branch `feature/openmontage-matrix-upgrade` created | ✅ Done (remote confirmed) |
 | Local lint passed | ✅ Done |
 | Local tests run | ✅ Done (results in §5) |
 | Commit created | 🔄 Pending (pre-commit review complete) |
@@ -327,7 +329,7 @@ GitHub credentials. If the push is blocked, run:
 
 ```bash
 cd /media/sandip/Pro/Open\ source/CineForge
-git push -u origin feature/cineforge-matrix-upgrade
+git push -u origin feature/openmontage-matrix-upgrade
 ```
 
 If HTTPS authentication fails, use a Personal Access Token (PAT) with `repo` scope
@@ -335,7 +337,7 @@ or switch to SSH:
 
 ```bash
 git remote set-url origin git@github.com:mrsandipmandal/CineForge.git
-git push -u origin feature/cineforge-matrix-upgrade
+git push -u origin feature/openmontage-matrix-upgrade
 ```
 
 ### 11.3 GitHub Actions free tier limits
