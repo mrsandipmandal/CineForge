@@ -1,4 +1,4 @@
-# OpenMontage — Continuous Integration
+# CineForge — Continuous Integration
 #
 # Runs on:
 #   - Pull requests targeting main
@@ -16,7 +16,7 @@
 #
 # Network is intentionally NOT blocked in CI because the socket-level guard
 # inside conftest.py handles that for pytest.  Live-API tests are still skipped
-# unless OPENMONTAGE_ALLOW_NETWORK=1 is set (not set here).
+# unless CINEFORGE_ALLOW_NETWORK=1 is set (not set here).
 
 name: CI
 

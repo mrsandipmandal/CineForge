@@ -19,7 +19,7 @@ To write a test that genuinely hits a live API:
 
 Marked tests are **skipped by default** and only run with the env flag set:
 
-    OPENMONTAGE_ALLOW_NETWORK=1 pytest -m live_api
+    CINEFORGE_ALLOW_NETWORK=1 pytest -m live_api
 
 Limitation: this guards the pytest process. A test that shells out to a
 subprocess (node, ffmpeg, npx) is outside its reach — don't call paid APIs
@@ -33,7 +33,7 @@ import socket
 
 import pytest
 
-_ALLOW_ENV_FLAG = "OPENMONTAGE_ALLOW_NETWORK"
+_ALLOW_ENV_FLAG = "CINEFORGE_ALLOW_NETWORK"
 
 _LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "::1", "0.0.0.0", ""}
 

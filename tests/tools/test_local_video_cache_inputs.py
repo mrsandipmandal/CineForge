@@ -259,8 +259,8 @@ def test_actual_video_rendering_inputs_change_cached_artifact(
     media, tmp_path, monkeypatch, case
 ):
     _, cls, first, second = next(c for c in media if c[0] == case)
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE_DIR", str(tmp_path / "cache"))
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE_MAX_GB", "0.01")
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE_MAX_GB", "0.01")
     reset_default_asset_cache()
     tool = cls()
     rows, paths = [], []
@@ -271,7 +271,7 @@ def test_actual_video_rendering_inputs_change_cached_artifact(
             ("reference", second, False),
             ("repeat", second, True),
         ]:
-            monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE", "1" if enabled else "0")
+            monkeypatch.setenv("CINEFORGE_ASSET_CACHE", "1" if enabled else "0")
             path = tmp_path / (name + (".mkv" if case == "face_encode" else ".mp4"))
             result = tool.execute({**inputs, "output_path": str(path)})
             assert result.success, result.error
@@ -350,8 +350,8 @@ def test_scene_analysis_cache_tracks_requested_minimum_length(tmp_path, monkeypa
             str(source),
         ]
     )
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE_DIR", str(tmp_path / "cache"))
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE_MAX_GB", "0.01")
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE_MAX_GB", "0.01")
     reset_default_asset_cache()
     rows, paths, flags = [], [], []
     try:
@@ -362,7 +362,7 @@ def test_scene_analysis_cache_tracks_requested_minimum_length(tmp_path, monkeypa
             ("reference", 1.5, False),
             ("repeat", 1.5, True),
         ]:
-            monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE", "1" if enabled else "0")
+            monkeypatch.setenv("CINEFORGE_ASSET_CACHE", "1" if enabled else "0")
             path = tmp_path / f"{name}.json"
             result = tool.execute(
                 {

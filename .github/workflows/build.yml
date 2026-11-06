@@ -1,4 +1,4 @@
-# OpenMontage — Build & Release Validation
+# CineForge — Build & Release Validation
 #
 # Validates that the project builds, installs, and starts correctly.
 # Does NOT publish a release automatically — merging to main requires

@@ -34,8 +34,8 @@ def _active_pcm_window(path):
 @pytest.fixture
 def media(tmp_path, monkeypatch, request):
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE", "1")
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE", "1")
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE_DIR", str(tmp_path / "cache"))
     reset_default_asset_cache()
     files = {}
     # Keep the simple-duck oracle far from its existing implicit-stream EOF
@@ -102,7 +102,7 @@ def test_actual_changed_audio_request_does_not_restore_prior_render(media, tmp_p
     assert second_result.success, second_result.error
     assert not first_result.from_cache
     assert not second_result.from_cache, "A different source or rendered setting reused the first artifact"
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE", "0")
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE", "0")
     reference = tmp_path / f"reference{suffix}"
     reference_result = tool.execute({**second, "output_path": str(reference)})
     assert reference_result.success, reference_result.error
@@ -117,7 +117,7 @@ def test_actual_changed_audio_request_does_not_restore_prior_render(media, tmp_p
     else:
         assert first_path.read_bytes() != reference.read_bytes()
         assert second_path.read_bytes() == reference.read_bytes()
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE", "1")
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE", "1")
     repeat = tmp_path / f"repeat{suffix}"
     repeated = tool.execute({**second, "output_path": str(repeat)})
     assert repeated.success and repeated.from_cache
@@ -147,14 +147,14 @@ def test_actual_enhancement_encoding_controls_do_not_restore_prior_audio(media, 
     assert a.success, a.error
     assert b.success, b.error
     assert not a.from_cache and not b.from_cache
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE", "0")
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE", "0")
     reference = tmp_path / "reference.mka"
     c = tool.execute({**second, "output_path": str(reference)})
     assert c.success, c.error
     # Matroska container UIDs vary; compare actual encoded audio packets.
     assert _audio_packet_hashes(first_path) != _audio_packet_hashes(reference)
     assert _audio_packet_hashes(second_path) == _audio_packet_hashes(reference)
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE", "1")
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE", "1")
     repeated_path = tmp_path / "repeated.mka"
     repeated = tool.execute({**second, "output_path": str(repeated_path)})
     assert repeated.success and repeated.from_cache

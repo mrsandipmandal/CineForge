@@ -52,7 +52,7 @@ def test_cinematic_compose_advertises_lite_as_an_optional_route() -> None:
     assert "video_compose" in compose["required_tools"]
 
 
-def test_run_emits_mp4_timeline_audiomap_and_openmontage_report(tmp_path: Path) -> None:
+def test_run_emits_mp4_timeline_audiomap_and_cineforge_report(tmp_path: Path) -> None:
     tool = BgmMontageLite()
     output = tmp_path / "renders" / "montage.mp4"
     inputs = _inputs(tmp_path, output)

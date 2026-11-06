@@ -13,14 +13,14 @@ metadata:
 
 # Gemini Omni Flash (Google DeepMind)
 
-Gemini Omni is Google DeepMind's video generation **and editing** model family. The OpenMontage direct adapter uses the generally available **Gemini Omni 1.1 Flash** model (`gemini-omni-1.1-flash`) through the Gemini **Interactions API**. Its implemented baseline generates 3–10 second clips at 720p/24fps with synthesized audio. Its differentiator in the OpenMontage fleet is **stateful conversational editing**: each stored generation returns an `interaction_id`, and a follow-up call with `previous_interaction_id` edits that video in place — no other wrapped provider can refine a clip without regenerating it.
+Gemini Omni is Google DeepMind's video generation **and editing** model family. The CineForge direct adapter uses the generally available **Gemini Omni 1.1 Flash** model (`gemini-omni-1.1-flash`) through the Gemini **Interactions API**. Its implemented baseline generates 3–10 second clips at 720p/24fps with synthesized audio. Its differentiator in the CineForge fleet is **stateful conversational editing**: each stored generation returns an `interaction_id`, and a follow-up call with `previous_interaction_id` edits that video in place — no other wrapped provider can refine a clip without regenerating it.
 
-OpenMontage wraps it as `gemini_omni_video` (native Gemini API, no gateway). It shares `GOOGLE_API_KEY`/`GEMINI_API_KEY` with `google_imagen` and `google_tts` — one key, three capabilities. Paid tier only: ~$0.10 per second of output video (exactly 5,792 output tokens/sec at $17.50/1M, before input and any text/thought output).
+CineForge wraps it as `gemini_omni_video` (native Gemini API, no gateway). It shares `GOOGLE_API_KEY`/`GEMINI_API_KEY` with `google_imagen` and `google_tts` — one key, three capabilities. Paid tier only: ~$0.10 per second of output video (exactly 5,792 output tokens/sec at $17.50/1M, before input and any text/thought output).
 
 Other documented routes are available when the direct Google key is not the
 chosen provider:
 
-| Route | OpenMontage call | Important limitation |
+| Route | CineForge call | Important limitation |
 |-------|------------------|----------------------|
 | fal.ai | `gemini_omni_fal` | T2V, I2V, reference video, and edit endpoints; no Google interaction ID is returned |
 | Runway | `runway_video`, `model: "gemini_omni_flash"` | T2V/I2V/V2V; video edits accept up to five image references |
@@ -62,7 +62,7 @@ Describe **scene + camera + lighting + motion + audio**. Official example:
 
 ### Timecode syntax
 
-Schedule beats with bracketed ranges or natural language — this maps directly onto OpenMontage scene-plan timings:
+Schedule beats with bracketed ranges or natural language — this maps directly onto CineForge scene-plan timings:
 
 ```
 [0-3s] A person is walking [3-6s] They stop and turn around
@@ -121,7 +121,7 @@ Other working edit prompts: "Make this video anime" / "Put a fashionable hat on 
 
 - Output: 3-10s, 720p, 24fps, MP4 with audio; aspect ratio `16:9` or `9:16`. All output carries an invisible SynthID watermark.
 - No seed, negative prompt, temperature, top_p, or system instructions.
-- The stable Google model supports video extension, first/last-frame interpolation, and additional resolutions, but this OpenMontage adapter has not implemented those controls. Do not advertise them as working direct-tool features. No voice editing.
+- The stable Google model supports video extension, first/last-frame interpolation, and additional resolutions, but this CineForge adapter has not implemented those controls. Do not advertise them as working direct-tool features. No voice editing.
 - Audio reference inputs unsupported. Video references ≤3s are accepted by the schema but **not processed correctly** — don't rely on them.
 - Multi-video prompting unsupported; may degrade output.
 - English fully supported; other languages untested.

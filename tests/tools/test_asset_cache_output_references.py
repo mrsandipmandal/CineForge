@@ -23,8 +23,8 @@ def reset_owned_cache():
 )
 def test_actual_chromakey_cache_hit_reports_restored_video(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE", "1")
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE", "1")
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE_DIR", str(tmp_path / "cache"))
     source = tmp_path / "source.mp4"
     subprocess.run(
         [
