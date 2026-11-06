@@ -873,7 +873,22 @@ Google TTS offers 700+ voices across 50+ languages. Voice names follow the patte
 
 **Recommended voices:** `en-US-Chirp3-HD-Orus` (male, rich/cinematic), `en-US-Chirp3-HD-Aoede` (female, warm). These are Google's newest tier — most natural-sounding, uses the v1beta1 endpoint automatically.
 
-**Languages include:** English (US, UK, AU, IN), Spanish, French, German, Italian, Portuguese, Japanese, Korean, Chinese (Mandarin, Cantonese), Arabic, Hindi, Russian, Dutch, Polish, Turkish, Vietnamese, Thai, Indonesian, and 30+ more.
+**Languages include:** English (US, UK, AU, IN), Spanish, French, German, Italian, Portuguese, Japanese, Korean, Chinese (Mandarin, Cantonese), Arabic, Hindi (`hi-IN`), Bengali (`bn-IN`, `bn-BD`), Russian, Dutch, Polish, Turkish, Vietnamese, Thai, Indonesian, and 30+ more.
+
+##### Indic & South Asian Language Support (Bengali & Hindi)
+
+CineForge provides verified voice, transcription, and caption support for Bengali and Hindi across both cloud and local providers:
+
+| Capability | Provider | Language / Locale | Recommended Voices / Models | Notes |
+|---|---|---|---|---|
+| **TTS (Cloud)** | Google Cloud TTS | Hindi (`hi-IN`) | `hi-IN-Neural2-A/B/C/D`, `hi-IN-Wavenet-A/B/C/D`, `hi-IN-Standard-A/B/C/D` | Neural2 offers highest expressiveness; 1M characters free/month |
+| **TTS (Cloud)** | Google Cloud TTS | Bengali (`bn-IN`, `bn-BD`) | `bn-IN-Wavenet-A/B`, `bn-IN-Standard-A/B`, `bn-BD-Wavenet-A/B` | Both Indian and Bangladeshi dialects supported |
+| **TTS (Cloud)** | ElevenLabs | Hindi (`hi`) & Bengali (`bn`) | `eleven_multilingual_v2`, `eleven_flash_v2_5` | High naturalness, automatic script and phonetic normalization |
+| **TTS (Cloud)** | Azure Speech | Hindi (`hi-IN`) | `hi-IN-MadhurNeural` (M), `hi-IN-SwaraNeural` (F) | Neural prosody, pitch, and speed adjustments |
+| **TTS (Cloud)** | Azure Speech | Bengali (`bn-IN`, `bn-BD`) | `bn-IN-BashkarNeural` (M), `bn-IN-TanishaaNeural` (F), `bn-BD-PradeepNeural` (M), `bn-BD-NabanitaNeural` (F) | Native accent preservation |
+| **STT / Transcribe** | Whisper / Transcriber | Hindi (`hi`), Bengali (`bn`) | `faster-whisper` (`base`, `small`, `medium`, `large-v3`) | Offline local transcription with word-level timestamps |
+| **STT / Transcribe** | Azure STT / Scribe | Hindi (`hi-IN`), Bengali (`bn-IN`) | `azure_stt`, ElevenLabs Scribe v2 | Cloud transcription with punctuation and speaker diarization |
+| **Captions** | Remotion CaptionBurn | Devanagari & Bengali scripts | Noto Sans Devanagari, Noto Sans Bengali | LTR rendering with conjunct rendering and UTF-8 encoding |
 
 ---
 
