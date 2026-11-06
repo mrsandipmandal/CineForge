@@ -71,7 +71,7 @@ def _pixels(path):
 
 @pytest.mark.skipif(not shutil.which("ffmpeg"), reason="FFmpeg required")
 def test_same_second_native_caption_calls_have_private_subtitles(tmp_path, monkeypatch):
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE", "0")
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE", "0")
     monkeypatch.setattr(
         producer, "time", SimpleNamespace(time=lambda: 1_700_000_000.25)
     )
@@ -115,7 +115,7 @@ def test_same_second_native_caption_calls_have_private_subtitles(tmp_path, monke
 
 @pytest.mark.skipif(not shutil.which("ffmpeg"), reason="FFmpeg required")
 def test_native_encoder_failure_cleans_only_owned_subtitle(tmp_path, monkeypatch):
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE", "0")
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE", "0")
     source = _source(tmp_path)
     sentinel = tmp_path / "_tmp_captions_other.srt"
     sentinel.write_text("An unrelated render owns this file", encoding="utf-8")

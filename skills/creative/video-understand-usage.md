@@ -1,6 +1,6 @@
-# Video Understanding Usage for OpenMontage
+# Video Understanding Usage for CineForge
 
-> Sources: OpenMontage video_understand tool implementation, CLIP/BLIP2/LLaVA model
+> Sources: CineForge video_understand tool implementation, CLIP/BLIP2/LLaVA model
 > documentation, OpenCV image quality metrics
 
 ## Quick Reference Card
@@ -110,7 +110,7 @@ Check face visibility and framing before applying lip-sync or face restoration t
 - Classification categories are stable across adjacent frames
 - No false positives in quality gating (good frames passing, bad frames failing)
 
-## Applying to OpenMontage
+## Applying to CineForge
 
 When using the `video_understand` tool:
 

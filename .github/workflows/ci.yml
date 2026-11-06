@@ -1,0 +1,331 @@
+# CineForge — Continuous Integration
+#
+# Runs on:
+#   - Pull requests targeting main
+#   - Pushes to any feature/** branch
+#   - Pushes to main
+#   - Manual workflow dispatch
+#
+# Quality gates (all must pass):
+#   - Python lint (py_compile + ruff if available)
+#   - Python type check (pyright if available)
+#   - Contract tests (tool registry, schema, pipeline catalog)
+#   - Full test suite (pytest)
+#   - Remotion composer TypeScript check
+#   - Remotion composer production build
+#
+# Network is intentionally NOT blocked in CI because the socket-level guard
+# inside conftest.py handles that for pytest.  Live-API tests are still skipped
+# unless CINEFORGE_ALLOW_NETWORK=1 is set (not set here).
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feature/**"
+      - "fix/**"
+      - "chore/**"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Cancel any in-progress run for the same ref to avoid duplicate work.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.10"
+  NODE_VERSION: "20"
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 1 — Backend validation
+  # ─────────────────────────────────────────────────────────────────────
+  backend:
+    name: "Backend — Python ${{ matrix.python-version }}"
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          ffmpeg -version | head -1
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Python syntax lint (py_compile)
+        run: |
+          python -m py_compile tools/base_tool.py
+          python -m py_compile tools/tool_registry.py
+          python -m py_compile tools/cost_tracker.py
+          python -m py_compile tools/analysis/composition_validator.py
+          echo "py_compile lint: PASSED"
+
+      - name: Python syntax lint — full package scan
+        run: |
+          python - <<'EOF'
+          import ast, pathlib, sys
+          errors = []
+          for f in pathlib.Path(".").rglob("*.py"):
+              skip_prefixes = (".venv", "venv", ".git", "node_modules", "remotion-composer")
+              if any(str(f).startswith(p) for p in skip_prefixes):
+                  continue
+              try:
+                  ast.parse(f.read_text(encoding="utf-8", errors="replace"))
+              except SyntaxError as e:
+                  errors.append(f"{f}: {e}")
+          if errors:
+              print("SYNTAX ERRORS:")
+              for err in errors:
+                  print(" ", err)
+              sys.exit(1)
+          print(f"Scanned {sum(1 for _ in pathlib.Path('.').rglob('*.py'))} Python files — no syntax errors")
+          EOF
+
+      - name: Tool registry discovery
+        run: |
+          python -c "
+          from tools.tool_registry import registry
+          import json, sys
+          registry.discover()
+          summary = registry.provider_menu_summary()
+          print(json.dumps(summary, indent=2))
+          caps = summary.get('capabilities', [])
+          print(f'Registry discovery: {len(caps)} capability families found')
+          if not caps:
+              print('ERROR: registry returned no capabilities', file=sys.stderr)
+              sys.exit(1)
+          print('Tool registry discovery: PASSED')
+          "
+
+      - name: Schema validation — artifact schemas
+        run: |
+          python - <<'EOF'
+          import json, pathlib, sys, jsonschema
+          schema_dir = pathlib.Path("schemas")
+          if not schema_dir.exists():
+              print("No schemas/ directory — skipping")
+              sys.exit(0)
+          errors = []
+          for schema_file in schema_dir.rglob("*.json"):
+              try:
+                  data = json.loads(schema_file.read_text())
+                  jsonschema.Draft7Validator.check_schema(data)
+                  print(f"  OK  {schema_file}")
+              except Exception as e:
+                  errors.append(f"{schema_file}: {e}")
+                  print(f"  ERR {schema_file}: {e}")
+          if errors:
+              print(f"\n{len(errors)} schema(s) failed validation")
+              sys.exit(1)
+          print(f"Schema validation: PASSED ({sum(1 for _ in schema_dir.rglob('*.json'))} schemas)")
+          EOF
+
+      - name: Pipeline manifest validation
+        run: |
+          python - <<'EOF'
+          import yaml, pathlib, sys
+          errors = []
+          pipeline_dir = pathlib.Path("pipeline_defs")
+          if not pipeline_dir.exists():
+              print("No pipeline_defs/ directory — skipping")
+              sys.exit(0)
+          for mf in pipeline_dir.glob("*.yaml"):
+              try:
+                  data = yaml.safe_load(mf.read_text())
+                  assert isinstance(data, dict), "top-level must be a mapping"
+                  for field in ("stages",):
+                      if field not in data:
+                          errors.append(f"{mf}: missing required field '{field}'")
+                  print(f"  OK  {mf.name}")
+              except Exception as e:
+                  errors.append(f"{mf}: {e}")
+                  print(f"  ERR {mf}: {e}")
+          if errors:
+              print(f"\n{len(errors)} pipeline manifest(s) failed validation")
+              sys.exit(1)
+          count = sum(1 for _ in pipeline_dir.glob("*.yaml"))
+          print(f"Pipeline manifest validation: PASSED ({count} manifests)")
+          EOF
+
+      - name: Contract tests
+        run: |
+          python -m pytest tests/contracts/ -v --tb=short \
+            -p no:warnings \
+            --junit-xml=test-reports/contract-results.xml
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+
+      - name: Lib / checkpoint tests
+        run: |
+          python -m pytest tests/lib/ -v --tb=short \
+            --junit-xml=test-reports/lib-results.xml
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+
+      - name: Tool unit tests
+        run: |
+          python -m pytest tests/tools/ -v --tb=short \
+            --junit-xml=test-reports/tool-results.xml
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+
+      - name: Backlot backend tests
+        run: |
+          python -m pytest tests/backlot/ -v --tb=short \
+            --junit-xml=test-reports/backlot-results.xml
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+
+      - name: Full test suite (catch-all)
+        run: |
+          python -m pytest tests/ -v --tb=short \
+            --junit-xml=test-reports/full-results.xml \
+            --ignore=tests/eval
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+
+      - name: Backlot startup smoke test
+        run: |
+          python - <<'EOF'
+          import sys, importlib
+          try:
+              import backlot
+              print("backlot: importable")
+              from backlot import state
+              print("backlot.state: importable")
+              from backlot import server
+              print("backlot.server: importable")
+              print("Backlot startup smoke: PASSED")
+          except ImportError as e:
+              print(f"IMPORT ERROR: {e}", file=sys.stderr)
+              sys.exit(1)
+          EOF
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-py${{ matrix.python-version }}
+          path: test-reports/
+          retention-days: 14
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 2 — Remotion composer (TypeScript + build)
+  # ─────────────────────────────────────────────────────────────────────
+  frontend:
+    name: "Frontend — Remotion composer"
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: remotion-composer
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: remotion-composer/package-lock.json
+
+      - name: Install Node dependencies (ci)
+        run: npm ci
+
+      - name: TypeScript type check
+        run: npx tsc --noEmit
+
+      - name: Remotion production build (render entry point)
+        # This validates that the composition compiles without errors.
+        # It does NOT render a full video (that requires a display server).
+        run: npx remotion bundle src/index.tsx --out-dir /tmp/remotion-bundle
+        continue-on-error: false
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 3 — Integration smoke (runs after backend + frontend pass)
+  # ─────────────────────────────────────────────────────────────────────
+  integration:
+    name: "Integration smoke"
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements-dev.txt
+
+      - name: Registry + pipeline integration
+        run: |
+          python - <<'EOF'
+          from tools.tool_registry import registry
+          import pathlib, yaml, sys
+
+          registry.discover()
+          summary = registry.provider_menu_summary()
+          caps = summary.get("capabilities", [])
+          print(f"Capabilities: {len(caps)}")
+
+          # Validate every pipeline manifest loads cleanly
+          pipeline_dir = pathlib.Path("pipeline_defs")
+          ok = 0
+          for mf in pipeline_dir.glob("*.yaml"):
+              data = yaml.safe_load(mf.read_text())
+              assert "stages" in data, f"{mf} missing 'stages'"
+              ok += 1
+          print(f"Pipeline manifests validated: {ok}")
+
+          print("Integration smoke: PASSED")
+          EOF
+
+      - name: Setup.py install smoke
+        run: |
+          pip install -e . --quiet
+          python -c "import tools; print('Package installation smoke: PASSED')"

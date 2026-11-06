@@ -12,9 +12,9 @@ For v4, v4 Turbo, Instant Soundtracks and realtime models, read
 v4 uses Text to Dialogue; Turbo uses the dialogue WebSocket.
 Do not send those models to the legacy text-to-speech endpoint.
 
-## OpenMontage provider routing
+## CineForge provider routing
 
-Inspect the OpenMontage registry before choosing an authentication path.
+Inspect the CineForge registry before choosing an authentication path.
 
 - Prefer `fal_elevenlabs_tts` when it is available. It provides Eleven v3,
   Multilingual v2, and Turbo v2.5 through the centrally managed fal.ai

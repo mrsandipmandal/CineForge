@@ -13,9 +13,9 @@ from tools.video.video_stitch import VideoStitch
 
 @pytest.fixture
 def enabled_cache(tmp_path, monkeypatch):
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE", "1")
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE_DIR", str(tmp_path / "cache"))
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE_MAX_GB", "0.01")
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE", "1")
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE_MAX_GB", "0.01")
     reset_default_asset_cache()
     yield
     reset_default_asset_cache()
@@ -67,7 +67,7 @@ def test_changed_container_renders_but_same_format_renames_hit(tmp_path, monkeyp
     changed_path, changed = execute("changed", next_suffix)
     # Native uncached execution is an independent container oracle; ffprobe
     # reads headers instead of trusting the destination's filename extension.
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE", "0")
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE", "0")
     oracle_path, oracle = execute("oracle", next_suffix)
     assert not oracle.from_cache
     assert expected in _format(oracle_path)

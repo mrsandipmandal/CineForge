@@ -427,7 +427,7 @@ def main():
     elif args.operation == "render_animation":
         bpy.context.scene.render.filepath = args.output
         bpy.ops.render.render(animation=True)
-    print("OPENMONTAGE_WORLD_REPORT=" + json.dumps(report, sort_keys=True))
+    print("CINEFORGE_WORLD_REPORT=" + json.dumps(report, sort_keys=True))
 
 
 WORLD_SPEC = {}

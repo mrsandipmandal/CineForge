@@ -163,7 +163,7 @@ class ComfyUIImage(BaseTool):
             return ToolResult(
                 success=False,
                 error=(
-                    "Custom ComfyUI workflows require output_node so OpenMontage "
+                    "Custom ComfyUI workflows require output_node so CineForge "
                     "knows which ComfyUI node to download artifacts from."
                 ),
             )

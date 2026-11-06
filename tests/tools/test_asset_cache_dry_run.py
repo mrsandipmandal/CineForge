@@ -24,8 +24,8 @@ def test_actual_stitch_dry_run_bypasses_cached_output(
     tmp_path, monkeypatch, existing_output
 ):
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE", "1")
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE", "1")
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE_DIR", str(tmp_path / "cache"))
     clips = []
     for color in ("red", "blue"):
         source = tmp_path / f"{color}.mp4"

@@ -4,7 +4,7 @@ A fake tool counts how many times its real ``execute()`` body runs. With the
 cache enabled, a repeat of a reproducible call must be served from disk without
 running the body again, at zero cost, with byte-identical output, while
 stochastic tools, seed-unpinned calls, publishers, and failures are never
-cached. The cache is off unless OPENMONTAGE_ASSET_CACHE is set, so the whole
+cached. The cache is off unless CINEFORGE_ASSET_CACHE is set, so the whole
 existing suite is unaffected; these tests opt in explicitly.
 """
 from __future__ import annotations
@@ -167,8 +167,8 @@ class _InputFileGen(_GenBase):
 
 @pytest.fixture
 def cache_on(tmp_path, monkeypatch):
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE", "1")
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE_DIR", str(tmp_path / "asset_cache"))
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE", "1")
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE_DIR", str(tmp_path / "asset_cache"))
     reset_default_asset_cache()
     yield tmp_path
     reset_default_asset_cache()
@@ -202,8 +202,8 @@ def test_identical_call_is_served_from_cache(cache_on):
 
 
 def test_disabled_by_default_does_not_cache(tmp_path, monkeypatch):
-    monkeypatch.delenv("OPENMONTAGE_ASSET_CACHE", raising=False)
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE_DIR", str(tmp_path / "asset_cache"))
+    monkeypatch.delenv("CINEFORGE_ASSET_CACHE", raising=False)
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE_DIR", str(tmp_path / "asset_cache"))
     reset_default_asset_cache()
     tool = _DetGen()
     tool.execute({"prompt": "x", "output_path": str(tmp_path / "a.png")})

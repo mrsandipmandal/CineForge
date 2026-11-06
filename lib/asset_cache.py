@@ -42,12 +42,12 @@ Design decisions
   both copy, keeping cache content immutable at the cost of the extra disk.
 
 - **LRU eviction at cap.** Default cap is 20 GB, overridable via
-  ``OPENMONTAGE_ASSET_CACHE_MAX_GB``. Ingesting past the cap evicts
+  ``CINEFORGE_ASSET_CACHE_MAX_GB``. Ingesting past the cap evicts
   least-recently-accessed entries until there is room.
 
-- **Off unless asked.** Enabled only when ``OPENMONTAGE_ASSET_CACHE`` is set to
+- **Off unless asked.** Enabled only when ``CINEFORGE_ASSET_CACHE`` is set to
   a truthy value, so it can never change the behavior of an existing run that
-  did not opt in. The directory honors ``OPENMONTAGE_ASSET_CACHE_DIR``.
+  did not opt in. The directory honors ``CINEFORGE_ASSET_CACHE_DIR``.
 
 Non-goals (intentional for this phase)
 --------------------------------------
@@ -77,7 +77,7 @@ except ImportError:
     _HAVE_FILELOCK = False
 
 
-# Default 20 GB cap. Overridable via OPENMONTAGE_ASSET_CACHE_MAX_GB.
+# Default 20 GB cap. Overridable via CINEFORGE_ASSET_CACHE_MAX_GB.
 _DEFAULT_MAX_TOTAL_BYTES = 20 * 1024 * 1024 * 1024
 
 # Reject ingesting an artifact under this size; almost always a failed or
@@ -93,35 +93,35 @@ _MIN_USABLE_BYTES = 1
 def asset_cache_enabled() -> bool:
     """Whether the asset cache is active.
 
-    Off by default. Honors ``OPENMONTAGE_ASSET_CACHE``: ``1``/``true``/``yes``/
+    Off by default. Honors ``CINEFORGE_ASSET_CACHE``: ``1``/``true``/``yes``/
     ``on`` (any case) enable it; anything else (including unset) leaves it
     off, so an existing run that did not opt in behaves exactly as before.
     """
-    val = os.environ.get("OPENMONTAGE_ASSET_CACHE", "").strip().lower()
+    val = os.environ.get("CINEFORGE_ASSET_CACHE", "").strip().lower()
     return val in {"1", "true", "yes", "on"}
 
 
 def default_asset_cache_dir() -> Path:
     """Resolve the cache directory.
 
-    Honors ``OPENMONTAGE_ASSET_CACHE_DIR`` if set, else
-    ``~/.openmontage/asset_cache``. Kept separate from the clip byte cache
+    Honors ``CINEFORGE_ASSET_CACHE_DIR`` if set, else
+    ``~/.cineforge/asset_cache``. Kept separate from the clip byte cache
     (``clips_cache``) so eviction budgets do not contend.
     """
-    override = os.environ.get("OPENMONTAGE_ASSET_CACHE_DIR")
+    override = os.environ.get("CINEFORGE_ASSET_CACHE_DIR")
     if override:
         return Path(override).expanduser()
-    return Path.home() / ".openmontage" / "asset_cache"
+    return Path.home() / ".cineforge" / "asset_cache"
 
 
 def default_max_total_bytes() -> int:
     """Resolve the max-cache-size budget.
 
-    Honors ``OPENMONTAGE_ASSET_CACHE_MAX_GB`` (float or int) if set, else the
+    Honors ``CINEFORGE_ASSET_CACHE_MAX_GB`` (float or int) if set, else the
     default 20 GB. An invalid override falls back to the default rather than
     crashing a production run over a bad env var.
     """
-    override = os.environ.get("OPENMONTAGE_ASSET_CACHE_MAX_GB")
+    override = os.environ.get("CINEFORGE_ASSET_CACHE_MAX_GB")
     if override:
         try:
             return int(float(override) * 1024 * 1024 * 1024)
@@ -557,7 +557,7 @@ def get_default_asset_cache() -> AssetCache:
 def reset_default_asset_cache() -> None:
     """Drop the cached singleton so the next accessor re-reads env vars.
 
-    Useful for tests that mutate ``OPENMONTAGE_ASSET_CACHE_DIR``.
+    Useful for tests that mutate ``CINEFORGE_ASSET_CACHE_DIR``.
     """
     global _DEFAULT_CACHE
     _DEFAULT_CACHE = None

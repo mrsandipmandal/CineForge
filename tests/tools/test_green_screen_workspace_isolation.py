@@ -18,7 +18,7 @@ def test_same_second_native_scene_calls_have_independent_workspaces(
     tmp_path, monkeypatch
 ):
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE", "0")
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE", "0")
     monkeypatch.setattr(
         producer, "time", SimpleNamespace(time=lambda: 1_700_000_000.25)
     )

@@ -1,6 +1,6 @@
 """Base tool class implementing the expanded ToolContract.
 
-Every tool in OpenMontage inherits from BaseTool. This enforces a uniform
+Every tool in CineForge inherits from BaseTool. This enforces a uniform
 interface for discovery, execution, cost estimation, and health reporting.
 """
 
@@ -350,7 +350,7 @@ def _cache_execute(fn: Callable) -> Callable:
 
     The cache layer is strictly optional and non-fatal: any failure importing or
     using it falls through to the live call untouched. It is also off unless
-    OPENMONTAGE_ASSET_CACHE is set, so an existing run behaves exactly as before.
+    CINEFORGE_ASSET_CACHE is set, so an existing run behaves exactly as before.
     """
     if getattr(fn, "_asset_cached", False):
         return fn
@@ -407,7 +407,7 @@ def _cache_execute(fn: Callable) -> Callable:
 
 
 class BaseTool(ABC):
-    """Abstract base class for all OpenMontage tools."""
+    """Abstract base class for all CineForge tools."""
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Auto-instrument every concrete execute() with Backlot events."""
@@ -434,7 +434,7 @@ class BaseTool(ABC):
 
     # --- Capabilities ---
     capability: str = "generic"
-    provider: str = "openmontage"
+    provider: str = "cineforge"
     capabilities: list[str] = []
     input_schema: dict = {}
     output_schema: dict = {}

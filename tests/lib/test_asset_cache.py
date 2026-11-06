@@ -45,33 +45,33 @@ def _fake_asset(path: Path, payload: bytes) -> Path:
 
 
 def test_disabled_by_default(monkeypatch):
-    monkeypatch.delenv("OPENMONTAGE_ASSET_CACHE", raising=False)
+    monkeypatch.delenv("CINEFORGE_ASSET_CACHE", raising=False)
     assert asset_cache_enabled() is False
 
 
 def test_enabled_by_truthy_values(monkeypatch):
     for val in ("1", "true", "TRUE", "yes", "On"):
-        monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE", val)
+        monkeypatch.setenv("CINEFORGE_ASSET_CACHE", val)
         assert asset_cache_enabled() is True
     for val in ("0", "false", "no", "", "off"):
-        monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE", val)
+        monkeypatch.setenv("CINEFORGE_ASSET_CACHE", val)
         assert asset_cache_enabled() is False
 
 
 def test_default_cache_dir_uses_env_override(monkeypatch, tmp_path):
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE_DIR", str(tmp_path / "overridden"))
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE_DIR", str(tmp_path / "overridden"))
     assert default_asset_cache_dir() == tmp_path / "overridden"
 
 
 def test_default_cache_dir_falls_back_to_home(monkeypatch):
-    monkeypatch.delenv("OPENMONTAGE_ASSET_CACHE_DIR", raising=False)
-    assert default_asset_cache_dir() == Path.home() / ".openmontage" / "asset_cache"
+    monkeypatch.delenv("CINEFORGE_ASSET_CACHE_DIR", raising=False)
+    assert default_asset_cache_dir() == Path.home() / ".cineforge" / "asset_cache"
 
 
 def test_default_max_total_bytes_respects_and_guards_env(monkeypatch):
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE_MAX_GB", "5")
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE_MAX_GB", "5")
     assert default_max_total_bytes() == 5 * 1024 * 1024 * 1024
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE_MAX_GB", "not-a-number")
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE_MAX_GB", "not-a-number")
     assert default_max_total_bytes() == 20 * 1024 * 1024 * 1024
 
 
@@ -300,7 +300,7 @@ def test_stats_reports_state_and_counters(tmp_path):
 
 def test_get_default_asset_cache_honors_env_and_is_singleton(monkeypatch, tmp_path):
     reset_default_asset_cache()
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE_DIR", str(tmp_path / "envcache"))
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE_DIR", str(tmp_path / "envcache"))
     a = get_default_asset_cache()
     b = get_default_asset_cache()
     assert a is b

@@ -161,8 +161,8 @@ def test_actual_reframe_matches_independent_display_crop(
 def test_old_version_cache_is_missed_then_new_render_is_reused(tmp_path, monkeypatch):
     from lib.asset_cache import get_default_asset_cache, reset_default_asset_cache
 
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE", "1")
-    monkeypatch.setenv("OPENMONTAGE_ASSET_CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE", "1")
+    monkeypatch.setenv("CINEFORGE_ASSET_CACHE_DIR", str(tmp_path / "cache"))
     reset_default_asset_cache()
     try:
         source = tmp_path / "source.mp4"
