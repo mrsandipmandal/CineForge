@@ -1,94 +1,603 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-<meta charset="utf-8">
-<style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  html,body { width:1280px; height:640px; }
-  body {
-    background:#171310;
-    font-family:"Segoe UI", system-ui, sans-serif;
-    display:flex; align-items:center; justify-content:center;
-    overflow:hidden; position:relative;
-  }
-  /* warm key light behind the mascot */
-  .glow {
-    position:absolute; left:150px; top:50%; transform:translateY(-50%);
-    width:620px; height:620px; border-radius:50%;
-    background:radial-gradient(circle, rgba(224,112,79,.20) 0%, rgba(224,112,79,.07) 42%, rgba(23,19,16,0) 68%);
-  }
-  /* clapper-stripe motif, bottom-right, very quiet */
-  .motif {
-    position:absolute; right:0; bottom:0; width:560px; height:360px;
-    background:repeating-linear-gradient(45deg,#f2ecdf 0 26px, transparent 26px 52px);
-    opacity:.05;
-    -webkit-mask-image:radial-gradient(ellipse at 100% 100%, #000 0%, transparent 72%);
-            mask-image:radial-gradient(ellipse at 100% 100%, #000 0%, transparent 72%);
-  }
-  .row { display:flex; align-items:center; gap:76px; position:relative; z-index:2; }
-  .mark { width:340px; height:340px; flex:none; }
-  h1 {
-    font-size:86px; font-weight:700; letter-spacing:-2.5px; color:#f2ecdf; line-height:1;
-  }
-  .rule {
-    width:520px; height:7px; margin:26px 0 24px; border-radius:3px;
-    background:repeating-linear-gradient(45deg,#f2ecdf 0 9px,#241d15 9px 18px);
-    opacity:.55;
-    -webkit-mask-image:linear-gradient(90deg,#000 0%,#000 45%,transparent 100%);
-            mask-image:linear-gradient(90deg,#000 0%,#000 45%,transparent 100%);
-  }
-  p.tag {
-    font-size:29px; color:#b9ab97; line-height:1.35; max-width:520px; font-weight:400;
-  }
-  .stats { margin-top:26px; font-size:22px; color:#e0704f; font-weight:600; letter-spacing:.2px; }
-  .stats span { color:#6b5c4d; font-weight:400; margin:0 10px; }
-  .url {
-    position:absolute; bottom:44px; left:0; right:0; text-align:center;
-    font-size:19px; color:#6b5c4d; letter-spacing:2.5px; text-transform:uppercase; z-index:2;
-  }
-</style>
+  <meta charset="utf-8">
+  <title>CineForge — Social Preview</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 1280px;
+      height: 640px;
+      overflow: hidden;
+    }
+
+    body {
+      background: radial-gradient(ellipse at 16% 40%, #1e1438 0%, #0c0e22 50%, #060714 100%);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      color: #F7F5F1;
+      padding: 40px 56px 32px 56px;
+    }
+
+    /* Atmospheric Studio Lighting */
+    .spotlight-left {
+      position: absolute;
+      left: -80px;
+      top: -80px;
+      width: 620px;
+      height: 620px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.32) 0%, rgba(236, 72, 153, 0.14) 40%, rgba(6, 7, 20, 0) 72%);
+      pointer-events: none;
+    }
+
+    .spotlight-flame {
+      position: absolute;
+      left: 175px;
+      top: 80px;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 113, 61, 0.28) 0%, rgba(255, 194, 71, 0.10) 45%, rgba(6, 7, 20, 0) 70%);
+      pointer-events: none;
+    }
+
+    .spotlight-right {
+      position: absolute;
+      right: -80px;
+      top: -80px;
+      width: 650px;
+      height: 560px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, rgba(139, 92, 246, 0.08) 45%, rgba(6, 7, 20, 0) 70%);
+      pointer-events: none;
+    }
+
+    .spotlight-center {
+      position: absolute;
+      left: 48%;
+      top: 28%;
+      transform: translate(-50%, -50%);
+      width: 580px;
+      height: 340px;
+      border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(255, 113, 61, 0.12) 0%, rgba(241, 45, 104, 0.05) 50%, transparent 75%);
+      pointer-events: none;
+    }
+
+    /* Filmstrip & Cyber Grid Motifs */
+    .grid-backdrop {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+      background-size: 32px 32px;
+      -webkit-mask-image: radial-gradient(ellipse at 50% 50%, #000 25%, transparent 80%);
+      mask-image: radial-gradient(ellipse at 50% 50%, #000 25%, transparent 80%);
+      pointer-events: none;
+    }
+
+    /* Top Section */
+    .hero-row {
+      display: flex;
+      align-items: center;
+      gap: 46px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .mascot-box {
+      width: 270px;
+      height: 270px;
+      flex: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.8)) drop-shadow(0 0 50px rgba(139, 92, 246, 0.38));
+    }
+
+    .mascot-svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .brand-box {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .badge-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .studio-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 14px;
+      border-radius: 999px;
+      background: rgba(30, 27, 52, 0.85);
+      border: 1px solid rgba(255, 178, 63, 0.45);
+      color: #FFC247;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(10px);
+    }
+
+    .studio-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #FF713D;
+      box-shadow: 0 0 8px #FF713D;
+    }
+
+    .meta-tag {
+      font-size: 13px;
+      font-weight: 600;
+      color: #8E92B2;
+      letter-spacing: 0.5px;
+    }
+
+    h1 {
+      font-size: 82px;
+      font-weight: 900;
+      letter-spacing: -3px;
+      line-height: 0.95;
+      margin-bottom: 12px;
+    }
+
+    .cine {
+      color: #F7F5F1;
+    }
+
+    .forge {
+      background: linear-gradient(135deg, #FFC247 0%, #FF713D 45%, #F12D68 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: inline-block;
+    }
+
+    .flame-arc {
+      width: 500px;
+      height: 8px;
+      margin-bottom: 16px;
+      display: block;
+      filter: drop-shadow(0 0 8px rgba(255, 113, 61, 0.5));
+    }
+
+    .tagline-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .tagline-main {
+      font-size: 26px;
+      font-weight: 700;
+      color: #FFFFFF;
+      letter-spacing: -0.3px;
+    }
+
+    .tagline-sub {
+      font-size: 22px;
+      font-family: 'Segoe UI', cursive, sans-serif;
+      font-style: italic;
+      color: #FFB23F;
+      letter-spacing: 0.5px;
+    }
+
+    /* Bottom Capabilities Row */
+    .capabilities-container {
+      position: relative;
+      z-index: 2;
+      margin-top: 18px;
+      background: linear-gradient(180deg, rgba(20, 22, 42, 0.75) 0%, rgba(14, 16, 32, 0.85) 100%);
+      border: 1px solid rgba(139, 92, 246, 0.28);
+      border-radius: 20px;
+      padding: 18px 24px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .cap-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .cap-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #A9B7FF;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cap-stats {
+      font-size: 14px;
+      font-weight: 600;
+      color: #FFB23F;
+      display: flex;
+      gap: 16px;
+    }
+
+    .cap-stats span {
+      color: #555978;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 12px;
+    }
+
+    .cap-card {
+      background: linear-gradient(180deg, rgba(32, 35, 64, 0.7) 0%, rgba(20, 22, 44, 0.85) 100%);
+      border: 1px solid rgba(169, 183, 255, 0.18);
+      border-radius: 12px;
+      padding: 12px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .card-icon {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(255, 113, 61, 0.22), rgba(168, 85, 247, 0.22));
+      border: 1px solid rgba(255, 178, 63, 0.25);
+      color: #FFC247;
+    }
+
+    .card-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .card-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #D4D6E6;
+      line-height: 1.25;
+    }
+
+    /* Footer bar */
+    .footer-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      z-index: 2;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 13px;
+      color: #727699;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .footer-links span.sep {
+      color: #383B56;
+    }
+
+    .footer-pill {
+      color: #A9B7FF;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
 </head>
+
 <body>
-<div class="glow"></div>
-<div class="motif"></div>
+  <div class="spotlight-left"></div>
+  <div class="spotlight-flame"></div>
+  <div class="spotlight-right"></div>
+  <div class="spotlight-center"></div>
+  <div class="grid-backdrop"></div>
 
-<div class="row">
-  <svg class="mark" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <pattern id="mstr" width="22" height="22" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-        <rect width="11" height="22" fill="#241d15"/>
-      </pattern>
-    </defs>
-    <g transform="translate(0,-4)">
-      <rect x="74" y="156" width="16" height="26" rx="8" fill="#3a2f26" stroke="#f2ecdf" stroke-width="3"/>
-      <rect x="112" y="156" width="16" height="26" rx="8" fill="#3a2f26" stroke="#f2ecdf" stroke-width="3"/>
-      <g transform="rotate(-24 46 88)">
-        <rect x="42" y="64" width="120" height="24" rx="10" fill="#f2ecdf"/>
-        <rect x="42" y="64" width="120" height="24" rx="10" fill="url(#mstr)"/>
-      </g>
-      <rect x="42" y="88" width="120" height="76" rx="14" fill="#241d15" stroke="#f2ecdf" stroke-width="3.5"/>
-      <rect x="42" y="88" width="120" height="20" rx="10" fill="#f2ecdf"/>
-      <rect x="42" y="88" width="120" height="20" rx="10" fill="url(#mstr)"/>
-      <rect x="24" y="116" width="24" height="14" rx="7" fill="#3a2f26" stroke="#f2ecdf" stroke-width="3" transform="rotate(24 36 123)"/>
-      <rect x="156" y="116" width="24" height="14" rx="7" fill="#3a2f26" stroke="#f2ecdf" stroke-width="3" transform="rotate(-24 168 123)"/>
-      <circle cx="79" cy="132" r="13" fill="#f2ecdf"/>
-      <circle cx="123" cy="132" r="13" fill="#f2ecdf"/>
-      <circle cx="81" cy="133" r="5.5" fill="#241d15"/>
-      <circle cx="121" cy="133" r="5.5" fill="#241d15"/>
-      <circle cx="61" cy="146" r="5" fill="#e0704f" opacity=".85"/>
-      <circle cx="141" cy="146" r="5" fill="#e0704f" opacity=".85"/>
-      <path d="M93 148 Q101 155 109 148" stroke="#f2ecdf" stroke-width="4" stroke-linecap="round" fill="none"/>
-    </g>
-  </svg>
+  <!-- Top Section: Mascot + Brand Title -->
+  <div class="hero-row">
+    <div class="mascot-box">
+      <svg class="mascot-svg" viewBox="160 15 885 865" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+            <stop stop-color="#FFC247" />
+            <stop offset=".48" stop-color="#FF713D" />
+            <stop offset="1" stop-color="#F12D68" />
+          </linearGradient>
+          <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1">
+            <stop stop-color="#FFB23F" />
+            <stop offset=".5" stop-color="#A855F7" />
+            <stop offset="1" stop-color="#36BDF8" />
+          </linearGradient>
+          <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
+            <stop stop-color="#20243A" />
+            <stop offset="1" stop-color="#101322" />
+          </linearGradient>
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="12" result="b" />
+            <feMerge>
+              <feMergeNode in="b" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <pattern id="stripes" width="58" height="58" patternUnits="userSpaceOnUse" patternTransform="rotate(28)">
+            <rect width="58" height="58" fill="#F8F3E9" />
+            <rect width="27" height="58" fill="#171A2B" />
+          </pattern>
+        </defs>
 
-  <div>
-    <h1>CineForge</h1>
-    <div class="rule"></div>
-    <p class="tag">The first open-source, agentic<br>video production system.</p>
-    <div class="stats">12 pipelines<span>·</span>100+ tools<span>·</span>700+ agent skills</div>
+        <!-- Flame Crest -->
+        <path d="M493 188 C458 121 518 77 574 42 C566 105 652 95 657 18 C744 105 704 191 641 226Z" fill="url(#accent)"
+          stroke="#FFB84B" stroke-width="8" stroke-linejoin="round" />
+        <path d="M557 190 C542 148 592 132 612 94 C625 139 661 153 646 194Z" fill="#FFE18B" opacity=".92" />
+
+        <!-- Filmstrip Coils / Ears -->
+        <path d="M263 434 C170 385 169 536 286 563 M917 430 C1026 365 1041 515 921 559" fill="none" stroke="url(#edge)"
+          stroke-width="18" stroke-linecap="round" />
+        <path d="M253 448 C180 424 191 510 276 526 M930 448 C1008 414 1007 497 925 524" fill="none" stroke="#A9B7FF"
+          stroke-width="6" stroke-dasharray="22 16" opacity=".85" />
+
+        <!-- Feet -->
+        <path
+          d="M430 753 L411 819 Q400 868 451 870 Q488 870 492 824 L500 765 M700 765 L708 824 Q712 870 750 870 Q800 868 789 819 L770 753"
+          fill="url(#body)" stroke="url(#edge)" stroke-width="13" stroke-linecap="round" />
+
+        <!-- Clapperboard Main Body -->
+        <path
+          d="M305 361 L873 361 Q911 361 911 399 L911 681 Q911 732 859 740 Q600 779 341 740 Q289 732 289 681 L289 399 Q289 361 305 361Z"
+          fill="url(#body)" stroke="url(#edge)" stroke-width="15" />
+
+        <!-- Lower Clapper Rim -->
+        <path d="M280 354 L878 354 Q916 354 916 392 L916 435 L280 435Z" fill="#111426" stroke="#E7E8F2"
+          stroke-width="10" />
+        <path d="M294 364 L902 364 L902 425 L294 425Z" fill="url(#stripes)" />
+
+        <!-- Upper Clapper Stick (Open) -->
+        <path
+          d="M278 347 L840 206 Q878 196 891 235 L906 278 Q917 316 879 327 L316 466 Q277 476 264 437 L250 395 Q238 358 278 347Z"
+          fill="#101426" stroke="url(#edge)" stroke-width="14" />
+        <path
+          d="M274 358 L850 215 Q874 209 882 235 L894 278 Q901 301 878 307 L302 450 Q278 456 270 432 L258 390 Q251 365 274 358Z"
+          fill="url(#stripes)" />
+        <circle cx="333" cy="400" r="13" fill="#FFB24B" stroke="#111426" stroke-width="5" />
+
+        <!-- Hands -->
+        <path
+          d="M260 561 Q213 531 202 574 Q192 611 244 626 L292 640 M909 561 Q958 529 976 571 Q990 608 938 627 L891 642"
+          fill="#171A2D" stroke="url(#edge)" stroke-width="13" stroke-linejoin="round" />
+
+        <!-- Big Cute Eyes -->
+        <circle cx="424" cy="544" r="49" fill="#F6F3ED" />
+        <circle cx="424" cy="544" r="25" fill="#111426" />
+        <circle cx="412" cy="532" r="10" fill="#FFFFFF" />
+
+        <circle cx="701" cy="544" r="49" fill="#F6F3ED" />
+        <circle cx="701" cy="544" r="25" fill="#111426" />
+        <circle cx="689" cy="532" r="10" fill="#FFFFFF" />
+
+        <!-- Cheerful Smile -->
+        <path d="M531 611 Q563 649 600 612" fill="none" stroke="#F6F3ED" stroke-width="15" stroke-linecap="round" />
+
+        <!-- Rosy Cheeks -->
+        <circle cx="350" cy="655" r="22" fill="#F33C55" />
+        <circle cx="778" cy="655" r="22" fill="#F33C55" />
+
+        <!-- Glowing Play Icon on Chest -->
+        <path d="M550 679 L550 753 Q550 767 565 758 L649 716 Q664 707 649 698 L565 657 Q550 649 550 679Z"
+          fill="url(#accent)" stroke="#FFDA9A" stroke-width="5" stroke-linejoin="round" />
+
+        <!-- Lens Sparkle Star -->
+        <g transform="translate(820 526)" filter="url(#glow)">
+          <circle r="46" fill="#171A2D" stroke="url(#accent)" stroke-width="12" />
+          <circle r="17" fill="url(#accent)" />
+          <g stroke="url(#accent)" stroke-width="13" stroke-linecap="round">
+            <path
+              d="M0 -68 V-54 M0 54 V68 M-68 0 H-54 M54 0 H68 M-48 -48 L-38 -38 M38 38 L48 48 M48 -48 L38 -38 M-38 38 L-48 48" />
+          </g>
+        </g>
+      </svg>
+    </div>
+
+    <div class="brand-box">
+      <div class="badge-row">
+        <div class="studio-pill">
+          <span class="studio-dot"></span>
+          AI Film Production Studio
+        </div>
+        <span class="meta-tag">Autonomous Multi-Agent Filmmaking</span>
+      </div>
+
+      <h1><span class="cine">Cine</span><span class="forge">Forge</span></h1>
+
+      <!-- Curved Flame Arc Accent -->
+      <svg class="flame-arc" viewBox="0 0 500 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 4 Q125 8 250 4 Q375 0 500 4" stroke="url(#arc-grad)" stroke-width="5" stroke-linecap="round" />
+        <defs>
+          <linearGradient id="arc-grad" x1="0" y1="0" x2="1" y2="0">
+            <stop stop-color="#FFC247" />
+            <stop offset="0.35" stop-color="#FF713D" />
+            <stop offset="0.75" stop-color="#F12D68" />
+            <stop offset="1" stop-color="#8B5CF6" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+      </svg>
+
+      <div class="tagline-group">
+        <div class="tagline-main">The first open-source, agentic video production system.</div>
+        <div class="tagline-sub">From Imagination to Cinema.</div>
+      </div>
+    </div>
   </div>
-</div>
 
-<div class="url">cineforge.video</div>
+  <!-- Bottom Section: 7 Core Capabilities Grid -->
+  <div class="capabilities-container">
+    <div class="cap-header">
+      <div class="cap-title">
+        <span>Full-Stack AI Production Pipeline</span>
+      </div>
+      <div class="cap-stats">
+        <div>13 Pipelines</div>
+        <span>•</span>
+        <div>150+ AI Tools</div>
+        <span>•</span>
+        <div>Backlot Live Board</div>
+      </div>
+    </div>
+
+    <div class="cards-grid">
+      <!-- 1: Script Writing -->
+      <div class="cap-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
+          </svg>
+        </div>
+        <div class="card-label">Script<br>Writing</div>
+      </div>
+
+      <!-- 2: Voice Cloning -->
+      <div class="cap-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            <line x1="12" y1="19" x2="12" y2="23" />
+            <line x1="8" y1="23" x2="16" y2="23" />
+          </svg>
+        </div>
+        <div class="card-label">Voice<br>Cloning</div>
+      </div>
+
+      <!-- 3: Image / Video -->
+      <div class="cap-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+        </div>
+        <div class="card-label">Image &bull; Video<br>Generation</div>
+      </div>
+
+      <!-- 4: 3D Asset Gen -->
+      <div class="cap-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path
+              d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+            <line x1="12" y1="22.08" x2="12" y2="12" />
+          </svg>
+        </div>
+        <div class="card-label">3D Asset<br>Generation</div>
+      </div>
+
+      <!-- 5: Character & Face -->
+      <div class="cap-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+        </div>
+        <div class="card-label">Character<br>&amp; Face Lab</div>
+      </div>
+
+      <!-- 6: Scene Composition -->
+      <div class="cap-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2" />
+            <polyline points="2 17 12 22 22 17" />
+            <polyline points="2 12 12 17 22 12" />
+          </svg>
+        </div>
+        <div class="card-label">Scene<br>Composition</div>
+      </div>
+
+      <!-- 7: Full Production -->
+      <div class="cap-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
+            <line x1="7" y1="2" x2="7" y2="22" />
+            <line x1="17" y1="2" x2="17" y2="22" />
+            <line x1="2" y1="12" x2="22" y2="12" />
+            <line x1="2" y1="7" x2="7" y2="7" />
+            <line x1="2" y1="17" x2="7" y2="17" />
+            <line x1="17" y1="17" x2="22" y2="17" />
+            <line x1="17" y1="7" x2="22" y2="7" />
+          </svg>
+        </div>
+        <div class="card-label">Full Video<br>Production</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Footer Bar -->
+  <div class="footer-row">
+    <div class="footer-links">
+      <span>github.com/mrsandipmandal/CineForge</span>
+    </div>
+    <div class="footer-pill">
+      <span>Remotion</span> &bull; <span>HyperFrames</span> &bull; <span>FFmpeg</span>
+    </div>
+  </div>
 </body>
+
 </html>
