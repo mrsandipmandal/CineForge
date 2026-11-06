@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/monty-dark.svg">
-    <img src="assets/monty-light.svg" alt="Monty the Clapper — the official mascot of CineForge" width="200">
+    <source media="(prefers-color-scheme: dark)" srcset="assets/cineforge-dark.svg">
+    <img src="assets/cineforge-light.svg" alt="CineForge mascot" width="200">
   </picture>
 </p>
 
