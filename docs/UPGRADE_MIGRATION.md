@@ -22,7 +22,7 @@ CineForge Matrix was engineered under strict non-destructive upgrade principles:
 
 ### Step 1: Pull the Latest Upgrade Branch
 ```bash
-git checkout feature/openmontage-matrix-upgrade
+git checkout feature/cineforge-matrix-upgrade
 ```
 
 ### Step 2: Verify Dependencies

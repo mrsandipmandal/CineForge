@@ -5,7 +5,7 @@
 **Auditor:** Senior Software Licensing Auditor & Software Architect  
 **Upstream Repository:** `https://github.com/calesthio/OpenMontage.git`  
 **Upstream Base Commit:** `d21f5d4eaa08422b09c7091757a05affcbabb35b`  
-**Current Git Branch:** `feature/openmontage-matrix-upgrade` (`541dbbd`)  
+**Current Git Branch:** `feature/cineforge-matrix-upgrade`  
 
 ---
 

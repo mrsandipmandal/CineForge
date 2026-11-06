@@ -6,7 +6,7 @@
 **Upstream Repository:** `https://github.com/calesthio/OpenMontage.git`  
 **Upstream License:** GNU Affero General Public License Version 3.0 (AGPL-3.0)  
 **Upstream Base Commit:** `d21f5d4eaa08422b09c7091757a05affcbabb35b`  
-**CineForge Current Head:** `541dbbd` (branch `feature/openmontage-matrix-upgrade`)  
+**CineForge Current Head:** (branch `feature/cineforge-matrix-upgrade`)  
 
 ---
 
