@@ -1,4 +1,4 @@
-# OpenMontage Matrix — End-to-End Execution Flow
+# CineForge Matrix — End-to-End Execution Flow
 
 **Date:** 2026-11-06  
 **Status:** Comprehensive Pipeline Lifecycle Reference  

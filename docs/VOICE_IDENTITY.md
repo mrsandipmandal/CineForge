@@ -1,12 +1,12 @@
-# OpenMontage Matrix — Voice Identity Studio
+# CineForge Matrix — Voice Identity Studio
 
-The **Voice Identity Studio** provides unified voice profile management, cross-scene vocal continuity, and native multilingual speech synthesis and voice cloning for OpenMontage Matrix.
+The **Voice Identity Studio** provides unified voice profile management, cross-scene vocal continuity, and native multilingual speech synthesis and voice cloning for CineForge Matrix.
 
 ---
 
 ## 1. Supported Languages & Target Dialects
 
-OpenMontage Matrix delivers first-class support for three primary languages:
+CineForge Matrix delivers first-class support for three primary languages:
 
 | Language | Locale Code | Script | TTS Support | Voice Cloning Support | Recommended Providers |
 |----------|-------------|--------|-------------|-----------------------|-----------------------|
@@ -48,7 +48,7 @@ Voice profiles reside in `sample-files/voices/<profile_id>/`:
   "consent": {
     "verified": true,
     "consent_type": "voice_actor_release",
-    "notes": "Full rights granted for OpenMontage Matrix documentary narrations."
+    "notes": "Full rights granted for CineForge Matrix documentary narrations."
   },
   "samples": [
     {

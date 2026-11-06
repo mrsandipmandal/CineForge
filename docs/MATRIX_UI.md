@@ -1,6 +1,6 @@
-# OpenMontage Matrix — Matrix UI & Backlot Studio Redesign
+# CineForge Matrix — Matrix UI & Backlot Studio Redesign
 
-The **Backlot Studio** has been redesigned into **OpenMontage Matrix** — a high-contrast, cyberpunk-inspired, cinematic control room and terminal interface designed for professional AI film directors and engineers.
+The **Backlot Studio** has been redesigned into **CineForge Matrix** — a high-contrast, cyberpunk-inspired, cinematic control room and terminal interface designed for professional AI film directors and engineers.
 
 ---
 

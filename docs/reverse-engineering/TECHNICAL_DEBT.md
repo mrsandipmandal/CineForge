@@ -1,4 +1,4 @@
-# OpenMontage Matrix — Technical Debt & Codebase Health Audit
+# CineForge Matrix — Technical Debt & Codebase Health Audit
 
 **Date:** 2026-11-06  
 **Auditor:** Principal Software Architect  

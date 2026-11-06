@@ -1048,7 +1048,7 @@ function tickReplay() {
 }
 
 // ---------------------------------------------------------------------------
-// OpenMontage Matrix — Studio Views & Terminal Extensions
+// CineForge Matrix — Studio Views & Terminal Extensions
 // ---------------------------------------------------------------------------
 
 let currentView = "control_room";
@@ -1447,7 +1447,7 @@ function renderStoryboardView(s) {
 function render() {
   if (!state) return;
   const s = replay ? stateAt(state, replay.t) : state;
-  document.title = `OpenMontage Matrix — ${s.title}`;
+  document.title = `CineForge Matrix — ${s.title}`;
   document.body.classList.toggle("first", firstPaint);
   firstPaint = false;
   app.innerHTML = "";

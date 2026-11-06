@@ -173,9 +173,9 @@ And when a run is done, hit **▶ REPLAY RUN** — the whole production replays 
 
 ---
 
-## OpenMontage Matrix Edition — Character & Voice Identity Studio
+## CineForge Matrix Edition — Character & Voice Identity Studio
 
-**OpenMontage Matrix** elevates CineForge into a persistent character and voice production studio with a cyberpunk Matrix terminal UI:
+**CineForge Matrix** elevates CineForge into a persistent character and voice production studio with a cyberpunk Matrix terminal UI:
 
 - **Unified Identity Library (`sample-files/`)**: Reusable voice recordings and multi-angle character reference portraits across all projects and scenes.
 - **Multilingual Voice Studio**: Full native support for **Bengali (`bn-IN`)**, **Hindi (`hi-IN`)**, and **English (`en-US`)** TTS and voice cloning across ElevenLabs, Fish Audio, Azure Speech, IndicF5, and Coqui XTTS-v2.

@@ -1,4 +1,4 @@
-# OpenMontage Matrix — Security & Data Privacy Audit
+# CineForge Matrix — Security & Data Privacy Audit
 
 **Date:** 2026-11-06  
 **Auditor:** Principal Security & QA Engineer  
@@ -8,7 +8,7 @@
 
 ## 1. Threat Modeling & Scope
 
-The OpenMontage Matrix upgrade introduces personal voice samples and character face reference imagery (`sample-files/`). These assets represent sensitive personal biometric and identity data. The security model must strictly enforce:
+The CineForge Matrix upgrade introduces personal voice samples and character face reference imagery (`sample-files/`). These assets represent sensitive personal biometric and identity data. The security model must strictly enforce:
 1. Local-first storage guarantees.
 2. Zero unauthorized transmission to external cloud APIs without explicit user consent.
 3. Path traversal immunity across all web endpoints and Python file handlers.

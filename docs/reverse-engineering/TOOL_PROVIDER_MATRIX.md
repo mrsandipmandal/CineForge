@@ -1,4 +1,4 @@
-# OpenMontage Matrix — Tool & Provider Capability Matrix
+# CineForge Matrix — Tool & Provider Capability Matrix
 
 **Date:** 2026-11-06  
 **Audited Tool Count:** 155 tools across 26 capabilities  

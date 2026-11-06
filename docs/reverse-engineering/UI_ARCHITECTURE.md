@@ -1,4 +1,4 @@
-# OpenMontage Matrix — UI Architecture & Matrix Transformation Plan
+# CineForge Matrix — UI Architecture & Matrix Transformation Plan
 
 **Date:** 2026-11-06  
 **Component:** Backlot Living Storyboard & Production Board  

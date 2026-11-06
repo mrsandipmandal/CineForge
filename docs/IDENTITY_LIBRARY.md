@@ -1,6 +1,6 @@
-# OpenMontage Matrix — Identity Library Architecture & Guide
+# CineForge Matrix — Identity Library Architecture & Guide
 
-The **Identity Library** (`lib/identity_library.py`) provides a persistent, reusable, privacy-first repository for voice and facial identities across all CineForge / OpenMontage Matrix pipelines.
+The **Identity Library** (`lib/identity_library.py`) provides a persistent, reusable, privacy-first repository for voice and facial identities across all CineForge Matrix pipelines.
 
 It ensures that characters, narrators, and actors remain visually and acoustically consistent across different scenes, projects, and production pipelines without duplicate uploads or hardcoded file paths.
 

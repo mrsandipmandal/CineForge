@@ -1,4 +1,4 @@
-# OpenMontage Matrix — Architecture Map
+# CineForge Matrix — Architecture Map
 
 **Date:** 2026-11-06  
 **Status:** Validated against Codebase  
@@ -7,7 +7,7 @@
 
 ## 1. The 3-Layer Knowledge Architecture
 
-OpenMontage Matrix follows an **agent-first, instruction-driven architecture**. The AI agent is the orchestration engine and creative director. Python code provides execution capabilities (tools) and state persistence (checkpoints).
+CineForge Matrix follows an **agent-first, instruction-driven architecture**. The AI agent is the orchestration engine and creative director. Python code provides execution capabilities (tools) and state persistence (checkpoints).
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐

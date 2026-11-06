@@ -1,8 +1,8 @@
-# OpenMontage Matrix — Project Inventory & Codebase Audit
+# CineForge Matrix — Project Inventory & Codebase Audit
 
 **Date:** 2026-11-06  
-**Project Name:** OpenMontage Matrix (CineForge)  
-**Repository:** https://github.com/calesthio/OpenMontage.git / https://github.com/mrsandipmandal/CineForge.git  
+**Project Name:** CineForge Matrix  
+**Repository:** https://github.com/mrsandipmandal/CineForge.git  
 **Runtime:** Python 3.14.4, Node.js v24.22.1, npm 11.19.1, FFmpeg 7.1  
 **Baseline Test Results:** 2,241 passed, 10 skipped, 3 xfailed, 1 warning (100% core test suite health).
 

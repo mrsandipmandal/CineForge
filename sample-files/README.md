@@ -1,6 +1,6 @@
-# OpenMontage Matrix — Identity Reference Library (`sample-files/`)
+# CineForge Matrix — Identity Reference Library (`sample-files/`)
 
-This directory serves as the **reusable voice and face identity library** for OpenMontage Matrix productions.
+This directory serves as the **reusable voice and face identity library** for CineForge Matrix productions.
 
 ## Directory Layout
 

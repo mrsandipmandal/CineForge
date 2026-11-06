@@ -274,10 +274,13 @@ def create_app() -> FastAPI:
 
     @app.get("/identity-media/{file_path:path}")
     async def identity_media(file_path: str) -> FileResponse:
+        if ".." in file_path or file_path.startswith(("/", "\\")):
+            raise HTTPException(status_code=403, detail="path escapes identity directory")
         from lib.identity_library import DEFAULT_SAMPLE_DIR
-        target = (DEFAULT_SAMPLE_DIR / file_path).resolve()
+        base_dir = DEFAULT_SAMPLE_DIR.resolve()
+        target = (base_dir / file_path).resolve()
         try:
-            target.relative_to(DEFAULT_SAMPLE_DIR.resolve())
+            target.relative_to(base_dir)
         except ValueError:
             raise HTTPException(status_code=403, detail="path escapes identity directory")
         if not target.is_file():

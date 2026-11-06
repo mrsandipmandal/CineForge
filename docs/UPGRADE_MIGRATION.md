@@ -1,12 +1,12 @@
-# OpenMontage Matrix — Upgrade & Migration Guide
+# CineForge Matrix — Upgrade & Migration Guide
 
-This guide details the process for migrating existing CineForge / OpenMontage installations to **OpenMontage Matrix**, outlining architectural guarantees, backward compatibility, and the setup of reusable identity profiles.
+This guide details the process for migrating existing CineForge installations to **CineForge Matrix**, outlining architectural guarantees, backward compatibility, and the setup of reusable identity profiles.
 
 ---
 
 ## 1. Compatibility Guarantees
 
-OpenMontage Matrix was engineered under strict non-destructive upgrade principles:
+CineForge Matrix was engineered under strict non-destructive upgrade principles:
 
 | System Component | Compatibility Status | Notes |
 | :--- | :---: | :--- |

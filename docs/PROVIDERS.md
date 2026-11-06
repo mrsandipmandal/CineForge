@@ -890,7 +890,7 @@ CineForge provides verified voice, transcription, and caption support for Bengal
 | **STT / Transcribe** | Azure STT / Scribe | Hindi (`hi-IN`), Bengali (`bn-IN`) | `azure_stt`, ElevenLabs Scribe v2 | Cloud transcription with punctuation and speaker diarization |
 | **Captions** | Remotion CaptionBurn | Devanagari & Bengali scripts | Noto Sans Devanagari, Noto Sans Bengali | LTR rendering with conjunct rendering and UTF-8 encoding |
 
-#### Indic Voice Cloning & Identity Studio (OpenMontage Matrix)
+#### Indic Voice Cloning & Identity Studio (CineForge Matrix)
 
 > **Important**: A provider supporting Bengali or Hindi TTS does not automatically support voice cloning.
 > Standard TTS reads text using a fixed synthetic voice, whereas voice cloning extracts vocal timbre from a user-supplied reference audio sample in `sample-files/voices/`.

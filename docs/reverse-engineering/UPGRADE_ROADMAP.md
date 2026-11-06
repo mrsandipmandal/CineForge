@@ -1,4 +1,4 @@
-# OpenMontage Matrix — Upgrade Roadmap & Implementation Plan
+# CineForge Matrix — Upgrade Roadmap & Implementation Plan
 
 **Date:** 2026-11-06  
 **Status:** In Execution (Milestone A Complete)  

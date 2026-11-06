@@ -1,4 +1,4 @@
-# OpenMontage Matrix — Face & Character Identity Studio
+# CineForge Matrix — Face & Character Identity Studio
 
 The **Face & Character Identity Studio** provides unified visual character management, multi-angle reference libraries, and cross-scene character consistency across all generative image and video pipelines.
 
@@ -6,7 +6,7 @@ The **Face & Character Identity Studio** provides unified visual character manag
 
 ## 1. Six Distinct Visual Identity Operations
 
-OpenMontage Matrix explicitly distinguishes between six distinct facial processing operations to maintain architectural clarity and honest reporting:
+CineForge Matrix explicitly distinguishes between six distinct facial processing operations to maintain architectural clarity and honest reporting:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -26,7 +26,7 @@ OpenMontage Matrix explicitly distinguishes between six distinct facial processi
 └──────────────────────────┴─────────────────────────────────────────────┘
 ```
 
-> **Important**: No generative model guarantees 100% mathematical face consistency across dynamic video cuts. OpenMontage Matrix maximizes consistency by delivering structured multi-angle conditioning bundles, consistent character visual descriptors, and fixed reference seeds to providers supporting image conditioning (such as Kling, Seedance 2.5, and Wan2.1).
+> **Important**: No generative model guarantees 100% mathematical face consistency across dynamic video cuts. CineForge Matrix maximizes consistency by delivering structured multi-angle conditioning bundles, consistent character visual descriptors, and fixed reference seeds to providers supporting image conditioning (such as Kling, Seedance 2.5, and Wan2.1).
 
 ---
 

@@ -1,4 +1,4 @@
-# OpenMontage Matrix — Pipeline Dependency Map
+# CineForge Matrix — Pipeline Dependency Map
 
 **Date:** 2026-11-06  
 **Audited Pipelines:** 13 declarative manifests in `pipeline_defs/`  
@@ -52,7 +52,7 @@ Stage: publish         ──► Artifact: publish_log.json
 
 ## 3. Identity Reference Flow in the Pipeline
 
-With the OpenMontage Matrix identity architecture, voice and face identities flow deterministically through the canonical artifacts:
+With the CineForge Matrix identity architecture, voice and face identities flow deterministically through the canonical artifacts:
 
 ```
 [sample-files/ identity library]
