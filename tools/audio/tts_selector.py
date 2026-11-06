@@ -51,15 +51,6 @@ class TTSSelector(BaseTool):
                 "type": "string",
                 "description": "Exact tool name; never falls back.",
             },
-            "voice_profile_id": {
-                "type": "string",
-                "description": "Voice identity profile ID from sample-files/voices/.",
-            },
-            "require_cloning": {
-                "type": "boolean",
-                "default": False,
-                "description": "Whether voice cloning using the profile's reference samples is required.",
-            },
             "hosting_provider": {
                 "type": "string",
                 "description": "Required API host, e.g. fal.ai, atlascloud, replicate.",
@@ -218,27 +209,6 @@ class TTSSelector(BaseTool):
         return tool.estimate_cost(inputs) if tool else 0.0
 
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
-        inputs_copy = dict(inputs)
-        voice_profile_id = inputs_copy.get("voice_profile_id")
-        if voice_profile_id:
-            try:
-                from lib.identity_library import IdentityLibrary
-                lib = IdentityLibrary()
-                profile = lib.get_voice_profile(voice_profile_id)
-                if profile:
-                    if not inputs_copy.get("language_code") and profile.primary_language:
-                        inputs_copy["language_code"] = profile.primary_language
-                    if "pitch" not in inputs_copy and profile.pitch_semitones:
-                        inputs_copy["pitch"] = profile.pitch_semitones
-                    if "speed" not in inputs_copy and "speaking_rate" not in inputs_copy and profile.default_speaking_rate:
-                        inputs_copy["speed"] = profile.default_speaking_rate
-                    if inputs_copy.get("require_cloning") and profile.samples and profile.consent_verified:
-                        best_sample = max(profile.samples, key=lambda s: s.duration_seconds)
-                        inputs_copy["reference_audio"] = str((lib.root_dir / best_sample.relative_path).resolve())
-            except Exception:
-                pass
-        inputs = inputs_copy
-
         from lib.scoring import rank_providers
 
         task_context = self._prepare_task_context(inputs)
@@ -294,23 +264,6 @@ class TTSSelector(BaseTool):
                 raise ValueError("model and model_id disagree")
             adapted["model_id"] = inputs["model"]
             adapted.pop("model", None)
-
-        lang = str(inputs.get("language_code") or "").lower()
-        if "bn" in lang:
-            if tool.name == "elevenlabs_tts":
-                adapted.setdefault("model_id", "eleven_multilingual_v2")
-            elif tool.name == "azure_tts" and "voice" not in adapted:
-                adapted["voice"] = "bn-IN-BashkarNeural"
-            elif tool.name == "google_tts" and "voice_id" not in adapted:
-                adapted["voice_id"] = "bn-IN-Standard-A"
-        elif "hi" in lang:
-            if tool.name == "elevenlabs_tts":
-                adapted.setdefault("model_id", "eleven_multilingual_v2")
-            elif tool.name == "azure_tts" and "voice" not in adapted:
-                adapted["voice"] = "hi-IN-MadhurNeural"
-            elif tool.name == "google_tts" and "voice_id" not in adapted:
-                adapted["voice_id"] = "hi-IN-Neural2-A"
-
         if tool.name not in {"azure_tts", "mai_tts"}:
             return adapted
 
