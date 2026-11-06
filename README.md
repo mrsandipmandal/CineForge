@@ -22,6 +22,11 @@
   <a href="#pipelines">Pipelines</a> &nbsp;·&nbsp;
   <a href="#how-it-works">How It Works</a> &nbsp;·&nbsp;
   <a href="docs/PROVIDERS.md">Providers</a> &nbsp;·&nbsp;
+  <a href="docs/IDENTITY_LIBRARY.md">Identity Library</a> &nbsp;·&nbsp;
+  <a href="docs/VOICE_IDENTITY.md">Voice Identity</a> &nbsp;·&nbsp;
+  <a href="docs/FACE_IDENTITY.md">Face Identity</a> &nbsp;·&nbsp;
+  <a href="docs/MATRIX_UI.md">Matrix Studio</a> &nbsp;·&nbsp;
+  <a href="docs/UPGRADE_MIGRATION.md">Upgrade Guide</a> &nbsp;·&nbsp;
   <a href="docs/PR_REVIEW_GUIDE.md">Review Guide</a> &nbsp;·&nbsp;
   <a href="AGENT_GUIDE.md">Agent Guide</a>
 </p>
@@ -165,6 +170,25 @@ python scripts/backlot_simulate_run.py  # no production yet? watch a simulated o
 ```
 
 And when a run is done, hit **▶ REPLAY RUN** — the whole production replays from its timestamps, scrubbable end to end. See [`backlot/README.md`](backlot/README.md) for how it works.
+
+---
+
+## OpenMontage Matrix Edition — Character & Voice Identity Studio
+
+**OpenMontage Matrix** elevates CineForge into a persistent character and voice production studio with a cyberpunk Matrix terminal UI:
+
+- **Unified Identity Library (`sample-files/`)**: Reusable voice recordings and multi-angle character reference portraits across all projects and scenes.
+- **Multilingual Voice Studio**: Full native support for **Bengali (`bn-IN`)**, **Hindi (`hi-IN`)**, and **English (`en-US`)** TTS and voice cloning across ElevenLabs, Fish Audio, Azure Speech, IndicF5, and Coqui XTTS-v2.
+- **Multi-Angle Face Consistency**: Multi-view reference portraits (`front`, `left_quarter`, `right_quarter`, `expression`) generating conditioning bundles for Seedance, Kling, Wan2.1, and talking-head pipelines.
+- **Matrix Control Room**: A redesigned Backlot studio featuring a high-contrast green-on-black terminal aesthetic, 22 FPS throttled canvas digital rain, scanline overlays, Voice Lab with HTML5 audio playback, Face Lab portrait gallery, and live Providers Hub.
+- **Privacy & Safety First**: Explicit actor consent gating (`consent_verified: true`), strict sandbox path-traversal guards, and gitignore enforcement ensuring private samples never leak to git or unauthorized APIs.
+
+For detailed documentation, see:
+- [Identity Library Architecture](docs/IDENTITY_LIBRARY.md)
+- [Voice Identity Studio & Provider Matrix](docs/VOICE_IDENTITY.md)
+- [Face & Character Identity Studio](docs/FACE_IDENTITY.md)
+- [Matrix UI & Terminal Design](docs/MATRIX_UI.md)
+- [Upgrade & Migration Guide](docs/UPGRADE_MIGRATION.md)
 
 ---
 

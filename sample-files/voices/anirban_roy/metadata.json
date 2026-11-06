@@ -1,0 +1,16 @@
+{
+  "profile_id": "anirban_roy",
+  "name": "Anirban Roy",
+  "description": "Deep, resonant Bengali cinematic storyteller with authentic Kolkata diction.",
+  "gender": "male",
+  "primary_language": "bn-IN",
+  "supported_languages": ["bn-IN", "en-IN"],
+  "voice_type": "cinematic",
+  "recommended_providers": ["azure", "google", "elevenlabs", "fish_audio"],
+  "pitch_semitones": -1.0,
+  "default_speaking_rate": 0.95,
+  "consent_verified": true,
+  "owner": "local_studio",
+  "allow_external_upload": false,
+  "created_at": "2026-11-06T12:00:00Z"
+}

@@ -1,0 +1,16 @@
+{
+  "profile_id": "dr_elena_vance",
+  "name": "Dr. Elena Vance",
+  "description": "Articulate, authoritative tech presenter with calm pacing and clear enunciation.",
+  "gender": "female",
+  "primary_language": "en-US",
+  "supported_languages": ["en-US", "en-GB"],
+  "voice_type": "narration",
+  "recommended_providers": ["elevenlabs", "fish_audio", "azure"],
+  "pitch_semitones": 0.0,
+  "default_speaking_rate": 1.0,
+  "consent_verified": true,
+  "owner": "local_studio",
+  "allow_external_upload": false,
+  "created_at": "2026-11-06T12:00:00Z"
+}

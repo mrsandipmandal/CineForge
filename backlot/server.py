@@ -240,6 +240,50 @@ def create_app() -> FastAPI:
             "X-Accel-Buffering": "no",
         })
 
+    # ---- Identity Studio API -------------------------------------------
+
+    @app.get("/api/identity/voices")
+    async def identity_voices() -> list:
+        from lib.identity_library import IdentityLibrary
+        lib = IdentityLibrary()
+        return await asyncio.to_thread(lambda: [p.to_dict() for p in lib.list_voice_profiles()])
+
+    @app.get("/api/identity/faces")
+    async def identity_faces() -> list:
+        from lib.identity_library import IdentityLibrary
+        lib = IdentityLibrary()
+        return await asyncio.to_thread(lambda: [f.to_dict() for f in lib.list_face_profiles()])
+
+    @app.get("/api/identity/characters")
+    async def identity_characters() -> list:
+        from lib.identity_library import IdentityLibrary
+        lib = IdentityLibrary()
+        return await asyncio.to_thread(lambda: [c.to_dict() for c in lib.list_characters()])
+
+    @app.get("/api/identity/index")
+    async def identity_index() -> dict:
+        from lib.identity_library import IdentityLibrary
+        lib = IdentityLibrary()
+        return await asyncio.to_thread(lib.update_index)
+
+    @app.get("/api/providers/summary")
+    async def providers_summary() -> dict:
+        from tools.tool_registry import registry
+        registry.ensure_discovered()
+        return await asyncio.to_thread(registry.provider_menu_summary)
+
+    @app.get("/identity-media/{file_path:path}")
+    async def identity_media(file_path: str) -> FileResponse:
+        from lib.identity_library import DEFAULT_SAMPLE_DIR
+        target = (DEFAULT_SAMPLE_DIR / file_path).resolve()
+        try:
+            target.relative_to(DEFAULT_SAMPLE_DIR.resolve())
+        except ValueError:
+            raise HTTPException(status_code=403, detail="path escapes identity directory")
+        if not target.is_file():
+            raise HTTPException(status_code=404, detail="identity media not found")
+        return FileResponse(target)
+
     # ---- Thumbnails (downscaled, cached on disk) ------------------------
 
     @app.get("/thumb/{project_id}/{file_path:path}")

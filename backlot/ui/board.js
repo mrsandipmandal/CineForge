@@ -1048,17 +1048,440 @@ function tickReplay() {
 }
 
 // ---------------------------------------------------------------------------
+// OpenMontage Matrix — Studio Views & Terminal Extensions
+// ---------------------------------------------------------------------------
+
+let currentView = "control_room";
+let cachedVoices = null;
+let cachedFaces = null;
+let cachedCharacters = null;
+let cachedProviders = null;
+
+function initMatrixRain() {
+  const canvas = document.getElementById("matrix-rain");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    canvas.style.display = "none";
+    return;
+  }
+
+  let width = (canvas.width = window.innerWidth);
+  let height = (canvas.height = window.innerHeight);
+
+  window.addEventListener("resize", () => {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+  });
+
+  const chars = "0123456789ABCDEFｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜ".split("");
+  const fontSize = 13;
+  const columns = Math.floor(width / fontSize);
+  const drops = Array(columns).fill(1);
+
+  let lastTime = 0;
+  const fpsInterval = 1000 / 22;
+
+  function draw(time) {
+    if (document.hidden) {
+      requestAnimationFrame(draw);
+      return;
+    }
+    const delta = time - lastTime;
+    if (delta > fpsInterval) {
+      lastTime = time - (delta % fpsInterval);
+
+      ctx.fillStyle = "rgba(5, 8, 5, 0.08)";
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.font = `${fontSize}px 'JetBrains Mono', monospace`;
+
+      for (let i = 0; i < drops.length; i++) {
+        const char = chars[Math.floor(Math.random() * chars.length)];
+        ctx.fillStyle = i % 4 === 0 ? "#42FF9A" : "#00FF66";
+        ctx.fillText(char, i * fontSize, drops[i] * fontSize);
+
+        if (drops[i] * fontSize > height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+        drops[i]++;
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+}
+
+// Start matrix digital rain on boot
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initMatrixRain);
+} else {
+  initMatrixRain();
+}
+
+function renderMatrixNav() {
+  const nav = el("div", { class: "matrix-nav" });
+  const tabs = [
+    { id: "control_room", label: "CONTROL ROOM" },
+    { id: "storyboard", label: "STORYBOARD" },
+    { id: "voice_lab", label: "VOICE LAB" },
+    { id: "face_lab", label: "FACE LAB" },
+    { id: "assets", label: "ASSETS" },
+    { id: "decisions", label: "DECISIONS" },
+    { id: "providers", label: "PROVIDERS" },
+  ];
+
+  for (const t of tabs) {
+    const btn = el("button", {
+      class: `matrix-tab${currentView === t.id ? " active" : ""}`,
+      type: "button",
+      onclick: () => {
+        currentView = t.id;
+        render();
+      },
+    }, `[${t.label}]`);
+    nav.append(btn);
+  }
+  return nav;
+}
+
+// Voice Lab View
+function renderVoiceLab(s) {
+  const container = el("div", { class: "lab-container" });
+  const head = el("div", { class: "lab-head" },
+    el("h2", {}, "VOICE IDENTITY STUDIO"),
+    el("div", { style: "display:flex;gap:8px;align-items:center;" },
+      el("span", { class: "lang-badge" }, "bn-IN (বাংলা)"),
+      el("span", { class: "lang-badge" }, "hi-IN (हिंदी)"),
+      el("span", { class: "lang-badge" }, "en-US (English)"),
+    ),
+  );
+  container.append(head);
+
+  const grid = el("div", { class: "lab-grid", id: "voice-lab-grid" },
+    el("div", { class: "identity-card", style: "color:var(--matrix-muted)" }, "Loading voice identities from sample-files/voices/...")
+  );
+  container.append(grid);
+
+  // Async load voice profiles
+  getJSON("/api/identity/voices").then((voices) => {
+    cachedVoices = voices;
+    grid.innerHTML = "";
+    if (!voices || voices.length === 0) {
+      grid.append(el("div", { class: "identity-card" }, "No voice profiles found in sample-files/voices/."));
+      return;
+    }
+    for (const v of voices) {
+      const card = el("div", { class: "identity-card" });
+      const cardHead = el("div", { class: "identity-card-head" },
+        el("div", {},
+          el("h3", {}, v.name || v.profile_id),
+          el("span", { class: "lang-badge" }, v.primary_language || "en-US"),
+        ),
+        el("span", { class: `consent-badge ${v.consent_verified ? "verified" : "unverified"}` },
+          v.consent_verified ? "CONSENT VERIFIED ✓" : "CONSENT PENDING ⚠"
+        )
+      );
+      card.append(cardHead);
+
+      if (v.description) {
+        card.append(el("p", { class: "identity-card-desc" }, v.description));
+      }
+
+      const metaRow = el("div", { style: "display:flex;gap:12px;font-family:var(--mono);font-size:11px;color:var(--matrix-muted);" },
+        el("span", {}, `Type: ${v.voice_type || "narration"}`),
+        el("span", {}, `Rate: ${v.default_speaking_rate || 1.0}x`),
+        el("span", {}, `Pitch: ${v.pitch_semitones || 0}st`),
+      );
+      card.append(metaRow);
+
+      // Samples list
+      const samplesList = el("div", { style: "display:flex;flex-direction:column;gap:6px;margin-top:6px;" });
+      if (v.samples && v.samples.length > 0) {
+        for (const sm of v.samples) {
+          const sRow = el("div", { class: "voice-wave", style: "cursor:pointer;", title: `Play ${sm.filename}` },
+            el("span", { style: "font-family:var(--mono);font-size:11px;color:var(--matrix-green);flex:1;" }, `▶ ${sm.filename}`),
+            el("span", { style: "font-family:var(--mono);font-size:10px;color:var(--matrix-muted);" }, sm.duration_seconds ? `${sm.duration_seconds}s` : "audio"),
+          );
+          sRow.onclick = () => {
+            player.src = `/identity-media/${sm.relative_path}`;
+            player.play();
+          };
+          samplesList.append(sRow);
+        }
+      } else {
+        samplesList.append(el("div", { style: "font-family:var(--mono);font-size:11px;color:var(--matrix-muted);font-style:italic;" }, "No audio samples in profile/samples/. Add .wav files to enable cloning."));
+      }
+      card.append(samplesList);
+
+      grid.append(card);
+    }
+  }).catch((err) => {
+    grid.innerHTML = `<div class="identity-card" style="color:var(--matrix-error)">Error loading voices: ${err}</div>`;
+  });
+
+  return container;
+}
+
+// Face Lab View
+function renderFaceLab(s) {
+  const container = el("div", { class: "lab-container" });
+  const head = el("div", { class: "lab-head" },
+    el("h2", {}, "FACE & CHARACTER IDENTITY STUDIO"),
+    el("span", { style: "font-family:var(--mono);font-size:12px;color:var(--matrix-muted);" }, "Multi-Angle Reference Conditioning")
+  );
+  container.append(head);
+
+  const grid = el("div", { class: "lab-grid", id: "face-lab-grid" },
+    el("div", { class: "identity-card", style: "color:var(--matrix-muted)" }, "Loading character identities from sample-files/faces/...")
+  );
+  container.append(grid);
+
+  Promise.all([
+    getJSON("/api/identity/faces"),
+    getJSON("/api/identity/characters"),
+  ]).then(([faces, characters]) => {
+    cachedFaces = faces;
+    cachedCharacters = characters;
+    grid.innerHTML = "";
+
+    if (!faces || faces.length === 0) {
+      grid.append(el("div", { class: "identity-card" }, "No face profiles found in sample-files/faces/."));
+      return;
+    }
+
+    for (const f of faces) {
+      const char = characters ? characters.find((c) => c.face_profile_id === f.character_id || c.character_id === f.character_id) : null;
+      const card = el("div", { class: "identity-card" });
+      const cardHead = el("div", { class: "identity-card-head" },
+        el("div", {},
+          el("h3", {}, f.name || f.character_id),
+          char ? el("span", { class: "chip", style: "margin-right:6px;" }, char.role || "Character") : null,
+          el("span", { class: "chip" }, f.ethnicity_or_style || "Style"),
+        ),
+        el("span", { class: `consent-badge ${f.consent_verified ? "verified" : "unverified"}` },
+          f.consent_verified ? "CONSENT VERIFIED ✓" : "CONSENT PENDING ⚠"
+        )
+      );
+      card.append(cardHead);
+
+      if (f.description) {
+        card.append(el("p", { class: "identity-card-desc" }, f.description));
+      }
+
+      // Multi-angle photo gallery
+      const gallery = el("div", { class: "ref-gallery" });
+      if (f.references && f.references.length > 0) {
+        for (const ref of f.references) {
+          const item = el("div", { class: "ref-item" },
+            el("img", {
+              class: "ref-thumb",
+              src: `/identity-media/${ref.relative_path}`,
+              loading: "lazy",
+              alt: ref.role,
+            }),
+            el("span", { class: "ref-role" }, ref.role || "ref"),
+          );
+          gallery.append(item);
+        }
+      } else {
+        gallery.append(el("span", { style: "font-family:var(--mono);font-size:11px;color:var(--matrix-muted);font-style:italic;" }, "No reference photos found in references/."));
+      }
+      card.append(gallery);
+
+      if (f.default_generation_prompt) {
+        const pBox = el("div", { style: "background:var(--matrix-surface);border:1px solid var(--matrix-border);border-radius:4px;padding:8px;font-family:var(--mono);font-size:11px;color:var(--matrix-text-soft);" },
+          el("span", { style: "color:var(--matrix-green);display:block;margin-bottom:2px;" }, "PROMPT DESCRIPTOR:"),
+          f.default_generation_prompt
+        );
+        card.append(pBox);
+      }
+
+      grid.append(card);
+    }
+  }).catch((err) => {
+    grid.innerHTML = `<div class="identity-card" style="color:var(--matrix-error)">Error loading faces: ${err}</div>`;
+  });
+
+  return container;
+}
+
+// Providers View
+function renderProvidersView() {
+  const container = el("div", { class: "lab-container" });
+  const head = el("div", { class: "lab-head" },
+    el("h2", {}, "MATRIX PROVIDER CONTROL & CAPABILITY ENVELOPE"),
+    el("span", { style: "font-family:var(--mono);font-size:12px;color:var(--matrix-muted);" }, "Live Tool Registry Inspection")
+  );
+  container.append(head);
+
+  const grid = el("div", { class: "lab-grid" },
+    el("div", { class: "identity-card", style: "color:var(--matrix-muted)" }, "Probing providers from live registry...")
+  );
+  container.append(grid);
+
+  getJSON("/api/providers/summary").then((sum) => {
+    cachedProviders = sum;
+    grid.innerHTML = "";
+
+    // Composition runtimes card
+    const rCard = el("div", { class: "provider-stat-card" });
+    rCard.append(el("h4", {}, "COMPOSITION RUNTIMES"));
+    const rPills = el("div", { class: "provider-tags" });
+    for (const [rt, ok] of Object.entries(sum.composition_runtimes || {})) {
+      rPills.append(el("span", { class: `provider-pill ${ok ? "ok" : "miss"}` }, `${rt.toUpperCase()}: ${ok ? "READY" : "MISSING"}`));
+    }
+    rCard.append(rPills);
+    grid.append(rCard);
+
+    // Capabilities cards
+    for (const cap of (sum.capabilities || [])) {
+      const cCard = el("div", { class: "provider-stat-card" });
+      const cHead = el("h4", {},
+        el("span", {}, cap.capability.toUpperCase()),
+        el("span", { style: "color:var(--matrix-green)" }, `${cap.configured} / ${cap.total}`),
+      );
+      cCard.append(cHead);
+
+      const pTags = el("div", { class: "provider-tags" });
+      for (const p of cap.available_providers || []) {
+        pTags.append(el("span", { class: "provider-pill ok" }, `✓ ${p}`));
+      }
+      for (const p of (cap.unavailable_providers || []).slice(0, 5)) {
+        pTags.append(el("span", { class: "provider-pill miss" }, `✗ ${p}`));
+      }
+      cCard.append(pTags);
+      grid.append(cCard);
+    }
+  }).catch((err) => {
+    grid.innerHTML = `<div class="identity-card" style="color:var(--matrix-error)">Error probing providers: ${err}</div>`;
+  });
+
+  return container;
+}
+
+// Assets View
+function renderAssetsView(s) {
+  const container = el("div", { class: "lab-container" });
+  const head = el("div", { class: "lab-head" },
+    el("h2", {}, "PRODUCTION ASSET INVENTORY"),
+    el("span", { class: "chip" }, `${(s.artifacts.asset_manifest && s.artifacts.asset_manifest.assets || []).length} Recorded Assets`)
+  );
+  container.append(head);
+
+  const manifest = s.artifacts.asset_manifest;
+  if (!manifest || !manifest.assets || manifest.assets.length === 0) {
+    container.append(el("div", { class: "identity-card", style: "color:var(--matrix-muted)" }, "No assets generated for this project yet. Advance through the assets stage to generate audio and visuals."));
+    return container;
+  }
+
+  const grid = el("div", { class: "lab-grid" });
+  for (const asset of manifest.assets) {
+    const card = el("div", { class: "identity-card" });
+    const cHead = el("div", { class: "identity-card-head" },
+      el("div", {},
+        el("h3", {}, asset.id),
+        el("span", { class: "chip" }, asset.type),
+        asset.scene_id ? el("span", { class: "chip" }, asset.scene_id) : null,
+      ),
+      asset.cost_usd != null ? el("span", { style: "font-family:var(--mono);color:var(--matrix-green);font-size:12px;" }, fmtMoney(asset.cost_usd)) : null
+    );
+    card.append(cHead);
+
+    if (asset.prompt) {
+      card.append(el("p", { class: "identity-card-desc" }, `Prompt: ${asset.prompt.slice(0, 140)}...`));
+    }
+    const meta = el("div", { style: "font-family:var(--mono);font-size:11px;color:var(--matrix-muted);display:flex;gap:10px;" },
+      el("span", {}, `Tool: ${asset.source_tool || "unknown"}`),
+      asset.duration_seconds ? el("span", {}, `Duration: ${asset.duration_seconds}s`) : null,
+      asset.voice_profile_id ? el("span", { style: "color:var(--matrix-green)" }, `Voice: ${asset.voice_profile_id}`) : null,
+      asset.character_id ? el("span", { style: "color:var(--matrix-green)" }, `Face: ${asset.character_id}`) : null,
+    );
+    card.append(meta);
+    grid.append(card);
+  }
+  container.append(grid);
+  return container;
+}
+
+// Decisions View
+function renderDecisionsView(s) {
+  const container = el("div", { class: "lab-container" });
+  const head = el("div", { class: "lab-head" },
+    el("h2", {}, "PRODUCTION DECISION AUDIT LOG"),
+    el("span", { class: "chip" }, "Append-Only Audit Trail")
+  );
+  container.append(head);
+
+  const decPanel = renderDecisions(s);
+  if (decPanel) {
+    container.append(decPanel);
+  } else {
+    container.append(el("div", { class: "identity-card", style: "color:var(--matrix-muted)" }, "No decisions recorded yet. Decisions will appear as the agent plans and executes stages."));
+  }
+  return container;
+}
+
+// Expanded Storyboard View
+function renderStoryboardView(s) {
+  const container = el("div", { class: "lab-container" });
+  const head = el("div", { class: "lab-head" },
+    el("h2", {}, "EXPANDED STORYBOARD & SCENE GALLERY"),
+    s.storyboard ? el("span", { class: "chip" }, `${s.storyboard.scenes.length} Scenes · ${fmtDuration(s.storyboard.total_duration_seconds)}`) : null
+  );
+  container.append(head);
+
+  const sb = renderStoryboard(s);
+  if (sb) container.append(sb);
+  const sc = renderScriptCard(s);
+  if (sc) container.append(sc);
+  return container;
+}
+
+// ---------------------------------------------------------------------------
 // page assembly
 // ---------------------------------------------------------------------------
 
 function render() {
   if (!state) return;
   const s = replay ? stateAt(state, replay.t) : state;
-  document.title = `Backlot — ${s.title}`;
+  document.title = `OpenMontage Matrix — ${s.title}`;
   document.body.classList.toggle("first", firstPaint);
   firstPaint = false;
   app.innerHTML = "";
+
   app.append(renderSlate(s));
+  app.append(renderMatrixNav());
+
+  // Render based on selected Matrix View Tab
+  if (currentView === "voice_lab") {
+    app.append(renderVoiceLab(s));
+    return;
+  }
+  if (currentView === "face_lab") {
+    app.append(renderFaceLab(s));
+    return;
+  }
+  if (currentView === "providers") {
+    app.append(renderProvidersView());
+    return;
+  }
+  if (currentView === "assets") {
+    app.append(renderAssetsView(s));
+    return;
+  }
+  if (currentView === "decisions") {
+    app.append(renderDecisionsView(s));
+    return;
+  }
+  if (currentView === "storyboard") {
+    app.append(renderStoryboardView(s));
+    return;
+  }
+
+  // Default: "control_room" view
   app.append(renderRail(s));
   const replayBar = renderReplayBar(state);
   if (replayBar) app.append(replayBar);

@@ -3,22 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Backlot — Library</title>
+<title>OpenMontage Matrix — Project Library</title>
 <link rel="stylesheet" href="/ui/board.css">
 </head>
-<body>
+<body class="matrix-studio">
+<canvas id="matrix-rain" class="matrix-rain-canvas"></canvas>
+<div class="matrix-scanlines" aria-hidden="true"></div>
 <div class="wrap">
   <header class="slate">
     <div class="clapper"></div>
     <div>
-      <span class="wordmark">Backlot</span>
-      <h1>Library</h1>
+      <span class="wordmark">OPENMONTAGE MATRIX</span>
+      <h1>STUDIO CONTROL ROOM</h1>
     </div>
     <span class="chip" id="count"></span>
     <div class="spacer"></div>
     <span class="live idle" id="liveBadge"><span class="dot"></span><span id="liveText">IDLE</span></span>
   </header>
+  <div class="matrix-nav" id="matrixNav">
+    <a class="matrix-tab active" href="/">[PROJECTS]</a>
+    <a class="matrix-tab" href="#identities" id="navIdentities">[IDENTITY LIBRARY]</a>
+    <a class="matrix-tab" href="#providers" id="navProviders">[PROVIDERS]</a>
+  </div>
   <div class="lib-grid" id="grid"></div>
+  <div id="extraView" style="display:none;margin-top:20px;"></div>
   <p class="hint" id="empty" style="display:none">No projects yet — run a production and it will appear here.</p>
 </div>
 <script type="module" src="/ui/library.js"></script>

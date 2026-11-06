@@ -34,6 +34,15 @@
           "provider": { "type": "string", "description": "Provider name (e.g. pixabay, google_imagen)" },
           "license": { "type": "string", "description": "License type (e.g. Pixabay License, CC0)" },
           "original_url": { "type": "string", "description": "Source URL if downloaded from a stock service" },
+          "voice_profile_id": { "type": "string", "description": "Voice identity profile ID used for speech asset" },
+          "character_id": { "type": "string", "description": "Character identity profile ID used for visual asset" },
+          "identity_profile_id": { "type": "string", "description": "Generic identity reference identifier" },
+          "reference_media_used": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Paths to sample files or reference images used for conditioning"
+          },
+          "consent_verified": { "type": "boolean", "description": "Whether explicit consent was verified before synthesis" },
           "voice_performance": {
             "type": "object",
             "description": "Applied voice-performance contract for narration assets.",
