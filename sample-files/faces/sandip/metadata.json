@@ -1,0 +1,16 @@
+{
+  "character_id": "sandip",
+  "name": "Sandip",
+  "description": "Stock market news anchor and financial analyst with professional presentation demeanor.",
+  "gender": "male",
+  "ethnicity_or_style": "South Asian modern business anchor",
+  "reference_views": {
+    "front": "references/profile.jpeg"
+  },
+  "default_generation_prompt": "South Asian male financial news anchor in dark blazer, crisp studio lighting, professional television broadcast setup, 4k high definition",
+  "negative_prompt": "blurry, low quality, unnatural plastic skin, deformed, distorted",
+  "consent_verified": true,
+  "owner": "sandip",
+  "allow_external_upload": true,
+  "created_at": "2026-11-06T12:56:00Z"
+}

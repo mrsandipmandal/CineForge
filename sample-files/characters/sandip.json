@@ -1,0 +1,13 @@
+{
+  "character_id": "sandip",
+  "name": "Sandip",
+  "role": "Stock Market News Anchor & Financial Analyst",
+  "voice_profile_id": "sandip",
+  "face_profile_id": "sandip",
+  "bio": "Financial market host delivering daily global and Indian market updates with sharp analytical depth.",
+  "primary_language": "hi-IN",
+  "avatar_strategy": "talking_head_or_reference_video",
+  "tags": ["stock_market", "hindi", "finance", "anchor", "news"],
+  "consent_verified": true,
+  "created_at": "2026-11-06T12:56:00Z"
+}

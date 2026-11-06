@@ -559,7 +559,7 @@ class IdentityLibrary:
         require_consent: bool = True,
     ) -> dict[str, Any]:
         """Export identity references into projects/<id>/assets/identities/."""
-        project_dir = project_dir.resolve()
+        project_dir = Path(project_dir).resolve()
         ident_dir = project_dir / "assets" / "identities"
         ident_dir.mkdir(parents=True, exist_ok=True)
 

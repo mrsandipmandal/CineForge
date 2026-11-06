@@ -75,8 +75,8 @@ class ChangeHub:
 hub = ChangeHub()
 
 # Library summaries are expensive to derive (full state parse per project);
-# cache per project and invalidate from the watcher.
-_summary_cache: dict[str, dict] = {}
+# cache per project (keyed by mtime) and invalidate from the watcher.
+_summary_cache: dict[str, tuple[float, dict]] = {}
 
 
 def _invalidate_summary(project_id: str) -> None:
@@ -90,8 +90,12 @@ def _cached_summaries() -> list[dict]:
     for entry in sorted(PROJECTS_DIR.iterdir()):
         if not entry.is_dir() or entry.name.startswith(("_", ".")):
             continue
-        cached = _summary_cache.get(entry.name)
-        if cached is None:
+        try:
+            mtime = entry.stat().st_mtime
+        except OSError:
+            mtime = 0.0
+        cached_entry = _summary_cache.get(entry.name)
+        if cached_entry is None or cached_entry[0] != mtime:
             try:
                 cached = summarize_project(entry)
             except Exception:
@@ -103,7 +107,9 @@ def _cached_summaries() -> list[dict]:
                     "stage_states": [], "completed_count": 0,
                     "render_count": 0, "scene_count": 0, "error": "unreadable",
                 }
-            _summary_cache[entry.name] = cached
+            _summary_cache[entry.name] = (mtime, cached)
+        else:
+            cached = cached_entry[1]
         summaries.append(cached)
     summaries.sort(key=lambda s: (not s["live"], -(s["last_activity"] or 0)))
     return summaries

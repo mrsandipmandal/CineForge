@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "generated_at": "2026-11-06T06:32:32.082586+00:00",
+  "generated_at": "2026-11-06T12:58:50.618894+00:00",
   "voices": [
     {
       "profile_id": "aarti_patel",
@@ -37,6 +37,19 @@
       "voice_type": "narration",
       "samples_count": 0,
       "consent_verified": true
+    },
+    {
+      "profile_id": "sandip",
+      "name": "Sandip",
+      "primary_language": "hi-IN",
+      "supported_languages": [
+        "hi-IN",
+        "en-IN",
+        "bn-IN"
+      ],
+      "voice_type": "broadcast",
+      "samples_count": 1,
+      "consent_verified": true
     }
   ],
   "faces": [
@@ -50,6 +63,12 @@
       "character_id": "elena_vance",
       "name": "Elena Vance",
       "references_count": 0,
+      "consent_verified": true
+    },
+    {
+      "character_id": "sandip",
+      "name": "Sandip",
+      "references_count": 1,
       "consent_verified": true
     }
   ],
@@ -89,6 +108,25 @@
       ],
       "consent_verified": true,
       "created_at": "2026-11-06T12:00:00Z"
+    },
+    {
+      "character_id": "sandip",
+      "name": "Sandip",
+      "role": "Stock Market News Anchor & Financial Analyst",
+      "voice_profile_id": "sandip",
+      "face_profile_id": "sandip",
+      "bio": "Financial market host delivering daily global and Indian market updates with sharp analytical depth.",
+      "primary_language": "hi-IN",
+      "avatar_strategy": "talking_head_or_reference_video",
+      "tags": [
+        "stock_market",
+        "hindi",
+        "finance",
+        "anchor",
+        "news"
+      ],
+      "consent_verified": true,
+      "created_at": "2026-11-06T12:56:00Z"
     }
   ]
 }
