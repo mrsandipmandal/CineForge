@@ -890,6 +890,20 @@ CineForge provides verified voice, transcription, and caption support for Bengal
 | **STT / Transcribe** | Azure STT / Scribe | Hindi (`hi-IN`), Bengali (`bn-IN`) | `azure_stt`, ElevenLabs Scribe v2 | Cloud transcription with punctuation and speaker diarization |
 | **Captions** | Remotion CaptionBurn | Devanagari & Bengali scripts | Noto Sans Devanagari, Noto Sans Bengali | LTR rendering with conjunct rendering and UTF-8 encoding |
 
+#### Indic Voice Cloning & Identity Studio (CineForge Matrix)
+
+> **Important**: A provider supporting Bengali or Hindi TTS does not automatically support voice cloning.
+> Standard TTS reads text using a fixed synthetic voice, whereas voice cloning extracts vocal timbre from a user-supplied reference audio sample in `sample-files/voices/`.
+> See [`docs/VOICE_IDENTITY.md`](VOICE_IDENTITY.md) for the complete capability matrix, consent verification protocol, and routing guide.
+
+| Capability | Provider | Language / Locale | Cloning Method | Status & Requirements |
+|---|---|---|---|---|
+| **Voice Cloning** | ElevenLabs | Bengali (`bn`), Hindi (`hi`) | Instant Voice Clone / `eleven_multilingual_v2` | Supported via API. Requires 1-5 min clean audio reference and user consent. |
+| **Voice Cloning** | Fish Audio | Bengali (`bn`), Hindi (`hi`) | Reference ID / Zero-shot | Supported via `s1`/`s2` multilingual models with reference sample. |
+| **Voice Cloning** | IndicF5 / F5-TTS | Bengali (`bn`), Hindi (`hi`) | Non-autoregressive Flow Matching | Supported offline (requires local GPU + checkpoint). |
+| **Voice Cloning** | Coqui XTTS-v2 | Hindi (`hi`) | 3-6s reference voice clone | Local GPU. Bengali requires community fine-tuned checkpoint. CPML license. |
+| **Voice Cloning** | Azure Speech | Bengali (`bn-IN`), Hindi (`hi-IN`) | Custom Neural Voice | Gated enterprise feature; requires Microsoft gate approval and voice actor consent. |
+
 ---
 
 ### OpenAI — TTS + Image Generation

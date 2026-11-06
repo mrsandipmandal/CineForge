@@ -1,0 +1,94 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-11-06T06:32:32.082586+00:00",
+  "voices": [
+    {
+      "profile_id": "aarti_patel",
+      "name": "Aarti Patel",
+      "primary_language": "hi-IN",
+      "supported_languages": [
+        "hi-IN",
+        "en-IN"
+      ],
+      "voice_type": "documentary",
+      "samples_count": 0,
+      "consent_verified": true
+    },
+    {
+      "profile_id": "anirban_roy",
+      "name": "Anirban Roy",
+      "primary_language": "bn-IN",
+      "supported_languages": [
+        "bn-IN",
+        "en-IN"
+      ],
+      "voice_type": "cinematic",
+      "samples_count": 0,
+      "consent_verified": true
+    },
+    {
+      "profile_id": "dr_elena_vance",
+      "name": "Dr. Elena Vance",
+      "primary_language": "en-US",
+      "supported_languages": [
+        "en-US",
+        "en-GB"
+      ],
+      "voice_type": "narration",
+      "samples_count": 0,
+      "consent_verified": true
+    }
+  ],
+  "faces": [
+    {
+      "character_id": "aarti_patel",
+      "name": "Aarti Patel",
+      "references_count": 0,
+      "consent_verified": true
+    },
+    {
+      "character_id": "elena_vance",
+      "name": "Elena Vance",
+      "references_count": 0,
+      "consent_verified": true
+    }
+  ],
+  "characters": [
+    {
+      "character_id": "aarti_patel",
+      "name": "Aarti Patel",
+      "role": "Cultural & Environmental Documentary Host",
+      "voice_profile_id": "aarti_patel",
+      "face_profile_id": "aarti_patel",
+      "bio": "Environmental journalist and storyteller. Speaks fluent Hindi and Indian English.",
+      "primary_language": "hi-IN",
+      "avatar_strategy": "talking_head_or_reference_video",
+      "tags": [
+        "documentary",
+        "hindi",
+        "culture",
+        "nature"
+      ],
+      "consent_verified": true,
+      "created_at": "2026-11-06T12:00:00Z"
+    },
+    {
+      "character_id": "elena_vance",
+      "name": "Dr. Elena Vance",
+      "role": "Lead Presenter / Explainer Host",
+      "voice_profile_id": "dr_elena_vance",
+      "face_profile_id": "elena_vance",
+      "bio": "Senior research lead and science communicator. Speaks with clarity and authority.",
+      "primary_language": "en-US",
+      "avatar_strategy": "talking_head_or_reference_video",
+      "tags": [
+        "science",
+        "technology",
+        "explainer",
+        "english"
+      ],
+      "consent_verified": true,
+      "created_at": "2026-11-06T12:00:00Z"
+    }
+  ]
+}
