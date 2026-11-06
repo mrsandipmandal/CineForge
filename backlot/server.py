@@ -272,21 +272,6 @@ def create_app() -> FastAPI:
         registry.ensure_discovered()
         return await asyncio.to_thread(registry.provider_menu_summary)
 
-    @app.get("/identity-media/{file_path:path}")
-    async def identity_media(file_path: str) -> FileResponse:
-        if ".." in file_path or file_path.startswith(("/", "\\")):
-            raise HTTPException(status_code=403, detail="path escapes identity directory")
-        from lib.identity_library import DEFAULT_SAMPLE_DIR
-        base_dir = DEFAULT_SAMPLE_DIR.resolve()
-        target = (base_dir / file_path).resolve()
-        try:
-            target.relative_to(base_dir)
-        except ValueError:
-            raise HTTPException(status_code=403, detail="path escapes identity directory")
-        if not target.is_file():
-            raise HTTPException(status_code=404, detail="identity media not found")
-        return FileResponse(target)
-
     # ---- Thumbnails (downscaled, cached on disk) ------------------------
 
     @app.get("/thumb/{project_id}/{file_path:path}")
@@ -339,6 +324,10 @@ def create_app() -> FastAPI:
 
     if UI_DIR.is_dir():
         app.mount("/ui", StaticFiles(directory=UI_DIR), name="ui")
+
+    from lib.identity_library import DEFAULT_SAMPLE_DIR
+    if DEFAULT_SAMPLE_DIR.is_dir():
+        app.mount("/identity-media", StaticFiles(directory=str(DEFAULT_SAMPLE_DIR.resolve())), name="identity-media")
 
     # The board is a long-lived SPA: a tab keeps running whatever board.js it
     # loaded, and browsers heuristically cache /ui assets. no-cache forces a
