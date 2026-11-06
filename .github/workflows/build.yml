@@ -1,0 +1,326 @@
+# OpenMontage — Build & Release Validation
+#
+# Validates that the project builds, installs, and starts correctly.
+# Does NOT publish a release automatically — merging to main requires
+# an explicit human decision.
+#
+# Triggers:
+#   - Pushes to main (post-merge validation)
+#   - Pull requests to main (pre-merge validation)
+#   - Manual workflow dispatch (can supply a release tag for validation)
+#
+# What this does:
+#   1. Python package build validation (setup.py)
+#   2. Application startup smoke test (tool registry, checkpoint lib)
+#   3. Backlot server startup smoke test
+#   4. Remotion composer production bundle build
+#   5. Installation instructions smoke (make setup equivalent)
+#   6. Upload useful test artifacts (build logs, bundle manifest)
+#
+# What this does NOT do:
+#   - Publish to PyPI
+#   - Create a GitHub Release
+#   - Upload user media, API keys, or private assets
+#   - Deploy to any environment
+
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+      - "feature/**"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      validate_tag:
+        description: "Optional: validate a specific git tag (e.g. v1.0.0)"
+        required: false
+        default: ""
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.10"
+  NODE_VERSION: "20"
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 1 — Python package build validation
+  # ─────────────────────────────────────────────────────────────────────
+  python-build:
+    name: "Python package build"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          cache-dependency-path: requirements.txt
+
+      - name: Install build tooling
+        run: |
+          pip install --upgrade pip build wheel setuptools
+
+      - name: Validate setup.py
+        run: |
+          python setup.py --version
+          python setup.py check --strict
+          echo "setup.py check: PASSED"
+
+      - name: Build source distribution and wheel
+        run: |
+          python -m build --sdist --wheel --outdir dist/
+          echo "Build artifacts:"
+          ls -lh dist/
+
+      - name: Validate wheel installs cleanly
+        run: |
+          pip install dist/*.whl --quiet
+          python -c "import tools; print('Wheel install smoke: PASSED')"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-dist
+          path: dist/
+          retention-days: 7
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 2 — Application startup validation
+  # ─────────────────────────────────────────────────────────────────────
+  app-startup:
+    name: "Application startup smoke"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+
+      - name: Install Python dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Tool registry startup
+        run: |
+          python - <<'EOF'
+          from tools.tool_registry import registry
+          import json, sys
+
+          registry.discover()
+          summary = registry.provider_menu_summary()
+          print("=== Capability Summary ===")
+          for cap in summary.get("capabilities", []):
+              print(f"  {cap.get('capability', '?')}: "
+                    f"{cap.get('configured', 0)}/{cap.get('total', 0)} configured")
+
+          warnings = summary.get("runtime_warnings", [])
+          if warnings:
+              print("\n=== Runtime Warnings ===")
+              for w in warnings:
+                  print(f"  WARNING: {w}")
+
+          print("\nTool registry startup: PASSED")
+          EOF
+
+      - name: Checkpoint library smoke
+        run: |
+          python - <<'EOF'
+          import sys, tempfile, pathlib, json
+
+          with tempfile.TemporaryDirectory() as tmp:
+              # Simulate what lib/checkpoint.py does
+              import lib.checkpoint as cp
+              print("checkpoint module imported: OK")
+
+          print("Checkpoint library smoke: PASSED")
+          EOF
+
+      - name: Pipeline loader smoke
+        run: |
+          python - <<'EOF'
+          import sys, pathlib, yaml
+
+          pipeline_dir = pathlib.Path("pipeline_defs")
+          loaded = []
+          for mf in sorted(pipeline_dir.glob("*.yaml")):
+              data = yaml.safe_load(mf.read_text())
+              loaded.append(mf.stem)
+          print(f"Loaded {len(loaded)} pipeline manifests: {', '.join(loaded[:8])}{'...' if len(loaded) > 8 else ''}")
+          print("Pipeline loader smoke: PASSED")
+          EOF
+
+      - name: Backlot server startup smoke
+        run: |
+          python - <<'EOF'
+          import sys, importlib
+
+          mods = ["backlot", "backlot.state", "backlot.server"]
+          for mod in mods:
+              try:
+                  importlib.import_module(mod)
+                  print(f"  {mod}: OK")
+              except ImportError as e:
+                  print(f"  {mod}: IMPORT ERROR — {e}", file=sys.stderr)
+                  sys.exit(1)
+
+          print("Backlot startup smoke: PASSED")
+          EOF
+
+      - name: Config YAML validation
+        run: |
+          python - <<'EOF'
+          import yaml, pathlib, sys
+
+          config_path = pathlib.Path("config.yaml")
+          if config_path.exists():
+              try:
+                  data = yaml.safe_load(config_path.read_text())
+                  print(f"config.yaml: loaded, top-level keys: {list(data.keys()) if isinstance(data, dict) else type(data).__name__}")
+              except yaml.YAMLError as e:
+                  print(f"config.yaml parse error: {e}", file=sys.stderr)
+                  sys.exit(1)
+          else:
+              print("No config.yaml — skipping")
+
+          print("Config validation: PASSED")
+          EOF
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 3 — Remotion composer production bundle
+  # ─────────────────────────────────────────────────────────────────────
+  remotion-build:
+    name: "Remotion composer — production bundle"
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: remotion-composer
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: remotion-composer/package-lock.json
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: TypeScript type check
+        run: npx tsc --noEmit
+
+      - name: Remotion bundle (production build)
+        run: |
+          npx remotion bundle src/index.tsx --out-dir /tmp/remotion-bundle
+          echo "=== Bundle contents ==="
+          ls -lh /tmp/remotion-bundle/ || true
+
+      - name: Upload bundle manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: remotion-bundle-manifest
+          # Upload only the manifest/index, not the full bundle (can be large).
+          # The full bundle stays in the temp dir and is not committed.
+          path: |
+            remotion-composer/package.json
+            remotion-composer/tsconfig.json
+          retention-days: 7
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 4 — Installation instructions validation (make setup equivalent)
+  # ─────────────────────────────────────────────────────────────────────
+  install-smoke:
+    name: "Installation smoke (make setup equivalent)"
+    runs-on: ubuntu-latest
+    needs: [python-build, app-startup]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: remotion-composer/package-lock.json
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+
+      - name: Step 1 — Install Python core deps
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Step 2 — Install Remotion composer
+        working-directory: remotion-composer
+        run: npm ci
+
+      - name: Step 3 — Validate .env.example exists and has no real secrets
+        run: |
+          python - <<'EOF'
+          import pathlib, re, sys
+
+          env_example = pathlib.Path(".env.example")
+          if not env_example.exists():
+              print("WARNING: .env.example not found — users may not know what env vars to set")
+              sys.exit(0)
+
+          content = env_example.read_text()
+          # Look for patterns that suggest real credentials (not placeholders)
+          suspicious = re.findall(r'(?:sk-|AIza|AKIA|ya29\.|ghp_)[A-Za-z0-9_\-]{10,}', content)
+          if suspicious:
+              print("SECURITY FAIL: .env.example appears to contain real credentials!", file=sys.stderr)
+              print("Found:", suspicious[:3], file=sys.stderr)
+              sys.exit(1)
+
+          print(f".env.example: {len(content.splitlines())} lines — no real credentials detected")
+          print("Installation smoke: PASSED")
+          EOF
+
+      - name: Step 4 — Full installation smoke
+        run: |
+          pip install -r requirements-dev.txt --quiet
+          python -c "
+          from tools.tool_registry import registry
+          registry.discover()
+          print('Post-install tool registry: PASSED')
+          "

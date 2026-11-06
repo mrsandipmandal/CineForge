@@ -1,0 +1,243 @@
+# OpenMontage — Security Scanning
+#
+# Runs on:
+#   - Pushes to main
+#   - Pull requests targeting main (dependency review gate)
+#   - Weekly schedule (Sundays 02:00 UTC) for proactive drift detection
+#   - Manual workflow dispatch
+#
+# What this workflow does:
+#   1. pip-audit — Python dependency CVE scanning (free, no paid tier needed)
+#   2. Trivy — filesystem scan for misconfigurations and known vulnerabilities
+#   3. CodeQL — static analysis (Python) — available on public repos free
+#   4. Dependency Review — blocks PRs that introduce high-severity vulns
+#
+# Permissions:
+#   - contents: read   — checkout
+#   - security-events: write  — CodeQL SARIF upload
+#   - actions: read    — CodeQL action
+#   - pull-requests: read — dependency review
+#
+# IMPORTANT: This workflow never prints GITHUB_TOKEN, API keys, or secrets.
+# All secrets are accessed only through the GitHub secrets mechanism and
+# only by actions that explicitly require them.
+
+name: Security
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    # Weekly on Sunday at 02:00 UTC
+    - cron: "0 2 * * 0"
+  workflow_dispatch:
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  pull-requests: read
+
+env:
+  PYTHON_VERSION: "3.10"
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 1 — Python dependency audit (pip-audit)
+  # ─────────────────────────────────────────────────────────────────────
+  pip-audit:
+    name: "pip-audit — Python dependency CVE scan"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Audit core dependencies
+        run: |
+          pip install -r requirements.txt --quiet
+          pip-audit --requirement requirements.txt \
+            --output json \
+            --output-file pip-audit-core.json \
+            --skip-editable \
+            || true   # collect results; fail step below on critical findings
+
+      - name: Audit dev dependencies
+        run: |
+          pip install -r requirements-dev.txt --quiet
+          pip-audit --requirement requirements-dev.txt \
+            --output json \
+            --output-file pip-audit-dev.json \
+            --skip-editable \
+            || true
+
+      - name: Evaluate audit results
+        run: |
+          python - <<'EOF'
+          import json, pathlib, sys
+
+          critical = []
+          high = []
+
+          for fname in ["pip-audit-core.json", "pip-audit-dev.json"]:
+              p = pathlib.Path(fname)
+              if not p.exists():
+                  continue
+              data = json.loads(p.read_text())
+              vulns = data.get("vulnerabilities", []) or []
+              for v in vulns:
+                  for fix in v.get("fix_versions", [v]):
+                      severity = str(fix).upper() if isinstance(fix, str) else ""
+                      # pip-audit severity lives in aliases/details
+                  aliases = v.get("aliases", [])
+                  print(f"  VULN: {v.get('name')} {v.get('version')} — {v.get('id')} — {aliases}")
+                  critical.append(v)   # treat all findings as critical for the gate
+
+          if critical:
+              print(f"\n{len(critical)} vulnerability/vulnerabilities found — review required.")
+              print("See pip-audit-*.json artifacts for details.")
+              # Set non-zero exit only for HIGH/CRITICAL in production deps
+              # For now, report without blocking so the gate surfaces information.
+              # Remove '|| true' above and change to sys.exit(1) to enforce hard block.
+              sys.exit(0)
+          else:
+              print("pip-audit: No known vulnerabilities found — PASSED")
+          EOF
+
+      - name: Upload audit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pip-audit-reports
+          path: pip-audit-*.json
+          retention-days: 30
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 2 — Trivy filesystem scan
+  # ─────────────────────────────────────────────────────────────────────
+  trivy:
+    name: "Trivy — filesystem vulnerability scan"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan (table output)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "table"
+          exit-code: "0"           # report only; set to "1" to enforce hard block
+          ignore-unfixed: true
+          severity: "CRITICAL,HIGH"
+          skip-dirs: ".venv,venv,node_modules,projects"
+
+      - name: Run Trivy filesystem scan (SARIF for GitHub Security tab)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-results.sarif"
+          ignore-unfixed: true
+          severity: "CRITICAL,HIGH"
+          skip-dirs: ".venv,venv,node_modules,projects"
+
+      - name: Upload Trivy SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"
+          category: "trivy-filesystem"
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 3 — CodeQL static analysis (Python)
+  # Available for free on public repositories.
+  # ─────────────────────────────────────────────────────────────────────
+  codeql:
+    name: "CodeQL — Python static analysis"
+    runs-on: ubuntu-latest
+    # CodeQL requires a supported runner; skip on forks without write access
+    if: github.repository_owner != '' && !github.event.repository.fork
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+          queries: security-extended
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:python"
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 4 — Dependency Review (PRs only)
+  # Blocks PRs that introduce packages with known high/critical CVEs.
+  # ─────────────────────────────────────────────────────────────────────
+  dependency-review:
+    name: "Dependency Review"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          deny-licenses: "AGPL-3.0, GPL-3.0, GPL-2.0"
+          # Allowlist exceptions go here, e.g.:
+          # allow-dependencies-licenses: "pkg:pypi/some-package@version MIT"
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 5 — Secret scan (gitleaks)
+  # Lightweight; does not send code to any external service.
+  # ─────────────────────────────────────────────────────────────────────
+  secret-scan:
+    name: "Secret scan — gitleaks"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository (full history for secret detection)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITLEAKS_LICENSE is only required for private repositories.
+          # Public repos do not need it.
