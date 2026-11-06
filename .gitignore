@@ -104,17 +104,3 @@ venv/
 
 # Local Wan / diffusers GPU environment
 .venv-wan/
-
-# Sample-files identity media (private voice recordings and face photos - never commit)
-sample-files/voices/*/*/samples/*
-sample-files/voices/*/samples/*
-sample-files/faces/*/*/references/*
-sample-files/faces/*/references/*
-sample-files/faces/*/*/thumbnails/*
-sample-files/faces/*/thumbnails/*
-!sample-files/**/.gitkeep
-!sample-files/**/README.md
-!sample-files/**/metadata.json
-!sample-files/**/character-profile.json
-!sample-files/**/identity-index.json
-

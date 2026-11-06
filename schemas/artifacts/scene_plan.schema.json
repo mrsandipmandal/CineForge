@@ -89,28 +89,6 @@
               "additionalProperties": false
             }
           },
-          "voice_profile_id": {
-            "type": "string",
-            "description": "Voice identity profile ID assigned to this scene"
-          },
-          "character_id": {
-            "type": "string",
-            "description": "Character identity profile ID assigned to this scene"
-          },
-          "character_profile_id": {
-            "type": "string",
-            "description": "Alias for character_id"
-          },
-          "identity": {
-            "type": "object",
-            "description": "Structured voice and character identity references for this scene",
-            "properties": {
-              "voice_profile_id": { "type": "string" },
-              "character_id": { "type": "string" },
-              "audio_strategy": { "type": "string", "enum": ["tts", "voice_clone", "source_audio", "silent"] },
-              "visual_strategy": { "type": "string", "enum": ["reference_conditioned", "talking_head", "lip_sync", "generated_broll", "custom"] }
-            }
-          },
           "texture_keywords": {
             "type": "array",
             "items": { "type": "string" },
