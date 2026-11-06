@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+<title id="title">CineForge — Light Logo</title>
+<desc id="desc">CineForge clapperboard mascot and wordmark on a warm off-white background.</desc>
+<defs>
+  <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F6A928"/><stop offset=".5" stop-color="#F45B35"/><stop offset="1" stop-color="#E52D62"/></linearGradient>
+  <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F3A52D"/><stop offset=".5" stop-color="#8B4BEA"/><stop offset="1" stop-color="#278BCB"/></linearGradient>
+  <pattern id="stripes" width="58" height="58" patternUnits="userSpaceOnUse" patternTransform="rotate(28)"><rect width="58" height="58" fill="#FFF9EE"/><rect width="27" height="58" fill="#20243A"/></pattern>
+  <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="13"/></filter>
+</defs>
+<rect width="1200" height="1200" rx="64" fill="#F7F4EE"/>
+<circle cx="600" cy="460" r="330" fill="#F2A83A" opacity=".08"/>
+<g transform="translate(0 8)">
+  <path d="M493 188 C458 121 518 77 574 42 C566 105 652 95 657 18 C744 105 704 191 641 226Z" fill="url(#accent)" stroke="#E9952E" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M557 190 C542 148 592 132 612 94 C625 139 661 153 646 194Z" fill="#FFE6A0"/>
+  <path d="M263 434 C170 385 169 536 286 563 M917 430 C1026 365 1041 515 921 559" fill="none" stroke="url(#edge)" stroke-width="18" stroke-linecap="round"/>
+  <path d="M253 448 C180 424 191 510 276 526 M930 448 C1008 414 1007 497 925 524" fill="none" stroke="#A8A0D8" stroke-width="6" stroke-dasharray="22 16"/>
+  <path d="M430 753 L411 819 Q400 868 451 870 Q488 870 492 824 L500 765 M700 765 L708 824 Q712 870 750 870 Q800 868 789 819 L770 753" fill="#FFFDF8" stroke="#20243A" stroke-width="13" stroke-linecap="round"/>
+  <path d="M305 361 L873 361 Q911 361 911 399 L911 681 Q911 732 859 740 Q600 779 341 740 Q289 732 289 681 L289 399 Q289 361 305 361Z" fill="#FFFDF8" stroke="#20243A" stroke-width="15"/>
+  <path d="M280 354 L878 354 Q916 354 916 392 L916 435 L280 435Z" fill="#20243A" stroke="#20243A" stroke-width="10"/>
+  <path d="M294 364 L902 364 L902 425 L294 425Z" fill="url(#stripes)"/>
+  <path d="M278 347 L840 206 Q878 196 891 235 L906 278 Q917 316 879 327 L316 466 Q277 476 264 437 L250 395 Q238 358 278 347Z" fill="#FFFDF8" stroke="url(#edge)" stroke-width="14"/>
+  <path d="M274 358 L850 215 Q874 209 882 235 L894 278 Q901 301 878 307 L302 450 Q278 456 270 432 L258 390 Q251 365 274 358Z" fill="url(#stripes)"/>
+  <circle cx="333" cy="400" r="13" fill="#F5A832" stroke="#20243A" stroke-width="5"/>
+  <path d="M260 561 Q213 531 202 574 Q192 611 244 626 L292 640 M909 561 Q958 529 976 571 Q990 608 938 627 L891 642" fill="#FFFDF8" stroke="#20243A" stroke-width="13" stroke-linejoin="round"/>
+  <circle cx="424" cy="544" r="49" fill="#20243A"/><circle cx="424" cy="544" r="25" fill="#FFFDF8"/>
+  <circle cx="701" cy="544" r="49" fill="#20243A"/><circle cx="701" cy="544" r="25" fill="#FFFDF8"/>
+  <path d="M531 611 Q563 649 600 612" fill="none" stroke="#20243A" stroke-width="15" stroke-linecap="round"/>
+  <circle cx="350" cy="655" r="22" fill="#E85B48"/><circle cx="778" cy="655" r="22" fill="#E85B48"/>
+  <path d="M550 679 L550 753 Q550 767 565 758 L649 716 Q664 707 649 698 L565 657 Q550 649 550 679Z" fill="url(#accent)" stroke="#20243A" stroke-width="5" stroke-linejoin="round"/>
+  <g transform="translate(820 526)">
+    <circle r="46" fill="#FFFDF8" stroke="#20243A" stroke-width="12"/>
+    <circle r="17" fill="url(#accent)"/>
+    <g stroke="#20243A" stroke-width="13" stroke-linecap="round"><path d="M0 -68 V-54 M0 54 V68 M-68 0 H-54 M54 0 H68 M-48 -48 L-38 -38 M38 38 L48 48 M48 -48 L38 -38 M-38 38 L-48 48"/></g>
+  </g>
+</g>
+<ellipse cx="600" cy="918" rx="245" ry="23" fill="#39304C" opacity=".12" filter="url(#shadow)"/>
+<text x="600" y="1010" text-anchor="middle" font-family="Inter, Montserrat, Arial, sans-serif" font-size="104" font-weight="800" letter-spacing="-5" fill="#20243A">Cine<tspan fill="url(#accent)">Forge</tspan></text>
+<path d="M372 1048 Q600 1080 828 1048" fill="none" stroke="url(#accent)" stroke-width="12" stroke-linecap="round"/>
+<text x="600" y="1110" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="25" font-weight="700" letter-spacing="8" fill="#646474">AI FILM PRODUCTION STUDIO</text>
+</svg>

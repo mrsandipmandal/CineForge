@@ -61,6 +61,9 @@ Each tool's `agent_skills[]` field bridges Layer 1 → Layer 3. See `skills/INDE
 | File | Purpose |
 |------|---------|
 | `config.yaml` | Global configuration |
+| `lib/identity_library.py` | Identity library manager (scanning, probing, SHA-256 deduplication, thumbnails, consent, project linking) |
+| `tools/audio/voice_identity.py` | Voice identity tool (discovery, validation, consent gate, multi-language routing for bn-IN/hi-IN/en-US) |
+| `tools/avatar/character_identity.py` | Character identity tool (multi-angle portrait views, conditioning bundles for seedance, kling, wan) |
 | `lib/config_model.py` | Runtime config loader (Pydantic) |
 | `lib/checkpoint.py` | Checkpoint writer/reader |
 | `lib/pipeline_loader.py` | Pipeline manifest loader + helpers |

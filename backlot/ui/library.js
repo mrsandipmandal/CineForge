@@ -1,6 +1,7 @@
 import { el, fmtAgo, getJSON, subscribe, thumbURL } from "/ui/lib.js";
 
 const grid = document.getElementById("grid");
+const extraView = document.getElementById("extraView");
 const THEME_KEY = "backlot.theme";
 let currentTheme = localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark";
 
@@ -28,6 +29,91 @@ function renderThemeToggle() {
 
 applyTheme(currentTheme);
 document.getElementById("liveBadge").before(renderThemeToggle());
+
+// Matrix navigation in library
+const navTabs = document.querySelectorAll(".matrix-nav .matrix-tab");
+navTabs.forEach((tab) => {
+  tab.addEventListener("click", (e) => {
+    e.preventDefault();
+    navTabs.forEach((t) => t.classList.remove("active"));
+    tab.classList.add("active");
+
+    const target = tab.getAttribute("href");
+    if (target === "/") {
+      grid.style.display = "grid";
+      if (extraView) extraView.style.display = "none";
+    } else if (target === "#identities") {
+      grid.style.display = "none";
+      if (extraView) {
+        extraView.style.display = "block";
+        loadIdentityCatalog(extraView);
+      }
+    } else if (target === "#providers") {
+      grid.style.display = "none";
+      if (extraView) {
+        extraView.style.display = "block";
+        loadProvidersCatalog(extraView);
+      }
+    }
+  });
+});
+
+async function loadIdentityCatalog(container) {
+  container.innerHTML = `<div class="identity-card" style="color:var(--matrix-muted)">Loading identities from sample-files/...</div>`;
+  try {
+    const [voices, faces] = await Promise.all([
+      getJSON("/api/identity/voices"),
+      getJSON("/api/identity/faces"),
+    ]);
+    container.innerHTML = "";
+    const wrapper = el("div", { class: "lab-container" });
+    wrapper.append(el("div", { class: "lab-head" },
+      el("h2", {}, "MATRIX IDENTITY REGISTRY"),
+      el("span", { class: "chip" }, `${(voices || []).length} Voices · ${(faces || []).length} Characters`),
+    ));
+
+    const vGrid = el("div", { class: "lab-grid" });
+    for (const v of (voices || [])) {
+      vGrid.append(el("div", { class: "identity-card" },
+        el("div", { class: "identity-card-head" },
+          el("h3", {}, v.name || v.profile_id),
+          el("span", { class: "lang-badge" }, v.primary_language || "en-US"),
+        ),
+        el("p", { class: "identity-card-desc" }, v.description || "Voice profile"),
+      ));
+    }
+    wrapper.append(vGrid);
+    container.append(wrapper);
+  } catch (err) {
+    container.innerHTML = `<div class="identity-card" style="color:var(--matrix-error)">Error loading identities: ${err}</div>`;
+  }
+}
+
+async function loadProvidersCatalog(container) {
+  container.innerHTML = `<div class="identity-card" style="color:var(--matrix-muted)">Loading live provider capabilities...</div>`;
+  try {
+    const sum = await getJSON("/api/providers/summary");
+    container.innerHTML = "";
+    const wrapper = el("div", { class: "lab-container" });
+    wrapper.append(el("div", { class: "lab-head" },
+      el("h2", {}, "SYSTEM PROVIDER CAPABILITY ENVELOPE"),
+    ));
+
+    const pGrid = el("div", { class: "lab-grid" });
+    for (const cap of (sum.capabilities || [])) {
+      pGrid.append(el("div", { class: "provider-stat-card" },
+        el("h4", {},
+          el("span", {}, cap.capability.toUpperCase()),
+          el("span", { style: "color:var(--matrix-green)" }, `${cap.configured} / ${cap.total}`)
+        ),
+      ));
+    }
+    wrapper.append(pGrid);
+    container.append(wrapper);
+  } catch (err) {
+    container.innerHTML = `<div class="identity-card" style="color:var(--matrix-error)">Error loading providers: ${err}</div>`;
+  }
+}
 
 function miniRail(states) {
   const rail = el("div", { class: "mini-rail" });
