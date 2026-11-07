@@ -204,6 +204,46 @@ class IdentityLibrary:
             # Fallback for systems without ffprobe or probe failure
             pass
 
+        if duration == 0.0:
+            if fmt == "wav":
+                try:
+                    import wave
+                    with wave.open(str(file_path), "rb") as wf:
+                        channels = wf.getnchannels()
+                        sample_rate = wf.getframerate()
+                        frames = wf.getnframes()
+                        if sample_rate > 0:
+                            duration = frames / float(sample_rate)
+                except Exception:
+                    pass
+            elif fmt == "mp3":
+                try:
+                    with open(file_path, "rb") as mf:
+                        data = mf.read(4096)
+                    offset = 0
+                    if data.startswith(b"ID3"):
+                        tag_size = ((data[6] & 0x7F) << 21) | ((data[7] & 0x7F) << 14) | ((data[8] & 0x7F) << 7) | (data[9] & 0x7F)
+                        offset = 10 + tag_size
+                    with open(file_path, "rb") as mf:
+                        mf.seek(offset)
+                        hdr = mf.read(4)
+                        if len(hdr) == 4 and hdr[0] == 0xFF and (hdr[1] & 0xE0) == 0xE0:
+                            bitrate_idx = (hdr[2] >> 4) & 0xF
+                            sr_idx = (hdr[2] >> 2) & 0x3
+                            bitrates_v1_l3 = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0]
+                            rates = [44100, 48000, 32000]
+                            if bitrate_idx < len(bitrates_v1_l3) and sr_idx < len(rates):
+                                br = bitrates_v1_l3[bitrate_idx] * 1000
+                                sample_rate = rates[sr_idx]
+                                audio_bytes = file_size - offset
+                                if br > 0:
+                                    duration = (audio_bytes * 8.0) / br
+                    if duration == 0.0:
+                        duration = round(file_size / 16000.0, 2)
+                        sample_rate = 44100
+                except Exception:
+                    pass
+
         return AudioSampleMeta(
             filename=file_path.name,
             relative_path=rel,

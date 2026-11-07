@@ -268,17 +268,23 @@ interface Cut {
 }
 
 interface Overlay {
-  type: "section_title" | "stat_reveal" | "hero_title" | "provider_chip";
-  in_seconds: number;
-  out_seconds: number;
+  type?: "section_title" | "stat_reveal" | "hero_title" | "provider_chip" | "image";
+  in_seconds?: number;
+  out_seconds?: number;
+  start_seconds?: number;
+  end_seconds?: number;
   text?: string;
   subtitle?: string;
   accentColor?: string;
-  position?: string;
+  position?: string | { x: number; y: number; width?: number; height?: number };
   // provider_chip
   providers?: string[];
   cycleSeconds?: number;
   label?: string;
+  source?: string;
+  asset_path?: string;
+  asset_id?: string;
+  image?: string;
 }
 
 interface AudioLayer {
@@ -824,6 +830,29 @@ const OverlayRenderer: React.FC<{ overlay: Overlay; theme: ThemeConfig }> = ({
       />
     );
   }
+  if (overlay.type === "image" || overlay.source || overlay.asset_path || overlay.image) {
+    const src = resolveAsset(overlay.source || overlay.asset_path || overlay.image || "");
+    const pos = (typeof overlay.position === "object" && overlay.position !== null ? overlay.position : {}) as any;
+    return (
+      <div
+        style={{
+          position: "absolute",
+          left: pos.x !== undefined ? `${pos.x}px` : "auto",
+          top: pos.y !== undefined ? `${pos.y}px` : "auto",
+          width: pos.width !== undefined ? `${pos.width}px` : "auto",
+          height: pos.height !== undefined ? `${pos.height}px` : "auto",
+          borderRadius: 16,
+          overflow: "hidden",
+          boxShadow: "0 20px 40px rgba(0,0,0,0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Img src={src} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+      </div>
+    );
+  }
   return null;
 };
 
@@ -855,12 +884,13 @@ export const Explainer: React.FC<ExplainerProps> = (props) => {
         );
       })}
 
-      {/* Layer 2: Overlays (section titles, stat reveals, hero titles) */}
+      {/* Layer 2: Overlays (section titles, stat reveals, hero titles, image cards) */}
       {overlays?.map((overlay, i) => {
-        const from = Math.round(overlay.in_seconds * fps);
-        const duration = Math.round(
-          (overlay.out_seconds - overlay.in_seconds) * fps
-        );
+        const inSec = overlay.in_seconds ?? overlay.start_seconds ?? 0;
+        const outSec = overlay.out_seconds ?? overlay.end_seconds ?? (inSec + 5);
+        if (isNaN(inSec) || isNaN(outSec)) return null;
+        const from = Math.round(inSec * fps);
+        const duration = Math.max(1, Math.round((outSec - inSec) * fps));
 
         return (
           <Sequence key={`overlay-${i}`} from={from} durationInFrames={duration}>

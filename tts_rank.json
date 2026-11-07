@@ -1,0 +1,395 @@
+{
+  "rankings": [
+    {
+      "tool_name": "fish_audio_tts",
+      "provider": "fish_audio",
+      "task_fit": 0.1,
+      "output_quality": 0.9,
+      "control": 0.0,
+      "reliability": 0.8,
+      "cost_efficiency": 1.0,
+      "latency": 0.8,
+      "continuity": 0.5,
+      "weighted_score": 0.4950000000000001,
+      "agent_skills": [
+        "fish-audio-tts",
+        "text-to-speech"
+      ],
+      "usage_location": "F:\\CineForge\\tools\\audio\\fish_audio_tts.py",
+      "best_for": [
+        "high-quality voice-clone narration via reference_id",
+        "expressive S2-model read-throughs with inline emotion tags",
+        "multilingual narration"
+      ],
+      "status": "ToolStatus.AVAILABLE"
+    },
+    {
+      "tool_name": "fal_elevenlabs_tts",
+      "provider": "fal.ai",
+      "task_fit": 0.1,
+      "output_quality": 0.7,
+      "control": 0.0,
+      "reliability": 0.8,
+      "cost_efficiency": 1.0,
+      "latency": 0.4,
+      "continuity": 0.5,
+      "weighted_score": 0.43500000000000005,
+      "agent_skills": [
+        "elevenlabs"
+      ],
+      "usage_location": "F:\\CineForge\\tools\\audio\\fal_elevenlabs_tts.py",
+      "best_for": [
+        "expressive ElevenLabs narration through an existing fal.ai connection",
+        "emotionally directed voiceover with Eleven v3 audio tags",
+        "multilingual narration without a separate ElevenLabs credential"
+      ],
+      "status": "ToolStatus.AVAILABLE"
+    },
+    {
+      "tool_name": "google_tts",
+      "provider": "google_tts",
+      "task_fit": 0.1,
+      "output_quality": 0.7,
+      "control": 0.0,
+      "reliability": 0.8,
+      "cost_efficiency": 1.0,
+      "latency": 0.4,
+      "continuity": 0.5,
+      "weighted_score": 0.43500000000000005,
+      "agent_skills": [
+        "text-to-speech"
+      ],
+      "usage_location": "F:\\CineForge\\tools\\audio\\google_tts.py",
+      "best_for": [
+        "localization — 700+ voices across 50+ languages",
+        "affordable high-quality TTS (Neural2, WaveNet)",
+        "Google ecosystem integration"
+      ],
+      "status": "ToolStatus.AVAILABLE"
+    },
+    {
+      "tool_name": "elevenlabs_tts",
+      "provider": "elevenlabs",
+      "task_fit": 0.1,
+      "output_quality": 0.4,
+      "control": 0.0,
+      "reliability": 0.8,
+      "cost_efficiency": 1.0,
+      "latency": 0.4,
+      "continuity": 0.5,
+      "weighted_score": 0.37500000000000006,
+      "agent_skills": [
+        "elevenlabs",
+        "text-to-speech"
+      ],
+      "usage_location": "F:\\CineForge\\tools\\audio\\elevenlabs_tts.py",
+      "best_for": [
+        "high-quality narration",
+        "voice-sensitive spokesperson videos",
+        "multilingual spoken delivery"
+      ],
+      "status": "ToolStatus.AVAILABLE"
+    },
+    {
+      "tool_name": "doubao_tts",
+      "provider": "doubao",
+      "task_fit": 0.1,
+      "output_quality": 0.88,
+      "control": 0.0,
+      "reliability": 0.0,
+      "cost_efficiency": 1.0,
+      "latency": 0.8,
+      "continuity": 0.5,
+      "weighted_score": 0.3710000000000001,
+      "agent_skills": [
+        "doubao-tts",
+        "text-to-speech"
+      ],
+      "usage_location": "F:\\CineForge\\tools\\audio\\doubao_tts.py",
+      "best_for": [
+        "natural Mandarin narration",
+        "Chinese explainer voiceovers with character-level timestamps",
+        "long-form narration that needs subtitle alignment"
+      ],
+      "status": "ToolStatus.UNAVAILABLE"
+    },
+    {
+      "tool_name": "inworld_tts",
+      "provider": "inworld",
+      "task_fit": 0.1,
+      "output_quality": 0.7,
+      "control": 0.3,
+      "reliability": 0.0,
+      "cost_efficiency": 1.0,
+      "latency": 0.4,
+      "continuity": 0.5,
+      "weighted_score": 0.36,
+      "agent_skills": [
+        "provider-model-refresh"
+      ],
+      "usage_location": "F:\\CineForge\\tools\\audio\\inworld_tts.py",
+      "best_for": [
+        "TTS-2 narration with expressive text cues"
+      ],
+      "status": "ToolStatus.UNAVAILABLE"
+    },
+    {
+      "tool_name": "kling_tts",
+      "provider": "kling_official",
+      "task_fit": 0.1,
+      "output_quality": 0.78,
+      "control": 0.0,
+      "reliability": 0.0,
+      "cost_efficiency": 1.0,
+      "latency": 0.6,
+      "continuity": 0.5,
+      "weighted_score": 0.3410000000000001,
+      "agent_skills": [
+        "kling-official",
+        "text-to-speech"
+      ],
+      "usage_location": "F:\\CineForge\\tools\\audio\\kling_tts.py",
+      "best_for": [
+        "official Kling text-to-speech",
+        "Chinese or English narration when a Kling voice_id is known",
+        "keeping narration provider provenance inside the Kling official account"
+      ],
+      "status": "ToolStatus.UNAVAILABLE"
+    },
+    {
+      "tool_name": "gemini_tts",
+      "provider": "gemini",
+      "task_fit": 0.1,
+      "output_quality": 0.7,
+      "control": 0.0,
+      "reliability": 0.8,
+      "cost_efficiency": 0.0,
+      "latency": 0.4,
+      "continuity": 0.5,
+      "weighted_score": 0.335,
+      "agent_skills": [
+        "provider-model-refresh"
+      ],
+      "usage_location": "F:\\CineForge\\tools\\audio\\gemini_tts.py",
+      "best_for": [
+        "Expressive single-speaker narration and directed dialogue"
+      ],
+      "status": "ToolStatus.AVAILABLE"
+    },
+    {
+      "tool_name": "azure_tts",
+      "provider": "azure",
+      "task_fit": 0.1,
+      "output_quality": 0.7,
+      "control": 0.0,
+      "reliability": 0.0,
+      "cost_efficiency": 1.0,
+      "latency": 0.4,
+      "continuity": 0.5,
+      "weighted_score": 0.31500000000000006,
+      "agent_skills": [
+        "azure-text-to-speech",
+        "text-to-speech"
+      ],
+      "usage_location": "F:\\CineForge\\tools\\audio\\azure_tts.py",
+      "best_for": [
+        "high-quality neural narration on Azure credentials",
+        "calm, confident explainer / founder-register delivery",
+        "cloud TTS that shares one key with azure_stt"
+      ],
+      "status": "ToolStatus.UNAVAILABLE"
+    },
+    {
+      "tool_name": "piper_tts",
+      "provider": "piper",
+      "task_fit": 0.1,
+      "output_quality": 0.4,
+      "control": 0.0,
+      "reliability": 0.0,
+      "cost_efficiency": 1.0,
+      "latency": 0.9,
+      "continuity": 0.5,
+      "weighted_score": 0.28,
+      "agent_skills": [
+        "text-to-speech"
+      ],
+      "usage_location": "F:\\CineForge\\tools\\audio\\piper_tts.py",
+      "best_for": [
+        "offline narration fallback",
+        "privacy-sensitive local-only workflows"
+      ],
+      "status": "ToolStatus.UNAVAILABLE"
+    },
+    {
+      "tool_name": "heygen_catalog_tts",
+      "provider": "heygen",
+      "task_fit": 0.3,
+      "output_quality": 0.4,
+      "control": 0.3,
+      "reliability": 0.0,
+      "cost_efficiency": 0.0,
+      "latency": 0.4,
+      "continuity": 0.5,
+      "weighted_score": 0.26000000000000006,
+      "agent_skills": [
+        "provider-refresh-oct23"
+      ],
+      "usage_location": "F:\\CineForge\\tools\\audio\\heygen_catalog_tts.py",
+      "best_for": [],
+      "status": "ToolStatus.UNAVAILABLE"
+    },
+    {
+      "tool_name": "cartesia_tts",
+      "provider": "cartesia",
+      "task_fit": 0.1,
+      "output_quality": 0.7,
+      "control": 0.3,
+      "reliability": 0.0,
+      "cost_efficiency": 0.0,
+      "latency": 0.4,
+      "continuity": 0.5,
+      "weighted_score": 0.26,
+      "agent_skills": [
+        "provider-model-refresh"
+      ],
+      "usage_location": "F:\\CineForge\\tools\\audio\\cartesia_tts.py",
+      "best_for": [
+        "Sonic 3.6 multilingual narration"
+      ],
+      "status": "ToolStatus.UNAVAILABLE"
+    },
+    {
+      "tool_name": "dashscope_tts",
+      "provider": "dashscope",
+      "task_fit": 0.1,
+      "output_quality": 0.4,
+      "control": 0.0,
+      "reliability": 0.0,
+      "cost_efficiency": 1.0,
+      "latency": 0.4,
+      "continuity": 0.5,
+      "weighted_score": 0.25500000000000006,
+      "agent_skills": [
+        "dashscope"
+      ],
+      "usage_location": "F:\\CineForge\\tools\\audio\\dashscope_tts.py",
+      "best_for": [
+        "natural Mandarin and multilingual narration via Qwen-TTS",
+        "cost-effective TTS via Alibaba Cloud",
+        "Chinese-language voiceover production"
+      ],
+      "status": "ToolStatus.UNAVAILABLE"
+    },
+    {
+      "tool_name": "openai_tts",
+      "provider": "openai",
+      "task_fit": 0.1,
+      "output_quality": 0.4,
+      "control": 0.0,
+      "reliability": 0.0,
+      "cost_efficiency": 1.0,
+      "latency": 0.4,
+      "continuity": 0.5,
+      "weighted_score": 0.25500000000000006,
+      "agent_skills": [],
+      "usage_location": "F:\\CineForge\\tools\\audio\\openai_tts.py",
+      "best_for": [
+        "general narration fallback",
+        "API-based production when ElevenLabs is unavailable"
+      ],
+      "status": "ToolStatus.UNAVAILABLE"
+    },
+    {
+      "tool_name": "mai_tts",
+      "provider": "microsoft_mai",
+      "task_fit": 0.1,
+      "output_quality": 0.7,
+      "control": 0.0,
+      "reliability": 0.0,
+      "cost_efficiency": 0.0,
+      "latency": 0.4,
+      "continuity": 0.5,
+      "weighted_score": 0.215,
+      "agent_skills": [
+        "provider-refresh-oct23",
+        "azure-text-to-speech"
+      ],
+      "usage_location": "F:\\CineForge\\tools\\audio\\mai_tts.py",
+      "best_for": [
+        "high-quality neural narration on Azure credentials",
+        "calm, confident explainer / founder-register delivery",
+        "cloud TTS that shares one key with azure_stt"
+      ],
+      "status": "ToolStatus.UNAVAILABLE"
+    },
+    {
+      "tool_name": "mistral_tts",
+      "provider": "mistral",
+      "task_fit": 0.1,
+      "output_quality": 0.4,
+      "control": 0.3,
+      "reliability": 0.0,
+      "cost_efficiency": 0.0,
+      "latency": 0.4,
+      "continuity": 0.5,
+      "weighted_score": 0.20000000000000004,
+      "agent_skills": [
+        "provider-refresh-oct23"
+      ],
+      "usage_location": "F:\\CineForge\\tools\\audio\\mistral_tts.py",
+      "best_for": [
+        "Voxtral expressive narration with preset or reference voices"
+      ],
+      "status": "ToolStatus.UNAVAILABLE"
+    },
+    {
+      "tool_name": "grok_tts",
+      "provider": "grok",
+      "task_fit": 0.1,
+      "output_quality": 0.4,
+      "control": 0.0,
+      "reliability": 0.0,
+      "cost_efficiency": 0.0,
+      "latency": 0.4,
+      "continuity": 0.5,
+      "weighted_score": 0.155,
+      "agent_skills": [
+        "provider-refresh-oct23"
+      ],
+      "usage_location": "F:\\CineForge\\tools\\audio\\grok_tts.py",
+      "best_for": [
+        "Expressive xAI narration with character alignment"
+      ],
+      "status": "ToolStatus.UNAVAILABLE"
+    },
+    {
+      "tool_name": "heygen_tts",
+      "provider": "heygen",
+      "task_fit": 0.1,
+      "output_quality": 0.4,
+      "control": 0.0,
+      "reliability": 0.0,
+      "cost_efficiency": 0.0,
+      "latency": 0.4,
+      "continuity": 0.5,
+      "weighted_score": 0.155,
+      "agent_skills": [
+        "provider-refresh-oct23"
+      ],
+      "usage_location": "F:\\CineForge\\tools\\audio\\heygen_tts.py",
+      "best_for": [
+        "HeyGen native voice narration and cloning"
+      ],
+      "status": "ToolStatus.UNAVAILABLE"
+    }
+  ],
+  "explanation": "fish_audio_tts (fish_audio): 0.50\n  output_quality=0.90 (w=0.2)\n  reliability=0.80 (w=0.15)\n  cost_efficiency=1.00 (w=0.1)\nfal_elevenlabs_tts (fal.ai): 0.44\n  output_quality=0.70 (w=0.2)\n  reliability=0.80 (w=0.15)\n  cost_efficiency=1.00 (w=0.1)\ngoogle_tts (google_tts): 0.44\n  output_quality=0.70 (w=0.2)\n  reliability=0.80 (w=0.15)\n  cost_efficiency=1.00 (w=0.1)\nelevenlabs_tts (elevenlabs): 0.38\n  reliability=0.80 (w=0.15)\n  cost_efficiency=1.00 (w=0.1)\n  output_quality=0.40 (w=0.2)\ndoubao_tts (doubao): 0.37\n  output_quality=0.88 (w=0.2)\n  cost_efficiency=1.00 (w=0.1)\n  latency=0.80 (w=0.05)",
+  "normalized_task_context": {
+    "intent": "ek baat bataiye",
+    "style_keywords": [],
+    "asset_type": "voice",
+    "prefers_generated_visuals": false,
+    "wants_reference_conditioning": false,
+    "wants_image_editing": false
+  }
+}

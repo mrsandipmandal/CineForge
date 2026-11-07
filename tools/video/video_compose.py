@@ -34,6 +34,7 @@ import contextlib
 import json
 import hashlib
 import logging
+import os
 import secrets
 import shutil
 import subprocess
@@ -231,6 +232,15 @@ class VideoCompose(BaseTool):
         "Play the composed output and verify cuts, subtitles, and overlays",
     ]
 
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        if not shutil.which("ffmpeg"):
+            composer_dir = Path(__file__).resolve().parent.parent.parent / "remotion-composer"
+            for p in composer_dir.glob("node_modules/@remotion/compositor-*/ffmpeg.exe"):
+                if p.is_file():
+                    os.environ["PATH"] = str(p.parent) + os.pathsep + os.environ.get("PATH", "")
+                    break
+
     def _remotion_available(self) -> bool:
         """Check if Remotion rendering is available (requires npx + composer project + node_modules)."""
         import shutil as _shutil
@@ -250,7 +260,14 @@ class VideoCompose(BaseTool):
         """Check if the ffmpeg binary is actually resolvable on PATH."""
         import shutil as _shutil
 
-        return bool(_shutil.which("ffmpeg"))
+        if _shutil.which("ffmpeg"):
+            return True
+        composer_dir = Path(__file__).resolve().parent.parent.parent / "remotion-composer"
+        for p in composer_dir.glob("node_modules/@remotion/compositor-*/ffmpeg.exe"):
+            if p.is_file():
+                os.environ["PATH"] = str(p.parent) + os.pathsep + os.environ.get("PATH", "")
+                return bool(_shutil.which("ffmpeg"))
+        return False
 
     def _hyperframes_available(self) -> bool:
         """Check if HyperFrames rendering is available.
@@ -887,7 +904,7 @@ class VideoCompose(BaseTool):
                     (shutil.copytree if entry.is_dir() else shutil.copy2)(entry, link)
 
     @staticmethod
-    def _stage_remotion_media(value: Any, public_dir: Path) -> int:
+    def _stage_remotion_media(value: Any, public_dir: Path, base_dir: Path | None = None) -> int:
         """Copy local media references into a Remotion public dir in-place.
 
         OffthreadVideo's compositor rejects ``file://`` sources. Rewriting
@@ -896,7 +913,9 @@ class VideoCompose(BaseTool):
         """
 
         staged_by_source: dict[Path, str] = {}
-        media_keys = {"source", "src", "backgroundSrc", "backgroundImage", "backgroundVideo", "images"}
+        media_keys = {
+            "source", "src", "backgroundSrc", "backgroundImage", "backgroundVideo", "images", "asset_path", "image"
+        }
 
         def visit(node: Any, parent_key: str | None = None) -> Any:
             if isinstance(node, dict):
@@ -917,6 +936,15 @@ class VideoCompose(BaseTool):
             else:
                 raw_path = node
             source = Path(raw_path).resolve()
+            if not source.is_file() and base_dir is not None:
+                candidate = (Path(base_dir) / raw_path).resolve()
+                if candidate.is_file():
+                    source = candidate
+            if not source.is_file():
+                for p_candidate in Path("projects").glob(f"*/{raw_path}"):
+                    if p_candidate.is_file():
+                        source = p_candidate.resolve()
+                        break
             if not source.is_file():
                 return node
             if source not in staged_by_source:
@@ -1611,6 +1639,7 @@ class VideoCompose(BaseTool):
 
         output_path = Path(inputs.get("output_path", "renders/output.mp4"))
         output_path.parent.mkdir(parents=True, exist_ok=True)
+        project_dir = output_path.parent.parent if output_path.parent.name == "renders" else output_path.parent
 
         # Build asset lookup: id -> asset info
         asset_lookup = {a["id"]: a for a in asset_manifest.get("assets", [])}
@@ -1619,14 +1648,49 @@ class VideoCompose(BaseTool):
         if not cuts:
             return ToolResult(success=False, error="No cuts in edit_decisions")
 
+        def _resolve_asset_path(raw: str) -> str:
+            p = Path(raw)
+            if p.is_file():
+                return str(p.resolve())
+            if (project_dir / p).is_file():
+                return str((project_dir / p).resolve())
+            for c in Path("projects").glob(f"*/{raw}"):
+                if c.is_file():
+                    return str(c.resolve())
+            return raw
+
         # Resolve asset IDs in cuts to file paths
         resolved_cuts = []
         for cut in cuts:
             source_id = cut.get("source", "")
             resolved_cut = dict(cut)
             if source_id in asset_lookup:
-                resolved_cut["source"] = asset_lookup[source_id]["path"]
+                resolved_cut["source"] = _resolve_asset_path(asset_lookup[source_id]["path"])
+            elif source_id:
+                resolved_cut["source"] = _resolve_asset_path(source_id)
             resolved_cuts.append(resolved_cut)
+
+        # Resolve asset IDs in overlays to file paths and ensure timing fields
+        resolved_overlays = []
+        for ov in edit_decisions.get("overlays", []):
+            resolved_ov = dict(ov)
+            asset_id = ov.get("asset_id") or ov.get("asset_path") or ov.get("source")
+            target_path = None
+            if asset_id and asset_id in asset_lookup:
+                target_path = asset_lookup[asset_id]["path"]
+            elif asset_id:
+                target_path = asset_id
+
+            if target_path:
+                resolved_path = _resolve_asset_path(target_path)
+                resolved_ov["source"] = resolved_path
+                resolved_ov["asset_path"] = resolved_path
+
+            if "in_seconds" not in resolved_ov and "start_seconds" in resolved_ov:
+                resolved_ov["in_seconds"] = resolved_ov["start_seconds"]
+            if "out_seconds" not in resolved_ov and "end_seconds" in resolved_ov:
+                resolved_ov["out_seconds"] = resolved_ov["end_seconds"]
+            resolved_overlays.append(resolved_ov)
 
         # --- Pre-compose validation gate ---
         scene_plan = inputs.get("scene_plan")
@@ -1658,7 +1722,7 @@ class VideoCompose(BaseTool):
         # --- Explicit Remotion path (render_runtime == 'remotion') ---
         if self._needs_remotion(resolved_cuts):
             remotion_inputs: dict[str, Any] = {
-                "edit_decisions": dict(edit_decisions, cuts=resolved_cuts),
+                "edit_decisions": dict(edit_decisions, cuts=resolved_cuts, overlays=resolved_overlays),
                 "output_path": str(output_path),
             }
             if profile:
@@ -1694,6 +1758,31 @@ class VideoCompose(BaseTool):
                 if not mux_result.success:
                     return mux_result
                 render_result.data["has_mixed_audio"] = True
+
+            options = inputs.get("options", {})
+            subtitle_burn = options.get("subtitle_burn", True)
+            subtitle_path = inputs.get("subtitle_path")
+            if subtitle_burn and not subtitle_path:
+                ed_subs = edit_decisions.get("subtitles", {})
+                if ed_subs.get("enabled") and ed_subs.get("source"):
+                    subtitle_path = ed_subs["source"]
+            if subtitle_burn and subtitle_path:
+                sub_path = Path(subtitle_path)
+                if not sub_path.is_absolute():
+                    for candidate in [output_path.parent.parent / sub_path, sub_path]:
+                        if candidate.exists():
+                            sub_path = candidate
+                            break
+                if sub_path.exists():
+                    temp_sub = output_path.with_name(f".{output_path.stem}.sub-burn-{time.time_ns()}{output_path.suffix}")
+                    burn_res = self._burn_subtitles({
+                        "input_path": str(output_path),
+                        "subtitle_path": str(sub_path),
+                        "output_path": str(temp_sub),
+                    })
+                    if burn_res.success and temp_sub.exists():
+                        shutil.move(temp_sub, output_path)
+                        render_result.data["has_burned_subtitles"] = True
         else:
             # --- FFmpeg fallback: only when Remotion is unavailable ---
             options = inputs.get("options", {})
@@ -2032,7 +2121,8 @@ class VideoCompose(BaseTool):
         staged_count = 0
         profile_name = inputs.get("profile")
         try:
-            staged_count = self._stage_remotion_media(props, public_dir)
+            base_dir = output_path.parent.parent if output_path.parent.name == "renders" else output_path.parent
+            staged_count = self._stage_remotion_media(props, public_dir, base_dir=base_dir)
             if not staged_count and cleanup_public_dir:
                 public_dir = None
             elif cleanup_public_dir:
