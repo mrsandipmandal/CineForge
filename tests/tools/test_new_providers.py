@@ -206,3 +206,40 @@ class TestOpenRouterLLM:
         res = t.execute({"prompt": "Draft a script"})
         assert res.success is True
         assert res.data["content"] == "Sample script"
+
+
+class TestLocalHardwareProbe:
+    def test_probe_contract_and_execution(self):
+        from tools.audio.local_hardware_probe import LocalHardwareProbe
+        assert issubclass(LocalHardwareProbe, BaseTool)
+        probe = LocalHardwareProbe()
+        res = probe.execute({"target_language": "bn-IN"})
+        assert res.success is True
+        assert "hardware" in res.data
+        assert "recommendation" in res.data
+        assert res.data["recommendation"]["recommended_tool"] == "piper_tts"
+        assert res.data["recommendation"]["model_name"] == "bn_BD-google-medium"
+
+
+class TestPiperTTSOffline:
+    def test_status_and_binary(self):
+        from tools.audio.piper_tts import PiperTTS
+        p = PiperTTS()
+        assert p.get_status() == ToolStatus.AVAILABLE
+        assert p._get_piper_binary() is not None
+
+
+class TestIndicTTS:
+    def test_contract_and_execution(self):
+        from tools.audio.indic_tts import IndicTTS
+        assert issubclass(IndicTTS, BaseTool)
+        t = IndicTTS()
+        assert t.name == "indic_tts"
+        assert t.provider == "ai4bharat"
+        assert t.capability == "tts"
+        assert t.tier == ToolTier.VOICE
+        res = t.execute({"text": "নমস্কার", "language": "bn-IN", "speaker": "female"})
+        assert res.success is True
+        assert res.data["locale"] == "West Bengal, India"
+
+

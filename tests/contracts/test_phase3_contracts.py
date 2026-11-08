@@ -723,6 +723,7 @@ class TestCapabilityMetadata:
             "openai",
             "piper",
             "sarvam",
+            "ai4bharat",
         }
 
 

@@ -93,6 +93,11 @@ class VoiceIdentity(BaseTool):
                 "default": False,
                 "description": "Whether the voice requires true reference audio voice cloning.",
             },
+            "require_offline": {
+                "type": "boolean",
+                "default": False,
+                "description": "Whether offline local synthesis (Piper TTS) is required without cloud APIs.",
+            },
             "voice_data": {
                 "type": "object",
                 "description": "Metadata dictionary for create_or_update operation.",
@@ -238,6 +243,7 @@ class VoiceIdentity(BaseTool):
             elif operation == "route_voice":
                 language = inputs.get("language", "en-US")
                 require_cloning = inputs.get("require_cloning", False)
+                require_offline = inputs.get("require_offline", False)
                 pid = inputs.get("profile_id")
 
                 selected_profile: Optional[VoiceProfile] = None
@@ -252,7 +258,7 @@ class VoiceIdentity(BaseTool):
                             break
 
                 # Resolve recommended provider
-                route = self._resolve_routing(language, require_cloning, selected_profile)
+                route = self._resolve_routing(language, require_cloning, selected_profile, require_offline)
                 return ToolResult(
                     success=True,
                     data=route,
@@ -304,11 +310,53 @@ class VoiceIdentity(BaseTool):
         language: str,
         require_cloning: bool,
         profile: Optional[VoiceProfile],
+        require_offline: bool = False,
     ) -> dict[str, Any]:
         """Determine the optimal TTS provider and settings for a language and profile."""
         lang_lower = language.lower()
         is_bengali = "bn" in lang_lower
         is_hindi = "hi" in lang_lower
+
+        if require_offline:
+            if is_bengali:
+                if require_cloning:
+                    return {
+                        "language": "bn-IN",
+                        "requires_cloning": True,
+                        "recommended_tool": "indic_tts",
+                        "recommended_engine": "indic_f5",
+                        "fallback_tool": "piper_tts",
+                        "notes": "Offline West Bengal (bn-IN) voice cloning via AI4Bharat IndicF5 on local GPU.",
+                    }
+                else:
+                    return {
+                        "language": "bn-IN",
+                        "requires_cloning": False,
+                        "recommended_tool": "indic_tts",
+                        "recommended_voice": "female",
+                        "fallback_tool": "piper_tts",
+                        "fallback_model": "bn_BD-google-medium",
+                        "notes": "Offline West Bengal (bn-IN) neural synthesis via AI4Bharat IndicTTS (with Piper TTS fallback).",
+                    }
+            elif is_hindi:
+                return {
+                    "language": "hi-IN",
+                    "requires_cloning": False,
+                    "recommended_tool": "indic_tts",
+                    "recommended_voice": "female",
+                    "fallback_tool": "piper_tts",
+                    "fallback_model": "hi_IN-rohan-medium",
+                    "notes": "Offline local Hindi neural synthesis via AI4Bharat IndicTTS (with Piper TTS fallback).",
+                }
+            else:
+                return {
+                    "language": language or "en-US",
+                    "requires_cloning": False,
+                    "recommended_tool": "piper_tts",
+                    "recommended_model": "en_US-lessac-medium",
+                    "fallback_tool": "elevenlabs_tts",
+                    "notes": "Offline local English synthesis via Piper TTS.",
+                }
 
         if is_bengali:
             if require_cloning:

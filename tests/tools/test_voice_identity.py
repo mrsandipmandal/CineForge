@@ -105,6 +105,11 @@ def test_voice_routing_bengali(identity_env: Path):
     assert route_clone.success is True
     assert route_clone.data["recommended_tool"] in ["fish_audio_tts", "elevenlabs_tts"]
 
+    # Bengali offline routing
+    route_offline = tool.execute({"operation": "route_voice", "language": "bn-IN", "require_offline": True})
+    assert route_offline.success is True
+    assert route_offline.data["recommended_tool"] == "indic_tts"
+
 
 def test_voice_routing_hindi():
     tool = VoiceIdentity()
