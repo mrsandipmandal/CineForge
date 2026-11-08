@@ -553,6 +553,51 @@ def upload_image_fal(image_path: str) -> str:
     return data["file_url"]
 
 
+def upload_audio_fal(audio_path: str) -> str:
+    """Upload a local audio file to fal.ai storage and return a public URL.
+
+    Mirrors upload_image_fal. Needed by reference_to_video operations whose
+    reference_audio_urls input is URL-only (Seedance lip-sync voice anchors).
+    """
+    import requests
+
+    api_key = os.environ.get("FAL_KEY") or os.environ.get("FAL_AI_API_KEY")
+    if not api_key:
+        raise RuntimeError("FAL_KEY or FAL_AI_API_KEY required for audio upload")
+
+    path = Path(audio_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Audio not found: {audio_path}")
+
+    content_type = {
+        "mp3": "audio/mpeg",
+        "mpeg": "audio/mpeg",
+        "wav": "audio/wav",
+        "m4a": "audio/mp4",
+        "ogg": "audio/ogg",
+        "flac": "audio/flac",
+    }.get(path.suffix.lower().lstrip("."), "audio/mpeg")
+
+    init_resp = requests.post(
+        "https://rest.alpha.fal.ai/storage/upload/initiate",
+        headers={"Authorization": f"Key {api_key}", "Content-Type": "application/json"},
+        json={"content_type": content_type, "file_name": path.name},
+        timeout=30,
+    )
+    init_resp.raise_for_status()
+    data = init_resp.json()
+
+    put_resp = requests.put(
+        data["upload_url"],
+        headers={"Content-Type": content_type},
+        data=path.read_bytes(),
+        timeout=60,
+    )
+    put_resp.raise_for_status()
+
+    return data["file_url"]
+
+
 def upload_image_heygen(image_path: str, api_key: str) -> str:
     """Upload a local image to HeyGen and return a public URL.
 

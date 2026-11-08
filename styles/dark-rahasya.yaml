@@ -1,0 +1,166 @@
+# Custom playbook authored at the assets stage of kuldhara-village-mystery
+# (scene_plan.json references "dark-rahasya"; canonical loader name = dark-rahasya)
+
+identity:
+  name: "Dark Rahasya"
+  category: cinematic
+  mood: "dark mystery documentary, ominous dread, Indian rahasya storytelling"
+  pace: deliberate
+  best_for: "Hindi mystery Shorts, unexplained-village and lost-history formats"
+
+taste_profile:
+  design_read: >
+    A filmed-documentary dread: night ruins, moonlight, and ember accents on a
+    slate-navy field. Motion bursts (AI clips) punctuated by still typography
+    beats. Everything looks like real expedition footage, nothing looks like a
+    template card.
+  visual_variance: 5
+  motion_intensity: 6
+  information_density: 3
+  palette_discipline: >
+    One field color (slate-navy #0A1220) across the whole video; ember-orange
+    #FF7A29 reserved for ignition/curse/CTA moments only; moon-cyan #9AD7E8 for
+    rim light and markers. No extra hues introduced anywhere.
+  layout_variation: >
+    Alternate presenter medium close-ups, full-bleed environment footage, and
+    centered type plates. Lower-third reserved for capacions and name cards.
+  reference_strategy: >
+    One Seedance reference: Sandip front.png for both presenter plates; every
+    AI clip in the same grade family (night, accurate film grain).
+  anti_patterns:
+    - "static slideshow feel - at least one true-motion element per beat"
+    - "neon cyberpunk purple blues; generic horror-green"
+    - "bright daylight stock-footage mixed with night footage"
+    - "over 2 fonts or more than 2 caption colors"
+    - "text covering the presenter's face or outside the Shorts safe zone"
+  quality_gates:
+    - "Every claim that is legend (not verified) carries an on-screen or
+      spoken 'कहा जाता है' framing."
+    - "Captions stay above the Shorts bottom dead zone (300px) and below the
+      top dead zone (120px)."
+    - "Backgrounds change only at section boundaries."
+    - "Sub-bass hits sync to word emphasis ('गायब', triple 'न')"
+
+visual_language:
+  color_palette:
+    primary: ["#0A1220", "#101C2E"]
+    accent: ["#FF7A29", "#9AD7E8"]
+    background: "#0A1220"
+    text: "#F2F5FA"
+    muted: "#8A97A8"
+  composition: >
+    9:16 full-bleed vertical. Presenter center-full (head-top ~22% height);
+    environment shots use low-third horizons; type plates center with wide
+    margins. Shorts safe box 984x1500 honored; brand watermark top-right.
+  texture: >
+    Fine film grain, drifting night fog with moon rim-light, ember particle
+    rise on curse/CTA moments, disturbed-stone texture on evidence cards.
+
+typography:
+  headings:
+    font: "Montserrat"
+    weight: 800
+    tracking: "-0.01em"
+  body:
+    font: "Inter"
+    weight: 600
+    line_height: 1.35
+  stat_card:
+    font: "Montserrat"
+    weight: 800
+    size_multiplier: 2.6
+  scale_system: "perfect_fourth"
+  weight_matrix:
+    title: 800
+    heading: 700
+    body: 600
+    caption: 600
+
+motion:
+  transitions: [hard-cut, dark-flash, dissolve, fade-to-black]
+  animation_style: >
+    AI motion clips carry energy; type plates are the static punctuation
+    (reference-style motion-pause): 0.25s scale-pop entrance, 3% creep zoom,
+    character-stagger ignite on curse/CTA cards.
+  pacing_rules:
+    min_scene_hold_seconds: 2.0
+    max_scene_hold_seconds: 6.5
+    text_card_hold_seconds: 2.0
+    stat_card_hold_seconds: 2.5
+    transition_duration_seconds: 0.12
+  entrance: "scale-pop 0.25s easeOutQuart; ember ignite stagger 0.04s/char"
+  exit: "hard cut on motion, fade only into silence beats"
+
+audio:
+  voice_style: >
+    Sandip's cloned voice (fish_audio zero-shot from Hnd_sample): low-ominous
+    Hindi narrator, close-mic warmth, controlled suspense; 'कहा जाता है'
+    delivered slower and lower (legend signal)
+  music_mood: >
+    Dark Indian desert suspense: tanpura drone, deep sub pulses, sparse sarangi
+    phrases, no percussion groove, ~56s bed at low level under narration
+  music_volume: 0.16
+  sfx_style: >
+    Sub-bass hits on emphasized words, one-frame dark flash cut, wind gust on
+    exodus, ember shimmer on ignition cards
+  ducking_threshold_db: -9
+  voice_variation_allowed: false
+  hero_moment_voice_shift: "slower, more deliberate, drop pitch on the exodus line"
+  transition_voice_shift: "0.6s deliberate silence before the twist reveal"
+
+asset_generation:
+  image_prompt_prefix: >
+    cinematic Hindi mystery short, night desert ruins, slate-navy grade with
+    ember accents, film grain, volumetric fog, moon rim-light
+  image_negative_prompt: >
+    daylight, neon purple, cyberpunk, cartoon, stock-card text overlays,
+    recognizable people other than the presenter, logos, readable text
+  diagram_style: >
+    atelier evidence cards on dark stone: cracked-slate texture, ember
+    typography, thin cyan markers, 2 lines max
+  consistency_anchors:
+    - "slate-navy #0A1220 field in every frame"
+    - "ember #FF7A29 only on ignition/curse/CTA moments"
+    - "night/bue-hour lighting across all footage"
+    - "fine film grain on all AI footage"
+    - "Montserrat Bold for all Hindi display type; Inter for captions"
+  scene_type: "cinematic_scene"
+  multi_image_per_scene: false
+  default_particles: "ember-drift"
+  default_particle_color: "#FF7A29"
+  default_vignette: true
+
+overlays:
+  hero_title:
+    bg: "transparent"
+    text: "#F2F5FA"
+    highlight: "#FF7A29"
+    shadow: "0 3px 10px rgba(4,10,18,0.75)"
+  section_title:
+    bg: "rgba(10,18,32,0.55)"
+    text: "#F2F5FA"
+    radius: 8
+    border: "#1E2C3F"
+  key_term:
+    bg: "transparent"
+    text: "#FF7A29"
+  stat_reveal:
+    bg: "rgba(10,18,32,0.7)"
+    text: "#F2F5FA"
+    highlight: "#9AD7E8"
+    radius: 10
+
+chart_palette: ["#FF7A29", "#9AD7E8", "#8A97A8", "#F2F5FA"]
+
+color_rules:
+  harmony_type: "split-complementary"
+  contrast_validation: true
+  colorblind_safe: false
+
+quality_rules:
+  - "Legend claims (Salim Singh, curse) always carry 'कहा जाता है' framing"
+  - "Captions: 2 lines max, 30 chars/line, min 42px, inside 984x1500 safe box"
+  - "One bass hit per emphasized word, never more than 4 per section"
+  - "Presenter faces never overlapped by text"
+  - "AI clips graded to the slate-navy family before compose (LUT pass allowed)"
+  - "No transition decorations between motion clips: hard cuts land on movement"
