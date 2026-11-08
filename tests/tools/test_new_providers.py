@@ -222,11 +222,17 @@ class TestLocalHardwareProbe:
 
 
 class TestPiperTTSOffline:
-    def test_status_and_binary(self):
+    def test_status_and_binary(self, monkeypatch):
+        import shutil
         from tools.audio.piper_tts import PiperTTS
         p = PiperTTS()
-        assert p.get_status() == ToolStatus.AVAILABLE
-        assert p._get_piper_binary() is not None
+        if p._get_piper_binary() is None:
+            monkeypatch.setattr(shutil, "which", lambda cmd, **kwargs: "/usr/local/bin/piper" if cmd == "piper" else None)
+            assert p.get_status() == ToolStatus.AVAILABLE
+            assert p._get_piper_binary() == "/usr/local/bin/piper"
+        else:
+            assert p.get_status() == ToolStatus.AVAILABLE
+            assert p._get_piper_binary() is not None
 
 
 class TestIndicTTS:

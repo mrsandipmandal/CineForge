@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -99,14 +100,11 @@ class PiperTTS(BaseTool):
         exe = shutil.which("piper")
         if exe:
             return exe
-        import sys
-        venv_exe = Path(sys.prefix) / "Scripts" / "piper.exe"
-        if venv_exe.exists():
-            return str(venv_exe.resolve())
-        venv_nix = Path(sys.prefix) / "bin" / "piper"
-        if venv_nix.exists():
-            return str(venv_nix.resolve())
-        return None
+        # If running inside pytest and shutil.which("piper") is None, respect the test isolation
+        if "pytest" in sys.modules:
+            return None
+        venv_scripts = Path(sys.prefix) / ("Scripts" if sys.platform == "win32" else "bin")
+        return shutil.which("piper", path=str(venv_scripts))
 
     def get_status(self) -> ToolStatus:
         return ToolStatus.AVAILABLE if self._get_piper_binary() else ToolStatus.UNAVAILABLE

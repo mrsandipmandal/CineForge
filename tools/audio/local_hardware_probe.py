@@ -64,12 +64,19 @@ INDIAN_PIPER_MODELS = {
 }
 
 
-def probe_local_hardware() -> dict[str, Any]:
+_CACHED_HW_PROFILE: dict[str, Any] | None = None
+
+
+def probe_local_hardware(force_refresh: bool = False) -> dict[str, Any]:
     """Inspect local CPU, RAM, GPU, and storage metrics."""
+    global _CACHED_HW_PROFILE
+    if not force_refresh and _CACHED_HW_PROFILE is not None:
+        return _CACHED_HW_PROFILE
+
     cpu_count = os.cpu_count() or 1
     os_info = f"{platform.system()} {platform.release()} ({platform.architecture()[0]})"
 
-    # Memory detection (cross-platform with Windows ctypes fallback)
+    # Memory detection (cross-platform with Windows ctypes & Linux /proc/meminfo)
     total_ram_gb = 8.0
     avail_ram_gb = 4.0
     if platform.system() == "Windows":
@@ -93,6 +100,24 @@ def probe_local_hardware() -> dict[str, Any]:
             avail_ram_gb = round(stat.ullAvailPhys / (1024**3), 2)
         except Exception:
             pass
+    elif platform.system() == "Linux":
+        try:
+            meminfo_path = Path("/proc/meminfo")
+            if meminfo_path.exists():
+                lines = meminfo_path.read_text().splitlines()
+                vals = {}
+                for line in lines:
+                    parts = line.split(":")
+                    if len(parts) == 2:
+                        vals[parts[0].strip()] = parts[1].strip()
+                if "MemTotal" in vals:
+                    kb = int(vals["MemTotal"].split()[0])
+                    total_ram_gb = round(kb / (1024 * 1024), 2)
+                if "MemAvailable" in vals:
+                    kb = int(vals["MemAvailable"].split()[0])
+                    avail_ram_gb = round(kb / (1024 * 1024), 2)
+        except Exception:
+            pass
 
     # Disk usage for current workspace
     try:
@@ -101,24 +126,25 @@ def probe_local_hardware() -> dict[str, Any]:
     except Exception:
         free_disk_gb = 50.0
 
-    # GPU & VRAM detection via nvidia-smi
+    # GPU & VRAM detection via nvidia-smi (only if binary exists on PATH)
     gpu_name = "None"
     gpu_vram_total_mb = 0
     gpu_vram_free_mb = 0
-    try:
-        smi = subprocess.run(
-            ["nvidia-smi", "--query-gpu=name,memory.total,memory.free", "--format=csv,noheader,nounits"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        if smi.returncode == 0 and smi.stdout.strip():
-            parts = [p.strip() for p in smi.stdout.strip().split(",")]
-            gpu_name = parts[0]
-            gpu_vram_total_mb = int(parts[1])
-            gpu_vram_free_mb = int(parts[2])
-    except Exception:
-        pass
+    if shutil.which("nvidia-smi"):
+        try:
+            smi = subprocess.run(
+                ["nvidia-smi", "--query-gpu=name,memory.total,memory.free", "--format=csv,noheader,nounits"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if smi.returncode == 0 and smi.stdout.strip():
+                parts = [p.strip() for p in smi.stdout.strip().split(",")]
+                gpu_name = parts[0]
+                gpu_vram_total_mb = int(parts[1])
+                gpu_vram_free_mb = int(parts[2])
+        except Exception:
+            pass
 
     # Locate Piper executable
     piper_exe = shutil.which("piper")
@@ -127,7 +153,7 @@ def probe_local_hardware() -> dict[str, Any]:
         if venv_piper.exists():
             piper_exe = str(venv_piper.resolve())
 
-    return {
+    profile = {
         "os": os_info,
         "cpu_logical_cores": cpu_count,
         "total_ram_gb": total_ram_gb,
@@ -139,6 +165,8 @@ def probe_local_hardware() -> dict[str, Any]:
         "piper_executable": piper_exe,
         "has_cuda_gpu": gpu_vram_total_mb > 0,
     }
+    _CACHED_HW_PROFILE = profile
+    return profile
 
 
 def find_piper_executable() -> str | None:
