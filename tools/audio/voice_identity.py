@@ -43,7 +43,7 @@ class VoiceIdentity(BaseTool):
 
     dependencies = []
     install_instructions = "No external dependencies required for local voice identity management."
-    agent_skills = ["elevenlabs", "text-to-speech", "azure-text-to-speech", "fish-audio-tts"]
+    agent_skills = ["elevenlabs", "text-to-speech", "azure-text-to-speech", "fish-audio-tts", "sarvam-ai"]
 
     capabilities = [
         "voice_discovery",
@@ -325,15 +325,16 @@ class VoiceIdentity(BaseTool):
                     "notes": "Native Bengali pronunciation and script preserved via Fish Audio S2.1 or ElevenLabs Multilingual v2.",
                 }
             else:
-                # Bengali standard TTS
+                # Bengali standard TTS - prioritize Sarvam AI Bulbul if configured, else Azure / Google
+                sarvam_available = bool(os.getenv("SARVAM_API_KEY"))
                 return {
                     "language": "bn-IN",
                     "requires_cloning": False,
-                    "recommended_tool": "azure_tts",
-                    "recommended_voice": "bn-IN-BashkarNeural",
-                    "fallback_tool": "google_tts",
-                    "fallback_voice": "bn-IN-Standard-A",
-                    "notes": "High-fidelity native Bengali neural synthesis.",
+                    "recommended_tool": "sarvam_tts" if sarvam_available else "azure_tts",
+                    "recommended_voice": "ritu" if sarvam_available else "bn-IN-BashkarNeural",
+                    "fallback_tool": "azure_tts" if sarvam_available else "google_tts",
+                    "fallback_voice": "bn-IN-BashkarNeural" if sarvam_available else "bn-IN-Standard-A",
+                    "notes": "Native Bengali neural synthesis via Sarvam AI Bulbul (or Azure BashkarNeural).",
                 }
 
         elif is_hindi:
@@ -347,14 +348,16 @@ class VoiceIdentity(BaseTool):
                     "notes": "Hindi voice cloning via ElevenLabs Multilingual v2 or Fish Audio.",
                 }
             else:
+                # Hindi standard TTS
+                sarvam_available = bool(os.getenv("SARVAM_API_KEY"))
                 return {
                     "language": "hi-IN",
                     "requires_cloning": False,
-                    "recommended_tool": "azure_tts",
-                    "recommended_voice": "hi-IN-MadhurNeural",
-                    "fallback_tool": "google_tts",
-                    "fallback_voice": "hi-IN-Neural2-A",
-                    "notes": "Native Hindi neural synthesis.",
+                    "recommended_tool": "sarvam_tts" if sarvam_available else "azure_tts",
+                    "recommended_voice": "ritu" if sarvam_available else "hi-IN-MadhurNeural",
+                    "fallback_tool": "azure_tts" if sarvam_available else "google_tts",
+                    "fallback_voice": "hi-IN-MadhurNeural" if sarvam_available else "hi-IN-Neural2-A",
+                    "notes": "Native Hindi neural synthesis via Sarvam AI Bulbul (or Azure MadhurNeural).",
                 }
 
         else:

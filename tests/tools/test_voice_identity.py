@@ -97,7 +97,7 @@ def test_voice_routing_bengali(identity_env: Path):
     # Bengali standard TTS
     route_tts = tool.execute({"operation": "route_voice", "language": "bn-IN", "require_cloning": False})
     assert route_tts.success is True
-    assert route_tts.data["recommended_tool"] in ["azure_tts", "google_tts"]
+    assert route_tts.data["recommended_tool"] in ["sarvam_tts", "azure_tts", "google_tts"]
     assert "bn-IN" in route_tts.data["language"]
 
     # Bengali voice cloning
@@ -111,7 +111,7 @@ def test_voice_routing_hindi():
     route = tool.execute({"operation": "route_voice", "language": "hi-IN", "require_cloning": False})
     assert route.success is True
     assert "hi-IN" in route.data["language"]
-    assert route.data["recommended_tool"] in ["azure_tts", "google_tts"]
+    assert route.data["recommended_tool"] in ["sarvam_tts", "azure_tts", "google_tts"]
 
 
 def test_tts_selector_with_voice_profile(identity_env: Path, monkeypatch):

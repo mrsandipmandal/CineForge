@@ -1,4 +1,4 @@
-﻿# CineForge â€" Skill Index
+# CineForge â€" Skill Index
 
 > For the full agent onboarding guide, see [`AGENT_GUIDE.md`](../AGENT_GUIDE.md) in the project root.
 
@@ -90,6 +90,9 @@ Key capability families to look for in the output:
 | WhisperX | `core/whisperx.md` | Transcription with word-level timestamps — default STT (offline, free) | `speech-to-text` |
 | Azure STT | (tool: `azure_stt`) | Optional cloud speech-to-text, word-level timestamps — preferred when `AZURE_SPEECH_KEY` is set | `azure-speech-to-text` |
 | Azure TTS | (tool: `azure_tts`) | Optional cloud neural narration (SSML prosody, express-as styles) — same Speech key as `azure_stt` | `azure-text-to-speech` |
+| Sarvam AI | (tools: `sarvam_tts`, `sarvam_stt`) | Native Indic language speech synthesis (Bulbul) and transcription (Saaras) for Bengali (bn-IN), Hindi (hi-IN) | `sarvam-ai` |
+| OpenRouter | (tool: `openrouter_llm`) | Multi-model gateway for free models (Llama 3.3, Gemini 2.0 Flash, DeepSeek R1) and Grok | `openrouter` |
+| Groq | (tools: `groq_llm`, `groq_whisper`) | Ultra-fast LPU inference (Llama 3.3 70B, DeepSeek R1) and fast cloud Whisper STT | `groq` |
 | Subtitle Sync | `core/subtitle-sync.md` | Subtitle timing and alignment | `remotion-best-practices` |
 | Color Grading | `core/color-grading.md` | FFmpeg color profiles, LUT workflow, accessibility | `ffmpeg` |
 

@@ -107,7 +107,7 @@ def test_bengali_routing_precision(studio_env: dict):
         "sample_files_dir": str(studio_env["sample_dir"]),
     })
     assert route.success is True
-    assert route.data["recommended_tool"] in ["azure_tts", "google_tts"]
+    assert route.data["recommended_tool"] in ["sarvam_tts", "azure_tts", "google_tts"]
     assert "bn-IN" in route.data["language"]
 
 
