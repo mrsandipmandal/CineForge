@@ -78,14 +78,14 @@ class TestNvidiaNimStatus:
 
     def test_status_with_nvidia_nim_api_key(self, monkeypatch):
         tool = NvidiaNimLLM()
-        monkeypatch.setenv("NVIDIA_NIM_API_KEY", "nvapi-test-key-12345")
+        monkeypatch.setenv("NVIDIA_NIM_API_KEY", "mock-test-key")
         monkeypatch.delenv("NVIDIA_API_KEY", raising=False)
         assert tool.get_status() == ToolStatus.AVAILABLE
 
     def test_status_with_nvidia_api_key_fallback(self, monkeypatch):
         tool = NvidiaNimLLM()
         monkeypatch.delenv("NVIDIA_NIM_API_KEY", raising=False)
-        monkeypatch.setenv("NVIDIA_API_KEY", "nvapi-test-fallback-key")
+        monkeypatch.setenv("NVIDIA_API_KEY", "mock-fallback-key")
         assert tool.get_status() == ToolStatus.AVAILABLE
 
     def test_status_with_local_endpoint(self, monkeypatch):
@@ -109,7 +109,7 @@ class TestNvidiaNimExecution:
 
     def test_execute_missing_prompt_and_messages(self, monkeypatch):
         tool = NvidiaNimLLM()
-        monkeypatch.setenv("NVIDIA_NIM_API_KEY", "nvapi-test-key")
+        monkeypatch.setenv("NVIDIA_NIM_API_KEY", "mock-test-key")
 
         res = tool.execute({})
         assert res.success is False
@@ -117,7 +117,7 @@ class TestNvidiaNimExecution:
 
     def test_execute_mock_prompt_success(self, monkeypatch):
         tool = NvidiaNimLLM()
-        monkeypatch.setenv("NVIDIA_NIM_API_KEY", "nvapi-test-key")
+        monkeypatch.setenv("NVIDIA_NIM_API_KEY", "mock-test-key")
 
         captured_request = {}
 
@@ -158,14 +158,14 @@ class TestNvidiaNimExecution:
 
         # Verify request structure
         assert captured_request["url"] == f"{DEFAULT_NIM_BASE_URL}/chat/completions"
-        assert "Bearer nvapi-test-key" in captured_request["headers"]["Authorization"]
+        assert "Bearer mock-test-key" in captured_request["headers"]["Authorization"]
         assert len(captured_request["json"]["messages"]) == 2
         assert captured_request["json"]["messages"][0]["role"] == "system"
         assert captured_request["json"]["messages"][1]["role"] == "user"
 
     def test_execute_mock_messages_and_response_format(self, monkeypatch):
         tool = NvidiaNimLLM()
-        monkeypatch.setenv("NVIDIA_NIM_API_KEY", "nvapi-test-key")
+        monkeypatch.setenv("NVIDIA_NIM_API_KEY", "mock-test-key")
 
         captured_payload = {}
 
@@ -224,7 +224,7 @@ class TestNvidiaNimExecution:
 
     def test_execute_http_error(self, monkeypatch):
         tool = NvidiaNimLLM()
-        monkeypatch.setenv("NVIDIA_NIM_API_KEY", "nvapi-test-key")
+        monkeypatch.setenv("NVIDIA_NIM_API_KEY", "mock-test-key")
 
         def mock_post(url, headers=None, json=None, timeout=None):
             return _FakeResponse(status_code=401, text="Unauthorized: invalid api key")
@@ -237,7 +237,7 @@ class TestNvidiaNimExecution:
 
     def test_execute_timeout_handling(self, monkeypatch):
         tool = NvidiaNimLLM()
-        monkeypatch.setenv("NVIDIA_NIM_API_KEY", "nvapi-test-key")
+        monkeypatch.setenv("NVIDIA_NIM_API_KEY", "mock-test-key")
 
         def mock_post(url, headers=None, json=None, timeout=None):
             raise requests.exceptions.Timeout("Connection timed out")

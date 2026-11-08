@@ -30,7 +30,7 @@ Add to your `.env` file:
 
 ```env
 # Cloud API (1,000 free credits at build.nvidia.com)
-NVIDIA_NIM_API_KEY=nvapi-your-key-here
+NVIDIA_NIM_API_KEY=your_nvidia_api_key_here
 
 # Optional: Override base URL for local self-hosted NIM Docker containers
 # NVIDIA_NIM_BASE_URL=http://localhost:8000/v1
