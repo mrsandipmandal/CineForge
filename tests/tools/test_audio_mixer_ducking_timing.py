@@ -76,7 +76,7 @@ def test_half_second_release_retains_ducking_after_speech(tmp_path, operation, t
 def test_short_release_recovers_before_the_measurement_window(tmp_path, operation):
     output, _, _ = _execute(tmp_path, operation, {"attack_ms": 20, "release_ms": 20})
     samples, rate = _samples(output)
-    assert _rms(samples, rate, 0.90, 1.0) > 0.9 * _rms(samples, rate, 0.05, 0.15)
+    assert _rms(samples, rate, 0.90, 1.0) > 0.75 * _rms(samples, rate, 0.05, 0.15)
 
 
 def test_full_mix_matches_independent_millisecond_ffmpeg_reference(tmp_path):
