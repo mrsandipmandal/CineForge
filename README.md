@@ -45,8 +45,17 @@
 
 ## Production Studio Showcase
 
-CineForge is an agent-first production system where plain language instructions drive verified, multi-stage pipelines. Below is a rendered title and motion sequence generated through the CineForge Matrix pipeline:
+CineForge is an agent-first production system where plain language instructions drive verified, multi-stage pipelines. Below are sample animated and motion productions generated through CineForge:
 
+### 1. Futuristic Mars Colonization 2099 (মঙ্গল গ্রহের মানব সভ্যতা)
+Full animated sci-fi production featuring procedural 1080p Martian landscapes, geodesic biodomes, subterranean lava-tube transit, Sarvam AI native West Bengal Bengali (`bn-IN`) voice narration, and cinematic Ken-Burns motion choreography:
+
+<div align="center">
+  <video src="assets/futuristic-mars-colony.mp4" poster="assets/futuristic-mars-colony-poster.png" width="100%" controls autoplay loop muted></video>
+  <p><sub><em>Rendered with CineForge Animated Explainer pipeline (1080p, 30fps) — Audio mix with Sarvam AI <code>bn-IN</code> TTS and ambient sci-fi synthesizer bed.</em></sub></p>
+</div>
+
+### 2. Matrix Studio Motion Title & Kinetic Typography
 <div align="center">
   <video src="assets/cineforge-demo.mp4" poster="assets/cineforge-demo-poster.png" width="100%" controls autoplay loop muted></video>
   <p><sub><em>Rendered with CineForge Remotion engine (1080p, 30fps) — typography, layout, timing, and audio muxing generated via pipeline.</em></sub></p>
@@ -56,27 +65,27 @@ CineForge is an agent-first production system where plain language instructions 
 
 ## Matrix Studio Control Room
 
-**Backlot Matrix Edition** provides real-time telemetry, visual approval gates, asset contact sheets, and persistent identity registries in a cyberpunk green-on-black terminal UI (`#030804` background, `#00ff66` phosphor green accents, CRT scanlines, and animated digital rain).
+**Backlot Matrix Edition** (`http://127.0.0.1:4750/`) provides real-time telemetry, visual approval gates, asset contact sheets, and persistent identity registries in a cyberpunk green-on-black terminal UI (`#030804` background, `#00ff66` phosphor green accents, CRT scanlines, and animated digital rain).
 
-### 1. Live Project Board (`/p/{project_id}`)
-Monitors pipeline stages in real time via Server-Sent Events (SSE). Tracks generation cost, screenplay scenes, video takes, and pauses at approval gates before spending budget:
+### 1. Live Project Control Room (`/p/futuristic-mars-colony`)
+Monitors pipeline stages in real time. Shows automated and human approval checkpoints, duration metrics, and complete stage state tracking across research, script, assets, edit, and composition:
 
 <p align="center">
-  <img src="assets/matrix-studio-board.png" alt="CineForge Matrix Studio Live Board" width="960">
+  <img src="assets/matrix-studio-mars-board.png" alt="CineForge Matrix Studio Live Board - Mars 2099" width="960">
 </p>
 
-### 2. Identity Library & Labs (`sample-files/`)
-Inspect voice recordings, language metadata (Bengali, Hindi, English), and multi-angle character portrait bundles across all scenes:
+### 2. Visual Storyboard & Shot Planner (`/p/{project_id}#storyboard`)
+Inspect generated visual scene plates, camera motion choreography (push-in, pan, dolly), subtitle timing, and prompt directions:
 
 <p align="center">
-  <img src="assets/matrix-identity-library.png" alt="CineForge Matrix Identity Library" width="960">
+  <img src="assets/matrix-studio-mars-storyboard.png" alt="CineForge Storyboard and Scene Plan" width="960">
 </p>
 
-### 3. System Provider Capability Envelope
-Inspect registered image, video, voice, and composition engines, latency benchmarks, and active local GPU models:
+### 3. Studio Multi-Project Dashboard (`/`)
+Live bird's-eye view across all projects in the pipeline, tracking generation spend, render count, and stage progress:
 
 <p align="center">
-  <img src="assets/matrix-providers.png" alt="CineForge Matrix Providers Envelope" width="960">
+  <img src="assets/matrix-studio-dashboard.png" alt="CineForge Studio Multi-Project Dashboard" width="960">
 </p>
 
 ---
@@ -95,11 +104,12 @@ The agent executes `video_analyzer`, extracts the transcript, breaks down scene 
 ### 2. Multi-Angle Character & Face Consistency
 Create reusable characters in `sample-files/characters/` with multi-view portraits (`front`, `left_quarter`, `right_quarter`, `expression`). The system injects conditioning bundles into video models (Kling, Seedance, Wan2.1) so the same character appears consistently across different scenes, camera angles, and projects.
 
-### 3. Multilingual Voice Studio (Bengali, Hindi, English)
-Native multi-language voice identity management:
-- **Bengali (`bn-IN`)**: Preserves native phonetics and script without English transliteration artifacts.
-- **Hindi (`hi-IN`)**: Natural prosody and cadence.
-- **English (`en-US`)**: Expressive, conversational, and narration modes.
+### 3. Multilingual Voice Studio (Bengali bn-IN, Hindi, English) & Offline Fallback
+Native multi-language voice identity management with intelligent hardware profiling:
+- **West Bengal Bengali (`bn-IN`)**: Sarvam AI (`bulbul:v3`) and AI4Bharat IndicTTS (IIT Madras) preserving authentic Indian Bengali phonetics, syntax, and cultural cadence.
+- **Offline Hardware Routing**: Automated PC VRAM & core detection (`local_hardware_probe.py`) routes automatically between fast offline Piper TTS, medium IndicTTS, and high-fidelity IndicF5 based on local capacity.
+- **Groq LPU Acceleration**: Sub-second scriptwriting and Whisper Large v3 audio transcription at 300+ tokens/sec.
+- **OpenRouter Multi-Model Gateway**: Zero-cost access to state-of-the-art open weights (DeepSeek R1, Llama 3.3, Qwen) and xAI Grok.
 - Supports reference-audio voice cloning (ElevenLabs, Fish Audio, IndicF5, Coqui XTTS) with mandatory actor consent verification (`consent_verified: true`).
 
 ### 4. Zero-Cost Real-Footage Documentaries
