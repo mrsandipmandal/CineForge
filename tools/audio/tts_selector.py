@@ -168,6 +168,10 @@ class TTSSelector(BaseTool):
                 "description": "Provider name or 'auto'. Valid values are discovered at runtime from the registry.",
                 "default": "auto",
             },
+            "preferred_model": {
+                "type": "string",
+                "description": "Exact tool name (e.g. 'indicf5_tts'). If available, it is selected first before scoring.",
+            },
             "allowed_providers": {
                 "type": "array",
                 "items": {"type": "string"},
@@ -259,6 +263,34 @@ class TTSSelector(BaseTool):
             )
 
         # Normal generation — use scored selection
+        # First honor explicit preferred_model if available
+        preferred_model = inputs.get("preferred_model")
+        if preferred_model:
+            for tool in candidates:
+                if (
+                    tool.name == preferred_model
+                    and tool.get_status() == ToolStatus.AVAILABLE
+                ):
+                    try:
+                        adapted = self._adapt_inputs(tool, inputs)
+                    except (ValueError, TypeError) as exc:
+                        return ToolResult(success=False, error=str(exc))
+                    result = tool.execute(adapted)
+                    if result.success:
+                        result.data.setdefault("selected_tool", tool.name)
+                        result.data["selected_provider"] = tool.provider
+                        result.data["selection_reason"] = (
+                            f"Preferred model '{preferred_model}' selected"
+                        )
+                        result.data.update(self._tool_context_payload(tool))
+                        result.data["alternatives_considered"] = [
+                            t.name
+                            for t in candidates
+                            if t.name != tool.name and t.get_status().value == "available"
+                        ]
+                        return result
+                    # If preferred model fails, fall through to scored selection
+
         tool, score = self._select_best_tool(inputs, candidates, task_context)
         if tool is None:
             return ToolResult(success=False, error="No TTS provider available.")
