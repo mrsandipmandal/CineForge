@@ -49,7 +49,7 @@
 
 CineForge is an agent-first production system where plain language instructions drive verified, multi-stage pipelines. Below are sample animated and motion productions generated through CineForge:
 
-### 1. Futuristic Mars Colonization 2099 (মঙ্গল গ্রহের মানব সভ্যতা)
+### 1. Futuristic Mars Colonization 2099
 Full animated sci-fi production featuring procedural 1080p Martian landscapes, geodesic biodomes, subterranean lava-tube transit, Sarvam AI native West Bengal Bengali (`bn-IN`) voice narration, and cinematic Ken-Burns motion choreography:
 
 <div align="center">
