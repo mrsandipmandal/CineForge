@@ -724,6 +724,12 @@ class TestCapabilityMetadata:
             "piper",
             "sarvam",
             "ai4bharat",
+            "coqui",
+            "f5_tts",
+            "indicf5",
+            "indic_speak",
+            "mms",
+            "voxcpm2",
         }
 
 
