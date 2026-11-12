@@ -261,7 +261,15 @@ class MiniMaxVideo(BaseTool):
         return REGION_BASE_URLS.get(region, REGION_BASE_URLS[DEFAULT_REGION])
 
     def _uses_cn_api(self, base_url: str) -> bool:
-        return self._region() == "cn" or "api.minimaxi.com" in base_url
+        if self._region() == "cn":
+            return True
+        try:
+            from urllib.parse import urlparse
+
+            host = (urlparse(base_url).hostname or "").lower()
+            return host == "api.minimaxi.com" or host.endswith(".minimaxi.com")
+        except Exception:
+            return False
 
     def get_status(self) -> ToolStatus:
         if self._get_api_key():

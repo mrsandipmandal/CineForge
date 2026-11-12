@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
+import re
 import time
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
@@ -283,13 +285,7 @@ def create_app() -> FastAPI:
     @app.get("/thumb/{project_id}/{file_path:path}")
     async def thumb(project_id: str, file_path: str, w: int = 640) -> FileResponse:
         project_dir = _safe_project_dir(project_id)
-        target = (project_dir / file_path).resolve()
-        try:
-            target.relative_to(project_dir.resolve())
-        except ValueError:
-            raise HTTPException(status_code=403, detail="path escapes project")
-        if not target.is_file():
-            raise HTTPException(status_code=404, detail="media not found")
+        target = _safe_project_file(project_dir, file_path)
         width = min(THUMB_WIDTHS, key=lambda x: abs(x - w))
         cached = await asyncio.to_thread(_thumbnail_for, target, width)
         if cached is None:
@@ -305,13 +301,7 @@ def create_app() -> FastAPI:
     @app.get("/media/{project_id}/{file_path:path}")
     async def media(project_id: str, file_path: str) -> FileResponse:
         project_dir = _safe_project_dir(project_id)
-        target = (project_dir / file_path).resolve()
-        try:
-            target.relative_to(project_dir.resolve())
-        except ValueError:
-            raise HTTPException(status_code=403, detail="path escapes project")
-        if not target.is_file():
-            raise HTTPException(status_code=404, detail="media not found")
+        target = _safe_project_file(project_dir, file_path)
         return FileResponse(target)
 
     # ---- UI ------------------------------------------------------------
@@ -354,15 +344,64 @@ def create_app() -> FastAPI:
     return app
 
 
+_SAFE_PROJECT_ID_REGEX = re.compile(r"^[a-zA-Z0-9_\-]+$")
+
+
 def _safe_project_dir(project_id: str) -> Path:
     # ':' rejects Windows drive-relative ids like "C:" (PROJECTS_DIR / "C:"
     # collapses back to PROJECTS_DIR itself).
-    if any(c in project_id for c in "/\\:") or project_id in (".", ".."):
+    if (
+        not _SAFE_PROJECT_ID_REGEX.fullmatch(project_id)
+        or any(c in project_id for c in "/\\:")
+        or project_id in (".", "..")
+    ):
         raise HTTPException(status_code=400, detail="invalid project id")
-    project_dir = PROJECTS_DIR / project_id
+
+    base = os.path.abspath(str(PROJECTS_DIR))
+    target = os.path.abspath(os.path.join(base, project_id))
+    try:
+        if os.path.commonpath([base, target]) != base:
+            raise HTTPException(status_code=400, detail="invalid project id")
+    except (ValueError, OSError):
+        raise HTTPException(status_code=400, detail="invalid project id")
+
+    project_dir = Path(target)
     if not project_dir.is_dir():
         raise HTTPException(status_code=404, detail=f"unknown project: {project_id}")
     return project_dir
+
+
+def _safe_project_file(project_dir: Path, file_path: str) -> Path:
+    # Reject dot-dot and path traversal early
+    if not file_path or ".." in file_path.replace("\\", "/").split("/"):
+        raise HTTPException(status_code=403, detail="path escapes project")
+
+    clean_path = os.path.normpath(file_path).lstrip("/\\")
+    if clean_path.startswith("..") or ".." in clean_path.split(os.sep):
+        raise HTTPException(status_code=403, detail="path escapes project")
+
+    base = os.path.abspath(str(project_dir))
+    target = os.path.abspath(os.path.join(base, clean_path))
+
+    try:
+        if os.path.commonpath([base, target]) != base:
+            raise HTTPException(status_code=403, detail="path escapes project")
+    except (ValueError, OSError):
+        raise HTTPException(status_code=403, detail="path escapes project")
+
+    if not target.startswith(base + os.sep) and target != base:
+        raise HTTPException(status_code=403, detail="path escapes project")
+
+    target_path = Path(target)
+    try:
+        target_path.relative_to(project_dir.resolve())
+    except ValueError:
+        raise HTTPException(status_code=403, detail="path escapes project")
+
+    if not target_path.is_file():
+        raise HTTPException(status_code=404, detail="media not found")
+
+    return target_path
 
 
 def _sse(payload: dict) -> str:

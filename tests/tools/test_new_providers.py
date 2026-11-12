@@ -5,6 +5,7 @@ Monkeypatches network requests so tests run reliably offline and in CI/CD.
 
 import json
 import sys
+import urllib.parse
 from pathlib import Path
 import pytest
 
@@ -61,7 +62,8 @@ class TestSarvamTTS:
         fake_b64 = base64.b64encode(b"RIFFdummydata").decode("utf-8")
 
         def mock_post(url, headers=None, json=None, timeout=None):
-            assert "api.sarvam.ai" in url
+            host = (urllib.parse.urlparse(url).hostname or "").lower()
+            assert host == "api.sarvam.ai" or host.endswith(".sarvam.ai")
             return _FakeResponse(json_data={"audios": [fake_b64]})
 
         import requests
@@ -131,7 +133,8 @@ class TestGroqTools:
         t = GroqLLM()
 
         def mock_post(url, headers=None, json=None, timeout=None):
-            assert "api.groq.com" in url
+            host = (urllib.parse.urlparse(url).hostname or "").lower()
+            assert host == "api.groq.com" or host.endswith(".groq.com")
             return _FakeResponse(json_data={
                 "model": "openai/gpt-oss-120b",
                 "choices": [{"message": {"content": "Hello world!"}, "finish_reason": "stop"}],
@@ -161,7 +164,8 @@ class TestGroqTools:
         fake_audio.write_bytes(b"RIFFfakeaudio")
 
         def mock_post(url, headers=None, files=None, data=None, timeout=None):
-            assert "api.groq.com" in url
+            host = (urllib.parse.urlparse(url).hostname or "").lower()
+            assert host == "api.groq.com" or host.endswith(".groq.com")
             return _FakeResponse(json_data={
                 "text": "Hello world",
                 "language": "en",
@@ -193,7 +197,8 @@ class TestOpenRouterLLM:
         t = OpenRouterLLM()
 
         def mock_post(url, headers=None, json=None, timeout=None):
-            assert "openrouter.ai" in url
+            host = (urllib.parse.urlparse(url).hostname or "").lower()
+            assert host == "openrouter.ai" or host.endswith(".openrouter.ai")
             return _FakeResponse(json_data={
                 "model": "meta-llama/llama-3.3-70b-instruct:free",
                 "choices": [{"message": {"content": "Sample script"}, "finish_reason": "stop"}],

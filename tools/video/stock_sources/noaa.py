@@ -170,7 +170,15 @@ class NOAASource:
             if not download_url:
                 for iframe in soup.select("iframe[src]"):
                     src = iframe.get("src", "")
-                    if "youtube" in src or "vimeo" in src:
+                    from urllib.parse import urlparse
+                    iframe_host = (urlparse(src).hostname or "").lower()
+                    if (
+                        iframe_host == "youtube.com"
+                        or iframe_host.endswith(".youtube.com")
+                        or iframe_host == "youtu.be"
+                        or iframe_host == "vimeo.com"
+                        or iframe_host.endswith(".vimeo.com")
+                    ):
                         _log.warning("NOAA video is embedded from %s — cannot download directly", src)
                         raise ValueError(f"Video is embedded from external platform: {src}")
 

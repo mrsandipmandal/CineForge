@@ -12,6 +12,7 @@ import json
 import sys
 import types
 from pathlib import Path
+from urllib.parse import urlparse
 
 import pytest
 
@@ -524,7 +525,8 @@ class TestExecuteWithMocks:
 
         # Verify submit was called to the correct TokenHub endpoint
         submit_call = calls["post"][0]
-        assert "tokenhub.tencentmaas.com" in submit_call["url"]
+        submit_host = (urlparse(submit_call["url"]).hostname or "").lower()
+        assert submit_host == "tokenhub.tencentmaas.com" or submit_host.endswith(".tokenhub.tencentmaas.com")
         assert submit_call["url"].endswith("/v1/api/video/submit")
         assert submit_call["headers"]["Authorization"] == "Bearer thub-fake-test-key"
         assert submit_call["json"]["model"] == "hy-video-1.5"

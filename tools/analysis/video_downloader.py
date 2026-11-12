@@ -135,19 +135,30 @@ class VideoDownloader(BaseTool):
 
     def _detect_platform(self, url: str) -> str:
         """Detect platform from URL."""
-        url_lower = url.lower()
-        if "youtube.com/shorts" in url_lower or "youtu.be" in url_lower and "/shorts" in url_lower:
-            return "shorts"
-        if "youtube.com" in url_lower or "youtu.be" in url_lower:
-            return "youtube"
-        if "instagram.com" in url_lower:
-            return "instagram"
-        if "tiktok.com" in url_lower:
-            return "tiktok"
-        if "vimeo.com" in url_lower:
-            return "vimeo"
-        if "twitter.com" in url_lower or "x.com" in url_lower:
-            return "twitter"
+        try:
+            from urllib.parse import urlparse
+
+            parsed = urlparse(url)
+            host = (parsed.hostname or "").lower()
+            path = (parsed.path or "").lower()
+
+            def _matches(domain: str) -> bool:
+                return host == domain or host.endswith("." + domain)
+
+            if _matches("youtube.com") or _matches("youtu.be"):
+                if "/shorts" in path:
+                    return "shorts"
+                return "youtube"
+            if _matches("instagram.com"):
+                return "instagram"
+            if _matches("tiktok.com"):
+                return "tiktok"
+            if _matches("vimeo.com"):
+                return "vimeo"
+            if _matches("twitter.com") or _matches("x.com"):
+                return "twitter"
+        except Exception:
+            pass
         return "other_url"
 
     def _extract_metadata(self, url: str) -> dict:

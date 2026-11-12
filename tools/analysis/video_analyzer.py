@@ -132,15 +132,26 @@ class VideoAnalyzer(BaseTool):
         """Detect platform from URL."""
         if not self._is_url(source):
             return "local_file"
-        s = source.lower()
-        if "youtube.com/shorts" in s:
-            return "shorts"
-        if "youtube.com" in s or "youtu.be" in s:
-            return "youtube"
-        if "instagram.com" in s:
-            return "instagram"
-        if "tiktok.com" in s:
-            return "tiktok"
+        try:
+            from urllib.parse import urlparse
+
+            parsed = urlparse(source)
+            host = (parsed.hostname or "").lower()
+            path = (parsed.path or "").lower()
+
+            def _matches(domain: str) -> bool:
+                return host == domain or host.endswith("." + domain)
+
+            if _matches("youtube.com") or _matches("youtu.be"):
+                if "/shorts" in path:
+                    return "shorts"
+                return "youtube"
+            if _matches("instagram.com"):
+                return "instagram"
+            if _matches("tiktok.com"):
+                return "tiktok"
+        except Exception:
+            pass
         return "other_url"
 
     def _is_youtube(self, platform: str) -> bool:

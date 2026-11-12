@@ -5,6 +5,7 @@ This module is a low-frequency helper, not an CineForge registry tool.
 
 from __future__ import annotations
 
+import hmac
 import time
 from hashlib import sha256
 from typing import Any
@@ -94,7 +95,11 @@ def _cache_key(client: Any, params: dict[str, Any]) -> tuple[tuple[str, str], ..
     """Scope Account Usage cache by request params and account endpoint identity."""
 
     api_key = getattr(client, "api_key", None) or ""
-    api_key_hash = sha256(str(api_key).encode("utf-8")).hexdigest() if api_key else ""
+    api_key_hash = (
+        hmac.new(b"cineforge_kling_cache_key", str(api_key).encode("utf-8"), sha256).hexdigest()
+        if api_key
+        else ""
+    )
     scope = {
         "base_url": getattr(client, "base_url", ""),
         "api_key_sha256": api_key_hash,

@@ -14,6 +14,7 @@ defect class in the OpenAI provider.
 import base64
 import sys
 import types
+import urllib.parse
 from pathlib import Path
 
 import pytest
@@ -45,7 +46,12 @@ def imagen_tool(monkeypatch):
     fake = types.ModuleType("requests")
 
     def _post(url, headers=None, json=None, timeout=None):
-        assert "aiplatform.googleapis.com" in url
+        parsed_host = (urllib.parse.urlparse(url).hostname or "").lower()
+        assert (
+            parsed_host == "aiplatform.googleapis.com"
+            or parsed_host.endswith("-aiplatform.googleapis.com")
+            or parsed_host.endswith(".aiplatform.googleapis.com")
+        )
         assert "x-goog-api-key" not in headers
         return _FakeResponse(json["parameters"]["sampleCount"])
 
