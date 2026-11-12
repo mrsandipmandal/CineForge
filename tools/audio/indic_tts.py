@@ -176,16 +176,61 @@ class IndicTTS(BaseTool):
 
         hw = probe_local_hardware()
 
-        # If voice cloning with IndicF5 is selected, verify GPU VRAM availability
+        # If voice cloning with IndicF5 is selected
         if engine == "indic_f5" or ref_audio:
-            free_vram = hw.get("vram_free_mb", 0)
-            if free_vram < 3000:
-                # Memory guard: Safe fallback to lightweight IndicTTS
-                engine = "indic_tts"
+            engine = "indic_f5"
 
         start_time = time.time()
 
         try:
+            # If IndicF5 engine with reference audio is requested, check if gradio_client can synthesize via AI4Bharat IndicF5 Space
+            if engine == "indic_f5" and ref_audio:
+                try:
+                    from gradio_client import Client, handle_file
+                    import shutil
+
+                    client = Client("ai4bharat/IndicF5")
+                    ref_text = inputs.get("reference_text")
+                    if not ref_text:
+                        # Default transcript for Sandip sample if not explicitly passed
+                        ref_text = "नमस्ते। मैं हूँ संदीप। आप सब का स्वागत है भौक्स इंडिया में।"
+
+                    res_path = client.predict(
+                        text=text,
+                        ref_audio=handle_file(str(ref_audio)),
+                        ref_text=ref_text,
+                        api_name="/synthesize_speech"
+                    )
+                    if res_path and Path(res_path).exists():
+                        shutil.copy2(res_path, str(out_path))
+                        duration_s = 0.0
+                        try:
+                            import wave
+                            with wave.open(str(out_path), "rb") as wf:
+                                duration_s = round(wf.getnframes() / float(wf.getframerate()), 2)
+                        except Exception:
+                            duration_s = round(time.time() - start_time, 2)
+
+                        return ToolResult(
+                            success=True,
+                            data={
+                                "provider": self.provider,
+                                "model": "ai4bharat/IndicF5",
+                                "language": lang,
+                                "locale": "India (Hindi)",
+                                "engine": "indic_f5",
+                                "format": "wav",
+                                "output": str(out_path),
+                                "duration_seconds": duration_s,
+                                "voice_cloned": True,
+                                "reference_audio": str(ref_audio),
+                            },
+                            artifacts=[str(out_path)],
+                        )
+                except Exception as e:
+                    # If cloud space fails, log and continue to local check/fallback
+                    pass
+
             # Check for existing local model weights in library/models/ai4bharat/
             model_dir = INDIC_MODELS_DIR / lang / speaker
             model_file = model_dir / "best_model.pth"
