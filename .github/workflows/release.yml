@@ -1,0 +1,220 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+      - "v*.*"
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Release tag (e.g., v1.1.0)"
+        required: true
+        default: "v1.1.0"
+      draft:
+        description: "Create draft release"
+        type: boolean
+        default: false
+      prerelease:
+        description: "Mark as prerelease"
+        type: boolean
+        default: false
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  PYTHON_VERSION: "3.10"
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 1 — Build Core Package Distribution
+  # ─────────────────────────────────────────────────────────────────────
+  build-core:
+    name: "Build Core Distribution"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          cache-dependency-path: requirements.txt
+
+      - name: Install build tooling
+        run: |
+          pip install --upgrade pip build wheel setuptools
+
+      - name: Build wheel and source distribution
+        run: |
+          python -m build --sdist --wheel --outdir dist/
+          ls -la dist/
+
+      - name: Upload dist artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-dist
+          path: dist/
+          retention-days: 1
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 2 — Package Agent Skills Separately
+  # ─────────────────────────────────────────────────────────────────────
+  package-skills:
+    name: "Package Agent Skills Separately"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set Release Tag
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag_name }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Release tag is: $TAG"
+
+      - name: Create Skill Release Bundles
+        run: |
+          mkdir -p release-skills
+          TAG="${{ steps.vars.outputs.tag }}"
+
+          # 1. Package the Science Explainer Shorts skill as standalone archive
+          cd .agents/skills
+          zip -r "../../release-skills/bengali-science-explainer-skill-${TAG}.zip" bengali-science-explainer/
+          tar -czf "../../release-skills/bengali-science-explainer-skill-${TAG}.tar.gz" bengali-science-explainer/
+          cd ../..
+
+          # 2. Package all agent skills as full bundle
+          cd .agents
+          zip -r "../release-skills/cineforge-agent-skills-${TAG}.zip" skills/
+          tar -czf "../release-skills/cineforge-agent-skills-${TAG}.tar.gz" skills/
+          cd ..
+
+          # 3. Generate SHA256 checksums
+          cd release-skills
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          cd ..
+
+      - name: Upload Skills Release Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-skills
+          path: release-skills/
+          retention-days: 1
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Job 3 — Create GitHub Release & Publish Assets
+  # ─────────────────────────────────────────────────────────────────────
+  publish-release:
+    name: "Publish GitHub Release"
+    needs: [build-core, package-skills]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set Release Tag
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag_name }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Download Core Distribution Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: core-dist
+          path: release-assets/
+
+      - name: Download Skill Distribution Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-skills
+          path: release-assets/
+
+      - name: Generate Consolidated Checksums
+        run: |
+          cd release-assets
+          rm -f SHA256SUMS.txt
+          sha256sum * > SHA256SUMS.txt
+          echo "=== Release Assets & Checksums ==="
+          cat SHA256SUMS.txt
+          cd ..
+
+      - name: Generate Release Notes
+        id: release_notes
+        run: |
+          TAG="${{ steps.vars.outputs.tag }}"
+          cat << 'EOF' > RELEASE_NOTES.md
+          ## 🎬 CineForge Release ${{ steps.vars.outputs.tag }}
+
+          Autonomous AI Film & Video Production System.
+
+          ### 🌟 Highlights & New Features
+
+          #### 🔬 Science Explainer Shorts — Multi-Language Autonomous Production
+          - **Interactive Skill**: Interactive, research-driven production skill for YouTube Shorts, TikTok, Instagram Reels, and YouTube Standard.
+          - **Dynamic Multi-Language Support**: Automatically selects and communicates in English, Bengali (`bn-IN`), Hindi (`hi-IN`), Spanish, French, German, Arabic, Japanese, and more.
+          - **Live Web Research**: Discovers and scores trending science topics by surprise factor and visual potential.
+          - **1-Gate Human Approval**: Single transparent review of 5-scene plan and cost breakdown ($0.00).
+          - **Zero-Cost Tech Stack**: Powered by `edge_tts`, FFmpeg Ken-Burns zoompan, acoustic ambient synthesis, and burned ASS subtitles.
+
+          ### 📦 Standalone Agent Skill Packages
+          You can download and install the agent skills separately without the full core repository:
+          - `bengali-science-explainer-skill-${TAG}.zip` — Standalone Science Explainer Shorts skill.
+          - `cineforge-agent-skills-${TAG}.zip` — Complete CineForge Layer 3 agent skills fleet.
+
+          ### 🚀 Quick Start
+          ```bash
+          # Clone and setup CineForge
+          git clone https://github.com/mrsandipmandal/CineForge.git
+          cd CineForge
+          make setup
+
+          # Start Backlot Matrix Studio
+          python -m backlot open
+          ```
+          EOF
+          # Substitute tag variable
+          sed -i "s/\${TAG}/$TAG/g" RELEASE_NOTES.md
+
+      - name: Publish GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.vars.outputs.tag }}"
+          DRAFT_FLAG=""
+          PRE_FLAG=""
+
+          if [ "${{ github.event.inputs.draft }}" = "true" ]; then
+            DRAFT_FLAG="--draft"
+          fi
+          if [ "${{ github.event.inputs.prerelease }}" = "true" ]; then
+            PRE_FLAG="--prerelease"
+          fi
+
+          echo "Publishing release for tag: $TAG"
+          gh release create "$TAG" release-assets/* \
+            --title "CineForge $TAG" \
+            --notes-file RELEASE_NOTES.md \
+            $DRAFT_FLAG $PRE_FLAG || \
+          gh release edit "$TAG" \
+            --title "CineForge $TAG" \
+            --notes-file RELEASE_NOTES.md \
+            $DRAFT_FLAG $PRE_FLAG

@@ -16,8 +16,10 @@
   <a href="#quick-start--installation">Quick Start</a> &nbsp;·&nbsp;
   <a href="#matrix-studio-control-room">Matrix Control Room</a> &nbsp;·&nbsp;
   <a href="#core-capabilities--use-cases">Use Cases</a> &nbsp;·&nbsp;
+  <a href="#science-explainer-shorts--multi-language-autonomous-production">Science Explainer</a> &nbsp;·&nbsp;
   <a href="#production-pipelines">Pipelines</a> &nbsp;·&nbsp;
   <a href="#architecture--design-principles">Architecture</a> &nbsp;·&nbsp;
+  <a href="docs/SCIENCE_EXPLAINER.md">Explainer Guide</a> &nbsp;·&nbsp;
   <a href="docs/PROVIDERS.md">Providers</a> &nbsp;·&nbsp;
   <a href="docs/IDENTITY_LIBRARY.md">Identity Library</a> &nbsp;·&nbsp;
   <a href="docs/VOICE_IDENTITY.md">Voice Studio</a> &nbsp;·&nbsp;
@@ -104,9 +106,10 @@ The agent executes `video_analyzer`, extracts the transcript, breaks down scene 
 ### 2. Multi-Angle Character & Face Consistency
 Create reusable characters in `sample-files/characters/` with multi-view portraits (`front`, `left_quarter`, `right_quarter`, `expression`). The system injects conditioning bundles into video models (Kling, Seedance, Wan2.1) so the same character appears consistently across different scenes, camera angles, and projects.
 
-### 3. Multilingual Voice Studio (Bengali bn-IN, Hindi, English) & Offline Fallback
+### 3. Multilingual Voice Studio & Offline Fallback (Bengali bn-IN, Hindi, English, Spanish, Arabic & More)
 Native multi-language voice identity management with intelligent hardware profiling:
-- **West Bengal Bengali (`bn-IN`)**: Sarvam AI (`bulbul:v3`) and AI4Bharat IndicTTS (IIT Madras) preserving authentic Indian Bengali phonetics, syntax, and cultural cadence.
+- **West Bengal Bengali (`bn-IN`)**: Sarvam AI (`bulbul:v3`), AI4Bharat IndicTTS (IIT Madras), and neural Edge TTS (`bn-IN-BashkarNeural`, `bn-IN-TanishaaNeural`) preserving authentic Indian Bengali phonetics, syntax, and cultural cadence.
+- **Global Neural Voice Fleet (`edge_tts`)**: Instant zero-cost access to 400+ neural voices across 70+ languages (English, Hindi, Spanish, French, German, Japanese, Arabic) with micro-pitch and rate calibration.
 - **Offline Hardware Routing**: Automated PC VRAM & core detection (`local_hardware_probe.py`) routes automatically between fast offline Piper TTS, medium IndicTTS, and high-fidelity IndicF5 based on local capacity.
 - **Groq LPU Acceleration**: Sub-second scriptwriting and Whisper Large v3 audio transcription at 300+ tokens/sec.
 - **OpenRouter Multi-Model Gateway**: Zero-cost access to state-of-the-art open weights (DeepSeek R1, Llama 3.3, Qwen) and xAI Grok.
@@ -119,6 +122,45 @@ CineForge can build real documentaries without paying for generative video model
 
 ### 5. Automated Social Clip Factory
 Feed in an hour-long podcast, interview, or lecture. The agent transcribes with WhisperX, scores moments for hook strength, trims optimal 30-60 second clips, adds TikTok-style word-level subtitles, and re-frames to 9:16 vertical video.
+
+---
+
+<a id="science-explainer-shorts--multi-language-autonomous-production"></a>
+## 🔬 Science Explainer Shorts — Multi-Language Autonomous Production
+
+CineForge now includes an interactive, end-to-end production workflow for **Science Mystery Shorts, Nature Curiosities, and Educational Viral Videos**. It combines dynamic real-time web research, high-impact scriptwriting, AI imagery, 3D Ken-Burns camera movement, acoustic ambient synthesis, and burned kinetic typography — with **zero required API keys ($0.00 compute cost)**.
+
+```
+"make a science video" ──▶ Dynamic Language ──▶ Live Web Research ──▶ AI-Scored Top 6 Topics
+                                                                             │
+                                                                             ▼
+Final Broadcast MP4 ◀── Full Pipeline ◀── Single Human Approval ◀── Interactive Feature Menu
+ (Shorts/Reels 1080p)    (Images/TTS/Mix)    ("Approved!")          (Format, Style, Tone)
+```
+
+### Key Workflow Highlights
+
+1. **Dynamic Language Selection**: The studio asks for your preferred language first, then switches **all subsequent user interaction, narration, script, and subtitles** into that language immediately. Supported out of the box: English, Bengali (বাংলা), Hindi (हिन्दी), Spanish (Español), French (Français), German (Deutsch), Arabic (العربية), Japanese (日本語), and more.
+2. **AI-Led Trend & Fact Research**: Silently browses current scientific publications and viral anomalies, scoring candidates by *surprise factor*, *visual potential*, and *viewer retention* before proposing the top 6 concepts.
+3. **Interactive Feature Menu (1 Message)**: Configure video format (9:16 vertical Short, 16:9 landscape, 1:1 square), aesthetic art direction (Photorealistic CGI, Nature Doc, Flat Vector, Dark Noir), narrator tone, video duration (45s, 60s, 90s), and soundscape in a single response (or reply `"all default"`).
+4. **Transparent Production Plan & 1-Gate Approval**: Inspect the 5-scene breakdown, script preview, asset map, exact runtime, and cost breakdown before compute begins. Once approved, the agent runs research, scripting, image generation, audio synthesis, subtitles, and final FFmpeg assembly autonomously without interruptions.
+
+### Supported Video Platforms & Technical Pacing
+
+| Platform | Format | Resolution | Optimal Length | Pacing & Algorithmic Optimization |
+| :--- | :---: | :---: | :---: | :--- |
+| **YouTube Shorts** | `9:16` | 1080×1920 | 50–60s | 3s visual cliffhanger, centered subtitles with 170px bottom safety margin |
+| **Instagram Reels** | `9:16` | 1080×1920 | 60–75s | Aesthetic 3D CGI visuals, crisp contrast typography, explore feed reach |
+| **TikTok** | `9:16` | 1080×1920 | 45–60s | High-energy curiosity hook, right-margin safe zone for interactive buttons |
+| **Facebook Reels** | `9:16` | 1080×1920 | 60s | High universal appeal, family/nature mysteries, clear centered subtitles |
+| **YouTube Standard** | `16:9` | 1920×1080 | 75–90s | Classical horizontal framing, deep documentary narration, playlist-ready |
+| **Instagram Feed** | `1:1` | 1080×1080 | 45–60s | Balanced square composition, high contrast typography |
+| **Snapchat Spotlight** | `9:16` | 1080×1920 | 30–45s | Fast dopamine pace, 220px bottom margin for UI buttons |
+| **Pinterest Idea Pins** | `9:16` | 1080×1920 | 45–60s | Evergreen educational value, step-by-step visual clarity |
+| **LinkedIn Video** | `16:9` | 1920×1080 | 60s | Innovation angle, high-readability professional subtitles |
+| **X / Threads** | `9:16` / `16:9` | 1080×1920 | 45–60s | Viral cliffhanger, instant curiosity hook in first 2 seconds |
+
+> 📖 **Full Guide & Interactive Documentation**: See [`docs/SCIENCE_EXPLAINER.md`](docs/SCIENCE_EXPLAINER.md) for full voice registries, ASS subtitle templates, FFmpeg zoompan mathematics, and sample sessions.
 
 ---
 
@@ -258,6 +300,7 @@ pytest tests/backlot/ -v
 
 ## Documentation Index
 
+- [Science Explainer Shorts Production Guide](docs/SCIENCE_EXPLAINER.md) — Autonomous multi-language science & mystery short video pipeline.
 - [Identity Library Architecture](docs/IDENTITY_LIBRARY.md) — Persistent voice and character profile layout.
 - [Voice Identity Studio & Capability Matrix](docs/VOICE_IDENTITY.md) — Multilingual setup, cloning, and consent protocol.
 - [Face & Character Identity Studio](docs/FACE_IDENTITY.md) — Multi-view character reference guidelines.

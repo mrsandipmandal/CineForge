@@ -2,6 +2,73 @@
 
 Tested prompts that produce impressive videos. Copy any prompt into your AI coding assistant after running `make setup`.
 
+## 🔬 Science Explainer & Mystery Shorts (Multi-Language, Zero-Cost)
+
+The `bengali-science-explainer` skill provides an **interactive, multi-language, AI-researched production suite** designed specifically for **YouTube Shorts, TikTok, Instagram Reels, and YouTube Standard**. It runs live web research, suggests top-scoring scientific curiosities, walks you through an interactive feature selector, and autonomously renders 1080p video with Ken-Burns motion, neural voiceover, and burned typography — with **$0.00 API spend**.
+
+See [`docs/SCIENCE_EXPLAINER.md`](docs/SCIENCE_EXPLAINER.md) for the complete architecture and voice tables.
+
+### 1. Interactive Launch (Dynamic Language & AI Topic Discovery)
+
+> "Make a science video"
+
+**What happens:**
+1. The agent asks: *"What language do you want your video in? (English, Bengali, Hindi, Spanish, French, Arabic...)"*
+2. Automatically performs live web research to unearth 15 trending scientific phenomena.
+3. Ranks candidates by *surprise factor* and *visual potential*, presenting the top 6 with dramatic hooks.
+4. Walks you through an interactive feature menu (format, visual art direction, tone, duration, audio bed).
+5. Shows a complete 5-scene production plan and executes autonomously upon your `"approved"` confirmation.
+
+**Estimated time:** 8–12 minutes | **Cost:** $0.00
+
+---
+
+### 2. Deep Sea Mystery — Bengali (`bn-IN`)
+
+> "ব্যারেলআই মাছের স্বচ্ছ মাথা ও সবুজ চোখ নিয়ে একটা ৬০ সেকেন্ডের বাংলা ইউটিউব শর্টস ভিডিও বানাও। ডার্ক ও রহস্যময় স্টাইল এবং সিনেমাটিক ৩ডি ভিজ্যুয়াল ব্যবহার করো।"
+
+**What you get:**
+- Authentic West Bengal Bengali neural voiceover (`bn-IN-BashkarNeural`, -3% rate, -2Hz pitch).
+- 5 photorealistic deep-sea 3D scene plates (transparent skull, upward-facing green tubular eyes, bioluminescent abyssal habitat).
+- Synthesized underwater ambient soundscape (FFmpeg Brownian noise + 40Hz sub-bass).
+- Crisp Bengali subtitles burned with Nirmala UI 56pt bold typography.
+- Output: `projects/barreleye-mystery/renders/final.mp4` (1080×1920, 60s).
+
+---
+
+### 3. Biology Superpower — English (`en-US`)
+
+> "Create a 60-second YouTube Short explaining why the mantis shrimp punches at the speed of a bullet and sees 16 visual pigments. Use a high-energy curious tone and 9:16 vertical framing."
+
+**What you get:**
+- Dynamic neural English narration (`en-US-JennyNeural`).
+- 5 high-speed biological CGI plates illustrating cavitation bubbles and hyperspectral compound eyes.
+- Smooth Ken-Burns push-in and dolly transitions rendered via FFmpeg.
+- Centered bold white typography with 2px black outline, clearing platform UI safe zones.
+
+---
+
+### 4. Cosmic Biology — Hindi (`hi-IN`)
+
+> "अंतरिक्ष और उबलते पानी में भी जीवित रहने वाले टारडीग्रेड (Tardigrade) के बारे में एक 60-सेकंड की शॉर्ट्स वीडियो बनाओ। हिंदी में स्पष्ट वॉइसओवर और सबटाइटल रखो।"
+
+**What you get:**
+- Clear, natural Hindi narration (`hi-IN-NeerjaNeural`).
+- Microscopic extreme-close-up keyframe plates of cryptobiosis and cosmic radiation shielding.
+- Synchronized Hindi Devanagari typography rendered with clean Unicode support.
+
+---
+
+### 5. Instant Single-Prompt Direct Spec Override
+
+> "Run science-explainer: Subject is 'Venus Flytrap 9-millisecond snap mechanism'. Language is English. Format 9:16 vertical Short, duration 60s, visual style Nature Documentary, tone Fast & Punchy, audio ambient nature bed, subtitle style bold white bottom-center. Proceed with all defaults upon plan approval."
+
+**What you get:**
+- Bypasses intermediate feature Q&A and generates the production plan directly.
+- Renders a complete 5-scene explainer ready for YouTube Shorts and TikTok upload.
+
+---
+
 ## Zero-Key Demos (instant, no API keys)
 
 These render pre-built compositions using only Remotion components — animated charts, typography, data visualization. No external services, no cost, no waiting.

@@ -43,6 +43,7 @@ This is a first-class workflow in CineForge.
 
 - **Reference-driven request:** "make me something like this" -> use `video-reference-analyst.md`
 - **Source-footage request:** "edit this footage" / "cut this into clips" -> use `source_media_review` and the appropriate footage-led pipeline
+- **Science / Mystery Short request:** "make a science video", "বিজ্ঞান ভিডিও বানাও", "/science-explainer" -> read `.agents/skills/bengali-science-explainer/SKILL.md` (see `docs/SCIENCE_EXPLAINER.md` for architecture). Follow the dynamic language selection, silent web research, top-6 topic proposal, and single-gate approval flow.
 
 If a model misses this distinction, it will often fall back to plain search + guesswork. That is incorrect for CineForge.
 

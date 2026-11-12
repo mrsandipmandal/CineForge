@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import time
 from pathlib import Path
 from typing import Any
@@ -101,7 +102,6 @@ class VoxCPM2TTS(BaseTool):
         except ImportError:
             return shutil.which("nvidia-smi") is not None
 
-    import shutil  # noqa: E402
 
     def estimate_cost(self, inputs: dict[str, Any]) -> float:
         return 0.0

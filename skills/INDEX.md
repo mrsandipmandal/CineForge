@@ -137,6 +137,7 @@ Pipeline type skills provide production guidance for specific video formats, ind
 | Skill | File | When to Use |
 |-------|------|-------------|
 | Short-Form | `creative/short-form.md` | TikTok, Reels, Shorts â€" vertical 9:16, under 60s |
+| Science Explainer Shorts | `.agents/skills/bengali-science-explainer/SKILL.md` | Interactive multi-language science & mystery shorts (Shorts/TikTok/Reels) with live web research, neural TTS, and $0 cost |
 | Long-Form | `creative/long-form.md` | YouTube 10+ min â€" chapters, retention, end screens |
 | Screen Recording | `creative/screen-recording.md` | Code walkthroughs, tutorials, software demos |
 | Animation Pipeline | `creative/animation-pipeline.md` | Motion graphics, easing, transitions, composition |
