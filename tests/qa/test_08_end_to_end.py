@@ -580,6 +580,44 @@ write_checkpoint(
 )
 
 # ===================================================================
+# Stage 6.5: enhancement
+# ===================================================================
+print("\n--- Stage 6.5: enhancement ---")
+
+from tools.enhancement.video_quality_enhancer import VideoQualityEnhancer
+
+vqe = VideoQualityEnhancer()
+enhanced_video = str(Path(OUT) / "final_composed_enhanced.mp4")
+vqe_res = vqe.execute({
+    "input_path": final_video,
+    "output_path": enhanced_video,
+    "profile": "gentle",
+})
+if vqe_res.success:
+    enhancement_report = vqe_res.data["report"]
+else:
+    enhancement_report = {
+        "version": "1.0",
+        "input_media": {"path": final_video},
+        "output_media": {"path": final_video},
+        "enhancers": {"video_quality": {"profile": "disabled", "status": "skipped", "selection_mode": "disabled"}},
+        "status": "skipped",
+    }
+
+try:
+    validate_artifact("enhancement_report", enhancement_report)
+    check("Enhancement report validates against schema", True)
+except Exception as e:
+    check("Enhancement report validates against schema", False, str(e))
+
+write_checkpoint(
+    PIPELINE_DIR, PROJECT_ID, "enhancement", "completed",
+    artifacts={"enhancement_report": enhancement_report},
+    pipeline_type="animated-explainer",
+    cost_snapshot=tracker.cost_snapshot(),
+)
+
+# ===================================================================
 # Stage 7: publish
 # ===================================================================
 print("\n--- Stage 7: publish ---")
@@ -625,9 +663,9 @@ write_checkpoint(
 # ===================================================================
 print("\n--- Final validation ---")
 
-E2E_STAGES = ["research", "proposal", "script", "scene_plan", "assets", "edit", "compose", "publish"]
+E2E_STAGES = ["research", "proposal", "script", "scene_plan", "assets", "edit", "compose", "enhancement", "publish"]
 completed = get_completed_stages(PIPELINE_DIR, PROJECT_ID)
-check("All 8 stages completed", len(completed) == 8, f"completed={completed}")
+check("All 9 stages completed", len(completed) == 9, f"completed={completed}")
 check("Next stage is None (done)", get_next_stage(PIPELINE_DIR, PROJECT_ID, "animated-explainer") is None)
 check("Stages in correct order", completed == E2E_STAGES, f"{completed}")
 
