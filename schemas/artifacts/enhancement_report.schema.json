@@ -1,0 +1,239 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cineforge/artifacts/enhancement_report",
+  "title": "Enhancement Report",
+  "description": "Records all enhancement operations applied to a composed video before final export. Tracks input/output media, operations performed, providers used, quality metrics, and cost. Supports both Video Quality Enhancer and AI Human Enhancer workflows.",
+  "type": "object",
+  "required": ["version", "input_media", "output_media", "enhancers", "status"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "input_media": {
+      "type": "object",
+      "required": ["path", "duration_seconds", "resolution", "fps"],
+      "properties": {
+        "path": { "type": "string", "description": "Path to the composed render (input to enhancement)" },
+        "duration_seconds": { "type": "number", "minimum": 0 },
+        "resolution": {
+          "type": "object",
+          "required": ["width", "height"],
+          "properties": {
+            "width": { "type": "integer", "minimum": 1 },
+            "height": { "type": "integer", "minimum": 1 }
+          },
+          "additionalProperties": false
+        },
+        "fps": { "type": "number", "minimum": 1 },
+        "codec": { "type": "string" },
+        "has_audio": { "type": "boolean" },
+        "file_size_bytes": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "output_media": {
+      "type": "object",
+      "required": ["path"],
+      "properties": {
+        "path": { "type": "string", "description": "Path to the enhanced output" },
+        "duration_seconds": { "type": "number", "minimum": 0 },
+        "resolution": {
+          "type": "object",
+          "required": ["width", "height"],
+          "properties": {
+            "width": { "type": "integer", "minimum": 1 },
+            "height": { "type": "integer", "minimum": 1 }
+          },
+          "additionalProperties": false
+        },
+        "fps": { "type": "number", "minimum": 1 },
+        "codec": { "type": "string" },
+        "has_audio": { "type": "boolean" },
+        "file_size_bytes": { "type": "integer", "minimum": 0 },
+        "audio_sync_verified": { "type": "boolean", "description": "True if audio sync was checked post-enhancement" }
+      },
+      "additionalProperties": false
+    },
+    "enhancers": {
+      "type": "object",
+      "properties": {
+        "video_quality": {
+          "type": "object",
+          "description": "Video Quality Enhancer results",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "profile": {
+              "type": "string",
+              "enum": ["auto", "gentle", "balanced", "cinematic", "maximum", "custom", "disabled"],
+              "description": "Selected enhancement profile"
+            },
+            "strength": {
+              "type": "string",
+              "enum": ["low", "medium", "high", "custom"]
+            },
+            "selection_mode": {
+              "type": "string",
+              "enum": ["user_selected", "ai_decided", "disabled", "not_applicable"],
+              "description": "How the profile was chosen"
+            },
+            "decision_reason": { "type": "string", "description": "Reason for AI-decided selections" },
+            "operations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["operation", "tool", "status"],
+                "properties": {
+                  "operation": {
+                    "type": "string",
+                    "enum": ["upscale", "denoise", "sharpen", "deblur", "stabilize", "frame_interpolate", "deflicker", "color_correct", "encode_optimize"],
+                    "description": "Enhancement operation performed"
+                  },
+                  "tool": { "type": "string", "description": "Tool name used" },
+                  "provider": { "type": "string", "description": "Provider/model used" },
+                  "status": {
+                    "type": "string",
+                    "enum": ["completed", "skipped", "failed", "unavailable", "not_applicable"]
+                  },
+                  "parameters": { "type": "object", "description": "Tool-specific parameters used" },
+                  "skip_reason": { "type": "string", "description": "Why operation was skipped" },
+                  "error": { "type": "string", "description": "Error message if failed" },
+                  "cost_usd": { "type": "number", "minimum": 0 },
+                  "duration_seconds": { "type": "number", "minimum": 0 }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "ai_human": {
+          "type": "object",
+          "description": "AI Human Enhancer results",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "profile": {
+              "type": "string",
+              "enum": ["auto", "natural", "cinematic", "face_restoration", "detail_recovery", "eye_detail", "custom", "disabled"],
+              "description": "Selected human enhancement profile"
+            },
+            "strength": {
+              "type": "string",
+              "enum": ["low", "medium", "high", "custom"]
+            },
+            "selection_mode": {
+              "type": "string",
+              "enum": ["user_selected", "ai_decided", "disabled", "not_applicable"],
+              "description": "How the profile was chosen"
+            },
+            "decision_reason": { "type": "string" },
+            "human_subjects_detected": { "type": "boolean" },
+            "face_count": { "type": "integer", "minimum": 0 },
+            "identity_preserved": { "type": "boolean", "description": "True if identity was verified preserved" },
+            "consent_verified": { "type": "boolean", "description": "True if consent checks passed" },
+            "operations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["operation", "tool", "status"],
+                "properties": {
+                  "operation": {
+                    "type": "string",
+                    "enum": ["face_detection", "face_tracking", "face_restoration", "face_upscale", "eye_enhance", "face_polish", "applicability_analysis"],
+                    "description": "Human enhancement operation performed"
+                  },
+                  "tool": { "type": "string" },
+                  "provider": { "type": "string" },
+                  "status": {
+                    "type": "string",
+                    "enum": ["completed", "skipped", "failed", "unavailable", "not_applicable"]
+                  },
+                  "parameters": { "type": "object" },
+                  "frames_processed": { "type": "integer", "minimum": 0 },
+                  "skip_reason": { "type": "string" },
+                  "error": { "type": "string" },
+                  "cost_usd": { "type": "number", "minimum": 0 },
+                  "duration_seconds": { "type": "number", "minimum": 0 }
+                },
+                "additionalProperties": false
+              }
+            },
+            "temporal_consistency": {
+              "type": "object",
+              "properties": {
+                "checked": { "type": "boolean" },
+                "flicker_detected": { "type": "boolean" },
+                "notes": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "status": {
+      "type": "string",
+      "enum": ["completed", "partial", "skipped", "failed"],
+      "description": "Overall enhancement status"
+    },
+    "qa_results": {
+      "type": "object",
+      "description": "Post-enhancement quality assurance checks",
+      "properties": {
+        "output_exists": { "type": "boolean" },
+        "output_decodable": { "type": "boolean" },
+        "dimensions_match": { "type": "boolean" },
+        "fps_match": { "type": "boolean" },
+        "duration_preserved": { "type": "boolean" },
+        "audio_preserved": { "type": "boolean" },
+        "audio_sync_ok": { "type": "boolean" },
+        "codec_correct": { "type": "boolean" },
+        "original_preserved": { "type": "boolean", "description": "Source file was NOT overwritten" },
+        "file_size_bytes": { "type": "integer", "minimum": 0 },
+        "notes": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "cost_summary": {
+      "type": "object",
+      "properties": {
+        "total_usd": { "type": "number", "minimum": 0 },
+        "breakdown": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["tool", "cost_usd"],
+            "properties": {
+              "tool": { "type": "string" },
+              "operation": { "type": "string" },
+              "cost_usd": { "type": "number", "minimum": 0 }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Non-fatal warnings from the enhancement process"
+    },
+    "skipped_operations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["operation", "reason"],
+        "properties": {
+          "operation": { "type": "string" },
+          "reason": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata (processing time, resource usage, etc.)"
+    }
+  },
+  "additionalProperties": false
+}
