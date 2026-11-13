@@ -307,12 +307,49 @@ Feed in an hour-long podcast, interview, or lecture. The agent transcribes with 
 
 ---
 
+## 🪄 Universal Production Wizard & Cinematic Enhancers
+
+CineForge introduces a unified production workflow connecting conversational intake, 3D cinematic scene specifications, and post-compose quality/human enhancement:
+
+### 1. Universal Production Wizard (`lib/production_wizard.py`)
+- **Progressive Intake**: Intelligently extracts duration, aspect ratio, style, and platform from user prompts and project context without asking repetitive questions.
+- **4 Operational Modes**:
+  - `Quick`: Streamlined 2-question path for rapid generation.
+  - `Guided`: Context-rich choices with short explanations for general creators.
+  - `Advanced`: Full access to provider routing, model selection, and budget caps.
+  - `Expert`: Low-level access to render parameters, filter chains, and resolution targets.
+- **Mandatory Duration Bands**: Exactly 7 choices (`15–30 seconds`, `30–60 seconds`, `1–3 minutes`, `3–5 minutes`, `5–10 minutes`, `Custom`, `Skip — Let AI Decide`).
+- **Auditable AI Decision-Making**: When the user delegates with "Skip — Let AI Decide", the agent records auditable reasoning, constraints, and confidence in `decision_log.json`, never silently incurring unexpected charges.
+
+### 2. Cinematic Animation Engine Integration (`lib/cinematic_scene_spec.py`)
+- **Backend-Agnostic Scene Spec**: Maps high-level narrative beats into geometric world models (`terrain_type`, `fog_density`, `lighting_preset`, `camera_path`, `atmosphere`).
+- **Validated Multi-Renderer Dispatch**:
+  - **Three.js Semantic Worlds**: In-browser WebGL blockouts and production-fidelity GLTF scenes validated by `ThreeJSWorld`.
+  - **Blender 4.5+ LTS Worlds**: Production camera trajectories, terrain generation, and Eevee Next rendering via `BlenderWorld`.
+  - **ManimCE AST Scanner**: Safe mathematical animations with AST security filters.
+
+### 3. Video Quality Enhancer (`tools/enhancement/video_quality_enhancer.py`)
+- **Non-Destructive Post-Compose Stage**: Enhances rendered compositions immediately before export and publishing while strictly preserving the original raw render.
+- **Tuned Profiles**: `gentle`, `balanced`, `cinematic`, `maximum`, `custom`, and `disabled`.
+- **Comprehensive Processing**: FFmpeg Lanczos / RealESRGAN upscaling, hqdn3d denoising, unsharp contrast sharpening, and automatic aspect ratio preservation.
+- **Verification & Reports**: Emits schema-validated `enhancement_report` artifacts with probe metrics, bitrate changes, and decodability checks.
+
+### 4. AI Human Enhancer (`tools/enhancement/ai_human_enhancer.py`)
+- **Identity-Preserving Subject Polish**: Face restoration, skin smoothing, eye clarity enhancement, and lighting balance.
+- **Automatic Face Detection & Safety Bypass**: Employs `FaceTracker` to detect human subjects. If no faces are present (e.g. landscapes, abstract 3D worlds, diagrams), it marks `not_applicable`, avoids hallucination or compute costs, and passes the clean video through untouched.
+- **Consent Enforcement**: Adheres to strict identity consent gates (`consent_verified: true`).
+
+### 5. Backlot Split Before/After Inspection
+- Interactive dual-video inspection and synchronized preview in the Backlot Studio (`⇄ Compare Before / After`), enabling instant side-by-side verification before final export approval.
+
+---
+
 ## 🎬 Production Pipelines
 
 Every video production request maps to an auditable pipeline manifest in `pipeline_defs/`:
 
 ```
-research  →  proposal  →  script  →  scene_plan  →  assets  →  edit  →  compose  →  publish
+research  →  proposal  →  script  →  scene_plan  →  assets  →  edit  →  compose  →  enhancement  →  publish
 ```
 
 | Pipeline | Target Format | Primary Use Case |

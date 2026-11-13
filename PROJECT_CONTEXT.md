@@ -42,14 +42,14 @@ Each tool's `agent_skills[]` field bridges Layer 1 → Layer 3. See `skills/INDE
 
 ## Key Patterns
 
-- **Pipeline state machine:** `idea -> script -> scene_plan -> assets -> edit -> compose -> publish`
+- **Pipeline state machine:** `research -> proposal -> idea -> script -> scene_plan -> assets -> edit -> compose -> enhancement -> publish`
 - **Instruction-driven stages:** Each stage has a director skill (MD) that teaches the agent HOW
 - **Pipeline manifests:** Declarative YAML defining stages, skills, tools, review focus, approval gates
 - **Capability-first tool design:** Each major family should expose a selector tool plus explicit provider tools
   - Example: `tts_selector` + `elevenlabs_tts` / `google_tts` / `openai_tts` / `piper_tts`
   - Example: `video_selector` + `heygen_video` / `wan_video` / `hunyuan_video` / `ltx_video_local` / `ltx_video_modal` / `cogvideo_video`
 - **Style playbooks:** YAML defining visual language, typography, motion, audio, asset generation constraints
-- **Artifacts are canonical:** `brief`, `script`, `scene_plan`, `asset_manifest`, `edit_decisions`, `render_report`, `publish_log`
+- **Artifacts are canonical:** `brief`, `script`, `scene_plan`, `asset_manifest`, `edit_decisions`, `enhancement_report`, `render_report`, `publish_log`
 - **Every tool inherits from `tools/base_tool.py`** (ToolContract)
 - **Checkpoint policy** lives in pipeline manifest (`human_approval_default` per stage) + `skills/meta/checkpoint-protocol.md`
 - **Reviewer** is a meta skill (`skills/meta/reviewer.md`), advisory, max 2 rounds
@@ -81,6 +81,10 @@ Each tool's `agent_skills[]` field bridges Layer 1 → Layer 3. See `skills/INDE
 | `tools/graphics/fal_3d.py` | fal.ai Hunyuan 3D and SAM 3D routes for image-conditioned and multi-object GLB generation |
 | `tools/graphics/blender_world.py` | Blender 4.5 LTS production world assembly, terrain, lighting, camera, and Eevee Next rendering |
 | `tools/character/character_animation.py` | Local character-animation tools — character specs, SVG rig plans, pose libraries, action timelines, HyperFrames packages, and QA reports |
+| `lib/production_wizard.py` | Universal interactive production wizard with progressive intake, 4 modes, 7 duration bands, and auditable AI decisions |
+| `lib/cinematic_scene_spec.py` | Cinematic Scene Specification mapping narrative scene plans to Three.js and Blender specs |
+| `tools/enhancement/video_quality_enhancer.py` | Video Quality Enhancer (upscaling, denoising, deinterlacing, color grading, sharpening) |
+| `tools/enhancement/ai_human_enhancer.py` | AI Human Enhancer (face restoration, skin smoothing, eye enhancement, subject isolation) |
 | `lib/hyperframes_style_bridge.py` | Playbook → CSS custom properties + `DESIGN.md` bridge for HyperFrames workspaces |
 | `remotion-composer/src/components/` | 8 Remotion components (TextCard, StatCard, ProgressBar, CalloutBox, ComparisonCard + charts/) |
 | `.agents/skills/hyperframes*/` | Vendored HyperFrames Layer 3 skills (authoring contract, CLI, registry, website-to-video) |
