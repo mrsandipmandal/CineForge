@@ -1,7 +1,14 @@
-# Creative Intake
+# Creative Intake & Production Wizard
 
-Before the research stage, gather user intent through targeted questions.
+Before the research stage, gather user intent through targeted questions or through the **Universal Interactive Production Wizard** (`skills/meta/production-wizard.md`).
 Do NOT start production on a vague brief.
+
+## Operating with the Production Wizard
+For structured, progressive onboarding, consult `skills/meta/production-wizard.md`:
+- Modes: Quick, Guided (Default), Advanced, Expert
+- Mandatory duration options (15–30s, 30–60s, 1–3m, 3–5m, 5–10m, Custom, Skip — Let AI Decide)
+- Safe "Skip — Let AI Decide" handling with logged reasoning, constraints, and confidence
+- Progressive discovery of Purpose, Language, Aspect ratio, Visual style, Renderers, Audio, and Enhancers.
 
 ## Required Questions (ask conversationally, not as a survey)
 
