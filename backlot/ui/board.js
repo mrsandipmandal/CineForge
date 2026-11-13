@@ -857,11 +857,21 @@ function renderRenders(s) {
     const splitView = el("div", { style: "display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:8px;" },
       el("div", {},
         el("div", { class: "meta", style: "font-weight:bold; margin-bottom:4px;" }, `Before: ${beforeRender.path.split("/").pop()}`),
-        el("div", { class: "render-hero" }, el("video", { src: mediaURL(s.project_id, beforeRender.path), controls: "", preload: "metadata" }))
+        el("div", { class: "render-hero" }, el("video", {
+          src: mediaURL(s.project_id, beforeRender.path),
+          poster: thumbURL(s.project_id, beforeRender.path, 1280),
+          controls: "",
+          preload: "metadata",
+        }))
       ),
       el("div", {},
         el("div", { class: "meta", style: "font-weight:bold; margin-bottom:4px;" }, `After: ${afterRender.path.split("/").pop()}`),
-        el("div", { class: "render-hero" }, el("video", { src: mediaURL(s.project_id, afterRender.path), controls: "", preload: "metadata" }))
+        el("div", { class: "render-hero" }, el("video", {
+          src: mediaURL(s.project_id, afterRender.path),
+          poster: thumbURL(s.project_id, afterRender.path, 1280),
+          controls: "",
+          preload: "metadata",
+        }))
       )
     );
 
@@ -885,7 +895,8 @@ function renderRenders(s) {
   // watch: carry playback position/state over to the recreated element.
   const prev = document.querySelector(".render-hero video");
   const src = mediaURL(s.project_id, current.path);
-  const video = el("video", { src, controls: "", preload: "metadata" });
+  const poster = thumbURL(s.project_id, current.path, 1280);
+  const video = el("video", { src, poster, controls: "", preload: "metadata" });
   video.addEventListener("click", () => { if (video.paused) video.play().catch(() => {}); });
   if (prev && prev.getAttribute("src") === src && (prev.currentTime > 0 || !prev.paused)) {
     const t = prev.currentTime;
