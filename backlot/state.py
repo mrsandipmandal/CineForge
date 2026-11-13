@@ -237,6 +237,7 @@ ARTIFACT_FILES = {
     "asset_manifest": "asset_manifest.json",
     "edit_decisions": "edit_decisions.json",
     "render_report": "render_report.json",
+    "enhancement_report": "enhancement_report.json",
     "final_review": "final_review.json",
     "publish_log": "publish_log.json",
     "decision_log": "decision_log.json",

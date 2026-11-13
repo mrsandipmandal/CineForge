@@ -17,6 +17,7 @@ let currentTheme = localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark
 let state = null;
 let selectedStage = null;   // stage drawer open for this stage name
 let activeRender = 0;
+let compareMode = false;
 let replay = null;          // {t0, t1, t, playing} — replay mode when non-null
 let firstPaint = true;
 
@@ -166,6 +167,7 @@ const STAGE_ARTIFACTS = {
   assets: ["asset_manifest"],
   edit: ["edit_decisions"],
   compose: ["render_report", "final_review"],
+  enhancement: ["enhancement_report"],
   publish: ["publish_log"],
 };
 
@@ -447,6 +449,26 @@ function artifactReviewContent(name, artifact) {
       titledItems(artifact.outputs),
     ].filter(Boolean);
   }
+  if (name === "enhancement_report") {
+    const vq = (artifact.enhancers || {}).video_quality || {};
+    const aiHuman = (artifact.enhancers || {}).ai_human || {};
+    return [
+      reviewFacts([
+        reviewFact("status", artifact.status),
+        reviewFact("VQ profile", vq.profile || (vq.enabled ? "enabled" : "disabled")),
+        reviewFact("AI Human", aiHuman.profile || (aiHuman.enabled ? "enabled" : (aiHuman.selection_mode || "disabled"))),
+        reviewFact("audio sync", (artifact.qa_results || {}).audio_sync_ok ? "verified" : null),
+      ]),
+      titledItems([
+        {
+          title: "Input vs Enhanced Media",
+          description: `${(artifact.input_media || {}).path || "source"} → ${(artifact.output_media || {}).path || "enhanced"}`,
+        },
+        vq.decision_reason ? { title: "Video Quality Rationale", description: vq.decision_reason } : null,
+        aiHuman.decision_reason ? { title: "AI Human Rationale", description: aiHuman.decision_reason } : null,
+      ].filter(Boolean)),
+    ].filter(Boolean);
+  }
   if (name === "publish_log") {
     return [
       reviewFacts([reviewFact("destinations", Array.isArray(artifact.entries) ? artifact.entries.length : null)]),
@@ -470,6 +492,7 @@ function artifactReviewTitle(name, artifact, s) {
   if (name === "asset_manifest") return "Generated assets";
   if (name === "edit_decisions") return "Edit decisions";
   if (name === "render_report") return "Render report";
+  if (name === "enhancement_report") return "Enhancement report";
   if (name === "publish_log") return "Publish plan";
   return artifact.title || artifact.name || s.title;
 }
@@ -821,16 +844,48 @@ function renderRenders(s) {
   if (!renders.length) return null;
   if (activeRender >= renders.length) activeRender = 0;
   const current = renders[activeRender];
+
+  const compareBtn = renders.length >= 2 ? el("button", {
+    class: `ver-chip${compareMode ? " active" : ""}`,
+    style: "cursor:pointer; margin-left:8px;",
+    onclick: () => { compareMode = !compareMode; render(); }
+  }, compareMode ? "✕ Exit Comparison" : "⇄ Compare Before / After") : null;
+
+  if (compareMode && renders.length >= 2) {
+    const beforeRender = renders[0];
+    const afterRender = renders[activeRender === 0 ? 1 : activeRender];
+    const splitView = el("div", { style: "display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:8px;" },
+      el("div", {},
+        el("div", { class: "meta", style: "font-weight:bold; margin-bottom:4px;" }, `Before: ${beforeRender.path.split("/").pop()}`),
+        el("div", { class: "render-hero" }, el("video", { src: mediaURL(s.project_id, beforeRender.path), controls: "", preload: "metadata" }))
+      ),
+      el("div", {},
+        el("div", { class: "meta", style: "font-weight:bold; margin-bottom:4px;" }, `After: ${afterRender.path.split("/").pop()}`),
+        el("div", { class: "render-hero" }, el("video", { src: mediaURL(s.project_id, afterRender.path), controls: "", preload: "metadata" }))
+      )
+    );
+
+    const versions = el("div", { class: "render-meta" },
+      renders.map((r, i) => el("span", {
+        class: `v${i === activeRender ? " active" : ""}`,
+        onclick: () => { activeRender = i; render(); },
+      }, `${r.path.split("/").pop()}${r.at_root ? " · root" : ""}`)),
+      el("span", { style: "margin-left:auto" }, `${(current.size / 1048576).toFixed(1)} MB`),
+    );
+
+    return el("div", {},
+      el("div", { class: "section-title" }, "Renders",
+        el("span", { class: "meta" }, `${renders.length} version${renders.length === 1 ? "" : "s"}`),
+        compareBtn),
+      splitView,
+      versions);
+  }
+
   // Full re-renders (every SSE refresh) must not reset an in-progress
   // watch: carry playback position/state over to the recreated element.
   const prev = document.querySelector(".render-hero video");
   const src = mediaURL(s.project_id, current.path);
-  // preload="metadata" gives the element its intrinsic aspect ratio (and a
-  // poster frame) before playback — without it a portrait 9:16 render sits
-  // in a letterboxed 100%-wide black box that reads as landscape.
   const video = el("video", { src, controls: "", preload: "metadata" });
-  // Click the frame to start playback (controls handle pause/scrub) — the
-  // big player was inert to a click on the picture itself.
   video.addEventListener("click", () => { if (video.paused) video.play().catch(() => {}); });
   if (prev && prev.getAttribute("src") === src && (prev.currentTime > 0 || !prev.paused)) {
     const t = prev.currentTime;
@@ -848,7 +903,8 @@ function renderRenders(s) {
   );
   return el("div", {},
     el("div", { class: "section-title" }, "Renders",
-      el("span", { class: "meta" }, `${renders.length} version${renders.length === 1 ? "" : "s"}`)),
+      el("span", { class: "meta" }, `${renders.length} version${renders.length === 1 ? "" : "s"}`),
+      compareBtn),
     el("div", { class: "render-hero" }, video),
     versions);
 }

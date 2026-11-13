@@ -204,6 +204,26 @@ def sample_artifact(name: str) -> dict:
                 }
             ],
         }
+    if name == "enhancement_report":
+        return {
+            "version": "1.0",
+            "input_media": {
+                "path": "renders/output.mp4",
+                "duration_seconds": 60,
+                "resolution": {"width": 1920, "height": 1080},
+                "fps": 30.0,
+            },
+            "output_media": {
+                "path": "renders/output_enhanced.mp4",
+            },
+            "enhancers": {
+                "video_quality": {
+                    "enabled": True,
+                    "profile": "cinematic",
+                }
+            },
+            "status": "completed",
+        }
     if name == "video_analysis_brief":
         return {
             "version": "1.0",
