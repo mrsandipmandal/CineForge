@@ -41,6 +41,10 @@ MODELS = {
         "description": "Lighter network, faster but lower quality",
         "scale": 4,
     },
+    "ffmpeg_lanczos": {
+        "description": "Deterministic FFmpeg Lanczos upscaler (no GPU/PyTorch required)",
+        "scale": 4,
+    },
 }
 
 
@@ -128,16 +132,27 @@ class Upscale(BaseTool):
         if not input_path.exists():
             return ToolResult(success=False, error=f"Input not found: {input_path}")
 
-        is_video = input_path.suffix.lower() in VIDEO_EXTENSIONS
-
         default_output = str(input_path.with_stem(f"{input_path.stem}_upscaled"))
         output_path = Path(inputs.get("output_path", default_output))
+
+        # Critical: never overwrite original input file
+        try:
+            if input_path.resolve() == output_path.resolve():
+                return ToolResult(
+                    success=False,
+                    error=f"output_path cannot overwrite original input_path: {input_path}",
+                )
+        except Exception:
+            pass
+
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         scale = inputs.get("scale", 4)
         model_name = inputs.get("model", "RealESRGAN_x4plus")
         face_enhance = inputs.get("face_enhance", False)
         denoise_strength = inputs.get("denoise_strength", 0.5)
+
+        is_video = input_path.suffix.lower() in VIDEO_EXTENSIONS
 
         start = time.time()
 
@@ -187,6 +202,21 @@ class Upscale(BaseTool):
     ) -> dict[str, Any]:
         import cv2
 
+        temp_target = output_path.with_name(f".tmp_{output_path.name}")
+
+        if model_name == "ffmpeg_lanczos":
+            # Fast deterministic FFmpeg Lanczos upscaling
+            self.run_command([
+                "ffmpeg", "-y",
+                "-i", str(input_path),
+                "-vf", f"scale=iw*{scale}:ih*{scale}:flags=lanczos",
+                str(temp_target),
+            ])
+            temp_target.replace(output_path)
+            img = cv2.imread(str(output_path), cv2.IMREAD_UNCHANGED)
+            h, w = img.shape[:2] if img is not None else (0, 0)
+            return {"output_width": w, "output_height": h}
+
         upsampler = self._build_upsampler(scale, model_name, denoise_strength, face_enhance)
 
         img = cv2.imread(str(input_path), cv2.IMREAD_UNCHANGED)
@@ -194,7 +224,8 @@ class Upscale(BaseTool):
             raise ValueError(f"Could not read image: {input_path}")
 
         output, _ = upsampler.enhance(img, outscale=scale)
-        cv2.imwrite(str(output_path), output)
+        cv2.imwrite(str(temp_target), output)
+        temp_target.replace(output_path)
 
         h, w = output.shape[:2]
         return {"output_width": w, "output_height": h}
@@ -212,12 +243,33 @@ class Upscale(BaseTool):
         face_enhance: bool,
         denoise_strength: float,
     ) -> dict[str, Any]:
-        import cv2
-
-        upsampler = self._build_upsampler(scale, model_name, denoise_strength, face_enhance)
-
-        # Get source frame rate
         fps = self._get_video_fps(input_path)
+        temp_target = output_path.with_name(f".tmp_{output_path.name}")
+
+        if model_name == "ffmpeg_lanczos":
+            # Fast deterministic video scaling via FFmpeg Lanczos
+            reassemble_cmd = [
+                "ffmpeg", "-y",
+                "-i", str(input_path),
+                "-vf", f"scale=iw*{scale}:ih*{scale}:flags=lanczos",
+                "-c:v", "libx264", "-crf", "18",
+                "-c:a", "copy",
+                "-pix_fmt", "yuv420p",
+                str(temp_target),
+            ]
+            self.run_command(reassemble_cmd)
+            temp_target.replace(output_path)
+            probe = self._probe_video(output_path)
+            return {
+                "total_frames": probe.get("frame_count", 0),
+                "fps": fps,
+                "output_width": probe.get("width"),
+                "output_height": probe.get("height"),
+                "duration_seconds": probe.get("duration"),
+            }
+
+        import cv2
+        upsampler = self._build_upsampler(scale, model_name, denoise_strength, face_enhance)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             frames_dir = Path(tmpdir) / "frames"
@@ -225,10 +277,11 @@ class Upscale(BaseTool):
             frames_dir.mkdir()
             upscaled_dir.mkdir()
 
-            # Extract frames
+            # Extract frames with exact timing
             self.run_command([
                 "ffmpeg", "-y",
                 "-i", str(input_path),
+                "-fps_mode", "passthrough",
                 str(frames_dir / "frame_%06d.png"),
             ])
 
@@ -252,11 +305,51 @@ class Upscale(BaseTool):
                 "-c:v", "libx264", "-crf", "18",
                 "-c:a", "copy",
                 "-pix_fmt", "yuv420p",
-                str(output_path),
+                str(temp_target),
             ]
             self.run_command(reassemble_cmd)
+            temp_target.replace(output_path)
 
-        return {"total_frames": total_frames, "fps": fps}
+        probe = self._probe_video(output_path)
+        return {
+            "total_frames": total_frames,
+            "fps": fps,
+            "output_width": probe.get("width"),
+            "output_height": probe.get("height"),
+            "duration_seconds": probe.get("duration"),
+        }
+
+    def _probe_video(self, video_path: Path) -> dict[str, Any]:
+        """Probe video with ffprobe to extract stream info."""
+        import json
+        if not shutil.which("ffprobe"):
+            return {}
+        try:
+            proc = self.run_command([
+                "ffprobe", "-v", "quiet",
+                "-print_format", "json",
+                "-show_format", "-show_streams",
+                str(video_path),
+            ])
+            data = json.loads(proc.stdout)
+            width = 0
+            height = 0
+            has_audio = False
+            for s in data.get("streams", []):
+                if s.get("codec_type") == "video":
+                    width = int(s.get("width", 0))
+                    height = int(s.get("height", 0))
+                elif s.get("codec_type") == "audio":
+                    has_audio = True
+            duration = float(data.get("format", {}).get("duration", 0.0))
+            return {
+                "width": width,
+                "height": height,
+                "duration": duration,
+                "has_audio": has_audio,
+            }
+        except Exception:
+            return {}
 
     # ------------------------------------------------------------------
     # Helpers
