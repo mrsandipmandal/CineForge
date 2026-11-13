@@ -238,6 +238,7 @@ stages:
     review_focus:
       - Speaker face authenticity and natural skin texture
       - Audio clarity and video signal quality
+      - Non-destructive processing with source media preserved
     success_criteria:
       - Schema-valid enhancement_report artifact
 

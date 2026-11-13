@@ -38,6 +38,7 @@ def test_character_animation_manifest_contract():
         "assets",
         "edit",
         "compose",
+        "enhancement",
         "publish",
     ]
     assert {

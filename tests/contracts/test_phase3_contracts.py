@@ -753,6 +753,7 @@ class TestAnimatedExplainerManifest:
             "assets",
             "edit",
             "compose",
+            "enhancement",
             "publish",
         ]
         assert stage_names == expected

@@ -306,7 +306,7 @@ class TestTalkingHeadManifest:
     def test_manifest_has_all_stages(self):
         manifest = load_pipeline("talking-head")
         stages = get_stage_order(manifest)
-        assert stages == ["idea", "script", "scene_plan", "assets", "edit", "compose", "publish"]
+        assert stages == ["idea", "script", "scene_plan", "assets", "edit", "compose", "enhancement", "publish"]
 
     def test_manifest_references_phase1_tools(self):
         manifest = load_pipeline("talking-head")

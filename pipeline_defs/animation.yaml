@@ -299,6 +299,7 @@ stages:
     review_focus:
       - Line detail and diagram sharpness preserved
       - Output file exists and passes ffprobe validation
+      - Visual consistency across animated scenes preserved
     success_criteria:
       - Schema-valid enhancement_report artifact
 

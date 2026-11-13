@@ -210,6 +210,7 @@ stages:
     review_focus:
       - Presenter facial authenticity and edge blending
       - Decodability and audio sync
+      - Identity preservation and natural gaze alignment
     success_criteria:
       - Schema-valid enhancement_report artifact
 

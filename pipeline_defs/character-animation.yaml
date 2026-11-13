@@ -301,6 +301,7 @@ stages:
     review_focus:
       - Vector sharpness and edge clarity preserved
       - Output exists and passes technical validation
+      - Character proportions and frame rate consistency preserved
     success_criteria:
       - Schema-valid enhancement_report artifact
 
