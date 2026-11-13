@@ -44,6 +44,7 @@ required_skills:
   - pipelines/cinematic/asset-director
   - pipelines/cinematic/edit-director
   - pipelines/cinematic/compose-director
+  - pipelines/cinematic/enhancement-director
   - pipelines/cinematic/publish-director
   - meta/reviewer
   - meta/checkpoint-protocol
@@ -267,12 +268,47 @@ stages:
       - Schema-valid render_report artifact
       - Output file exists and passes ffprobe validation
 
+  - name: enhancement
+    skill: pipelines/cinematic/enhancement-director
+    required_artifacts_in:
+      - render_report
+    optional_artifacts_in:
+      - final_review
+    produces:
+      - enhancement_report
+    optional_tools:
+      - video_quality_enhancer
+      - ai_human_enhancer
+      - upscale
+      - face_enhance
+      - face_restore
+      - eye_enhance
+      - color_grade
+    tools_available:
+      - video_quality_enhancer
+      - ai_human_enhancer
+      - upscale
+      - face_enhance
+      - face_restore
+      - eye_enhance
+      - color_grade
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus:
+      - Video Quality Enhancer verified decodability, duration preservation, and audio sync
+      - AI Human Enhancer preserved identity and skin authenticity when human subjects present
+      - Enhancement report is schema-valid and original source media is preserved
+    success_criteria:
+      - Schema-valid enhancement_report artifact
+      - Enhanced or verified deliverable media exists and passes ffprobe validation
+
   - name: publish
     skill: pipelines/cinematic/publish-director
     required_artifacts_in:
       - render_report
-      - final_review
     optional_artifacts_in:
+      - enhancement_report
+      - final_review
       - proposal_packet
       - script
     produces:

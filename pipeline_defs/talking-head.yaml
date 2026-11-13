@@ -22,6 +22,7 @@ required_skills:
   - pipelines/talking-head/asset-director
   - pipelines/talking-head/edit-director
   - pipelines/talking-head/compose-director
+  - pipelines/talking-head/enhancement-director
   - pipelines/talking-head/publish-director
   - meta/reviewer
   - meta/checkpoint-protocol
@@ -210,10 +211,42 @@ stages:
       - Schema-valid render_report artifact
       - Output video file exists and is playable
 
+  - name: enhancement
+    skill: pipelines/talking-head/enhancement-director
+    required_artifacts_in:
+      - render_report
+    optional_artifacts_in:
+      - final_review
+    produces:
+      - enhancement_report
+    optional_tools:
+      - video_quality_enhancer
+      - ai_human_enhancer
+      - face_enhance
+      - face_restore
+      - eye_enhance
+      - audio_enhance
+    tools_available:
+      - video_quality_enhancer
+      - ai_human_enhancer
+      - face_enhance
+      - face_restore
+      - eye_enhance
+      - audio_enhance
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus:
+      - Speaker face authenticity and natural skin texture
+      - Audio clarity and video signal quality
+    success_criteria:
+      - Schema-valid enhancement_report artifact
+
   - name: publish
     skill: pipelines/talking-head/publish-director
     required_artifacts_in:
       - render_report
+    optional_artifacts_in:
+      - enhancement_report
       - final_review
     produces:
       - publish_log

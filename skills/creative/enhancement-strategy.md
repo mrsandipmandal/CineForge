@@ -2,9 +2,40 @@
 
 ## When to Use
 
-Apply this skill when deciding how to enhance talking-head footage: which
-face/color/audio presets to use, what overlays to add, and how to balance
-enhancement visibility with naturalness.
+Apply this skill when deciding how to enhance video footage and composed renders:
+1. **Pre-Export Enhancement Stage**: Running `video_quality_enhancer` and `ai_human_enhancer` post-compose and pre-publish.
+2. **Talking-Head Enhancements**: Face/color/audio presets, overlay density, and naturalness.
+
+## Pre-Export Enhancement Capabilities (Stage: `enhancement`)
+
+| Capability | Tool | Purpose | Primary Backend | Identity & Subject Policy |
+|---|---|---|---|---|
+| **Video Quality Enhancer** | `video_quality_enhancer` | Resolves technical video defects (noise, blur, low resolution, dynamic range) | FFmpeg filters, Real-ESRGAN / Lanczos upscaling | Applies to full frame. Content-agnostic. |
+| **AI Human Enhancer** | `ai_human_enhancer` | Polishes eligible human subjects and restores facial clarity | FaceTracker, FaceEnhance, CodeFormer / GFPGAN, EyeEnhance | Applies ONLY when human subjects exist. Preserves identity & skin authenticity. |
+
+### Pre-Export Enhancement Execution Order
+```text
+compose (initial deliverable render)
+  → video_quality_enhancer (denoise, sharpen, upscale, color balance)
+  → ai_human_enhancer (face tracking, skin polish, eye detail — if humans present)
+  → enhancement_report artifact generation
+  → publish (final packaging)
+```
+
+### Video Quality Enhancer Profiles
+- `gentle`: Subtle denoise + light sharpen.
+- `balanced`: Default standard cleanup (denoise + unsharp + neutral contrast).
+- `cinematic`: Contrast S-curve, shadow lift, and crisp feature separation.
+- `maximum`: Upscaling (2x/4x) + deep denoise + unsharp.
+- `auto`: AI-decided profile based on resolution and probe metrics.
+- `disabled`: Bypasses processing cleanly.
+
+### AI Human Enhancer Profiles
+- `natural`: Gentle skin smoothing preserving pores and facial features (default).
+- `cinematic`: Warm skin balance and facial definition.
+- `face_restoration`: Neural face recovery for low-resolution face regions.
+- `eye_detail`: Under-eye brightening and iris sharpening.
+- `disabled` / `not_applicable`: Cleanly bypassed when disabled or when no humans are present.
 
 ## Enhancement Tools
 

@@ -31,6 +31,7 @@ required_skills:
   - pipelines/avatar-spokesperson/asset-director
   - pipelines/avatar-spokesperson/edit-director
   - pipelines/avatar-spokesperson/compose-director
+  - pipelines/avatar-spokesperson/enhancement-director
   - pipelines/avatar-spokesperson/publish-director
   - meta/reviewer
   - meta/checkpoint-protocol
@@ -186,12 +187,39 @@ stages:
       - Schema-valid render_report artifact
       - Output file exists and passes ffprobe validation
 
+  - name: enhancement
+    skill: pipelines/avatar-spokesperson/enhancement-director
+    required_artifacts_in:
+      - render_report
+    optional_artifacts_in:
+      - final_review
+    produces:
+      - enhancement_report
+    optional_tools:
+      - video_quality_enhancer
+      - ai_human_enhancer
+      - face_enhance
+      - eye_enhance
+    tools_available:
+      - video_quality_enhancer
+      - ai_human_enhancer
+      - face_enhance
+      - eye_enhance
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus:
+      - Presenter facial authenticity and edge blending
+      - Decodability and audio sync
+    success_criteria:
+      - Schema-valid enhancement_report artifact
+
   - name: publish
     skill: pipelines/avatar-spokesperson/publish-director
     required_artifacts_in:
       - render_report
-      - final_review
     optional_artifacts_in:
+      - enhancement_report
+      - final_review
       - brief
       - script
     produces:
