@@ -181,9 +181,17 @@ class VeoVideo(BaseTool):
         """Retrieve the FAL API key from environment variables."""
         return os.environ.get("FAL_KEY") or os.environ.get("FAL_AI_API_KEY")
 
+    def _has_google_api_key(self) -> bool:
+        """Check whether direct Gemini or Google API key is set."""
+        return bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
+
     def get_status(self) -> ToolStatus:
         """Determine whether the tool is available based on configured credentials."""
-        if self._get_google_credentials_status() or self._get_fal_api_key():
+        if (
+            self._get_google_credentials_status()
+            or self._has_google_api_key()
+            or self._get_fal_api_key()
+        ):
             return ToolStatus.AVAILABLE
         return ToolStatus.UNAVAILABLE
 
@@ -267,7 +275,7 @@ class VeoVideo(BaseTool):
         """Execute the video generation tool using the selected backend."""
         backend = inputs.get("backend", "auto")
         if backend == "auto":
-            if self._get_google_credentials_status():
+            if self._get_google_credentials_status() or self._has_google_api_key():
                 backend = "google"
             elif self._get_fal_api_key():
                 backend = "fal"
@@ -314,25 +322,17 @@ class VeoVideo(BaseTool):
                 client._api_client, "vertexai", False
             )
 
-        if not is_vertex:
-            return ToolResult(
-                success=False,
-                error="Veo on the Gemini API retired on 2026-10-22. Select gemini_omni_video explicitly, or use Vertex AI / fal Veo.",
-            )
-
         prompt = inputs["prompt"]
         operation = inputs.get("operation", "text_to_video")
         model_variant = inputs.get("model_variant", "veo3.1")
         auto_fix = inputs.get("auto_fix", True)
 
-        # Map to the official preview model unless a custom model name is provided
+        # Map to appropriate Veo model name
         if model_variant in {"veo3", "veo3/fast", "veo3.1", "veo3.1/fast"}:
-            if is_vertex:
-                model_name = (
-                    "veo-3.1-fast-generate-001"
-                    if "fast" in model_variant
-                    else "veo-3.1-generate-001"
-                )
+            if "fast" in model_variant:
+                model_name = "veo-3.1-fast-generate-001"
+            elif is_vertex:
+                model_name = "veo-3.1-generate-001"
             else:
                 model_name = "veo-3.1-generate-preview"
         else:
