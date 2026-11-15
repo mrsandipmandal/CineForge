@@ -410,17 +410,33 @@ class VideoCompose(BaseTool):
             return False
 
     def _mux_external_audio(self, video_path: Path, audio_path: str | Path) -> ToolResult:
-        """Atomically replace a rendered video's audio with the approved mix."""
+        """Atomically replace a rendered video's audio with the approved mix.
 
+        Uses the probed video duration as the authoritative trim point instead of
+        -shortest, which truncates to whichever stream ends first and silently
+        drops the final seconds of either video or audio when they differ.
+        """
         audio = Path(audio_path).resolve()
         if not audio.is_file():
             return ToolResult(success=False, error=f"Mixed audio not found: {audio}")
+
+        # Probe actual video duration
+        video_duration: float | None = None
+        try:
+            probe_out = subprocess.check_output(
+                ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                 "-of", "csv=p=0", str(video_path)],
+                stderr=subprocess.STDOUT, text=True,
+            )
+            video_duration = float(probe_out.strip().split("\n")[0])
+        except Exception:
+            pass
 
         temp_output = video_path.with_name(
             f".{video_path.stem}.audio-mux-{time.time_ns()}{video_path.suffix}"
         )
         try:
-            self.run_command([
+            cmd = [
                 "ffmpeg", "-y",
                 "-i", str(video_path),
                 "-i", str(audio),
@@ -429,11 +445,13 @@ class VideoCompose(BaseTool):
                 "-c:v", "copy",
                 "-c:a", "aac",
                 "-b:a", "192k",
-                "-af", "apad",
-                "-shortest",
                 "-movflags", "+faststart",
-                str(temp_output),
-            ])
+            ]
+            if video_duration is not None:
+                cmd.extend(["-t", str(video_duration)])
+            cmd.append(str(temp_output))
+
+            self.run_command(cmd)
             if not temp_output.is_file():
                 return ToolResult(
                     success=False,
@@ -448,7 +466,8 @@ class VideoCompose(BaseTool):
 
         return ToolResult(
             success=True,
-            data={"output": str(video_path), "has_mixed_audio": True},
+            data={"output": str(video_path), "has_mixed_audio": True,
+              "probed_video_duration": video_duration},
             artifacts=[str(video_path)],
         )
 
