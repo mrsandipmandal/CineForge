@@ -116,6 +116,20 @@ class VideoQualityEnhancer(BaseTool):
                 "default": 1,
                 "description": "Upscale factor (1 = no upscale)",
             },
+            "content_type": {
+                "type": "string",
+                "enum": [
+                    "talking_head", "animation", "data_viz", "diagram", "explainer",
+                    "text_card", "screen_recording", "motion_graphics", "cinematic", "unknown",
+                ],
+                "default": "unknown",
+                "description": (
+                    "Content type — drives auto profile selection. STRONGLY recommended "
+                    "when profile='auto'. Without it, the selector falls back to "
+                    "resolution-only heuristics which apply cinematic curves to data "
+                    "visualizations, degrading flat-color renders."
+                ),
+            },
 
             "custom_vf": {
                 "type": "string",
@@ -344,44 +358,44 @@ class VideoQualityEnhancer(BaseTool):
 
         ct = (content_type or "unknown").lower()
 
-        # Content type is authoritative � bypass resolution heuristic
+        # Content type is authoritative ? bypass resolution heuristic
         if ct in ("animation", "data_viz", "diagram", "explainer", "text_card",
                   "screen_recording", "motion_graphics"):
             return (
                 "gentle",
-                f"Content type {ct!r} � gentle profile preserves flat colors and text crispness. "
+                f"Content type {ct!r} ? gentle profile preserves flat colors and text crispness. "
                 "Cinematic curves would muddy flat backgrounds and add edge ringing to text."
             )
 
         if ct == "talking_head":
             return (
                 "balanced",
-                "Talking-head content � balanced denoise + mild sharpening. "
+                "Talking-head content ? balanced denoise + mild sharpening. "
                 "No S-curve contrast (would flatten skin texture)."
             )
 
         if ct == "cinematic":
             return (
                 "cinematic",
-                "Cinematic live-action � cinematic curve enhancement appropriate."
+                "Cinematic live-action ? cinematic curve enhancement appropriate."
             )
 
         # Fallback: resolution heuristic for unknown content
         if w < 1280 or h < 720:
             return (
                 "maximum",
-                f"Sub-HD ({w}x{h}) unknown content � maximum enhancement with upscale."
+                f"Sub-HD ({w}x{h}) unknown content ? maximum enhancement with upscale."
             )
         elif w >= 1920:
             return (
                 "balanced",
-                f"Full HD ({w}x{h}) unknown content � safe balanced profile "
+                f"Full HD ({w}x{h}) unknown content ? safe balanced profile "
                 "(not cinematic, to avoid degrading data/text content)."
             )
         else:
             return (
                 "gentle",
-                f"Standard HD ({w}x{h}) unknown content � gentle enhancement."
+                f"Standard HD ({w}x{h}) unknown content ? gentle enhancement."
             )
 
     def _probe_media(self, path: Path) -> dict[str, Any]:
