@@ -1,43 +1,42 @@
 """Shot prompt builder — converts structured shot language into provider-optimized prompts.
-
 Uses a 5-layer framework based on professional cinematography prompting research:
   Layer 1: Camera (lens, depth of field)
   Layer 2: Movement (shot size, camera movement)
   Layer 3: Subject (description + texture keywords)
   Layer 4: Lighting (lighting key, color temperature)
   Layer 5: Style (adapted from playbook, not verbatim)
-
 This replaces the old approach of prepending a fixed playbook image_prompt_prefix
 to every scene description, which made all scenes look the same.
 """
-
 from __future__ import annotations
-
 from typing import Any
 
-
-# Default style contexts per playbook � used as fallback when style_context is not passed.
-# Prevents visually incoherent output from missing style layer.
+# Default style contexts per playbook — used as fallback when style_context is not passed.
+# Prevents visually incoherent output from missing style layer in generated asset prompts.
 _DEFAULT_STYLE_CONTEXTS: dict[str, dict] = {
     "clean-professional": {
-        "mood": "clean, professional",
-        "visual_language": {"aesthetic": "minimal, bright, corporate, airy"},
+        "mood": "clean, professional, polished",
+        "visual_language": {"aesthetic": "minimal, bright, corporate, airy, well-lit"},
     },
     "flat-motion-graphics": {
         "mood": "dynamic, bold, vibrant",
-        "visual_language": {"aesthetic": "bold colors, dark background, motion graphics"},
+        "visual_language": {"aesthetic": "bold colors, dark background, motion graphics, high contrast"},
     },
     "cinematic": {
         "mood": "dramatic, epic, atmospheric",
-        "visual_language": {"aesthetic": "cinematic, film grain, anamorphic, moody"},
+        "visual_language": {"aesthetic": "cinematic, film grain, anamorphic, moody, wide aspect"},
     },
     "minimalist-diagram": {
-        "mood": "clean, precise",
-        "visual_language": {"aesthetic": "minimal, diagram, clean lines, whitespace"},
+        "mood": "clean, precise, informational",
+        "visual_language": {"aesthetic": "minimal, diagram-style, clean lines, whitespace, monochrome accent"},
     },
     "anime-ghibli": {
         "mood": "whimsical, warm, painterly",
-        "visual_language": {"aesthetic": "anime, hand-painted, soft light, Ghibli"},
+        "visual_language": {"aesthetic": "anime, hand-painted, soft light, Ghibli, natural tones"},
+    },
+    "documentary-montage": {
+        "mood": "authentic, grounded, observational",
+        "visual_language": {"aesthetic": "documentary, handheld, natural light, real-world, candid"},
     },
 }
 
@@ -54,7 +53,6 @@ _SHOT_SIZE_PHRASES = {
     "insert": "insert shot of specific detail",
     "establishing": "establishing shot setting the location",
 }
-
 _MOVEMENT_PHRASES = {
     "static": "locked-off static camera",
     "pan_left": "smooth pan to the left",
@@ -75,7 +73,6 @@ _MOVEMENT_PHRASES = {
     "zoom_out": "slow zoom out",
     "rack_focus": "rack focus shift between foreground and background",
 }
-
 _LIGHTING_PHRASES = {
     "high_key": "bright high-key lighting, minimal shadows",
     "low_key": "dramatic low-key lighting with deep shadows",
@@ -89,13 +86,11 @@ _LIGHTING_PHRASES = {
     "volumetric": "volumetric light with visible rays",
     "overcast_soft": "soft overcast diffused light",
 }
-
 _DOF_PHRASES = {
     "shallow": "shallow depth of field with bokeh",
     "medium": "medium depth of field",
     "deep": "deep focus with everything sharp",
 }
-
 _COLOR_TEMP_PHRASES = {
     "cool": "cool blue-toned color palette",
     "neutral": "neutral balanced colors",
@@ -116,21 +111,23 @@ def build_shot_prompt(
                texture_keywords, etc.)
         style_context: Optional playbook-derived style info with keys like
                        'generation_prefix', 'visual_language', 'mood'.
+        playbook_name: Optional playbook name used as fallback when
+                       style_context is not provided.
 
     Returns:
         A natural-language prompt optimized for image/video generation.
     """
-    # Resolve style context: explicit > playbook default > warn + empty
-    resolved_style = style_context
-    if resolved_style is None:
+    # Resolve style context: explicit > playbook default > warn
+    _resolved_style = style_context
+    if _resolved_style is None:
         if playbook_name:
-            resolved_style = _DEFAULT_STYLE_CONTEXTS.get(playbook_name)
-        if resolved_style is None:
+            _resolved_style = _DEFAULT_STYLE_CONTEXTS.get(playbook_name)
+        if _resolved_style is None:
             import warnings
             warnings.warn(
                 "build_shot_prompt called without style_context or playbook_name. "
                 "Generated images will lack consistent aesthetic direction. "
-                "Pass style_context from the active playbook to build_shot_prompt.",
+                "Pass style_context from the active playbook to ensure visual coherence.",
                 UserWarning,
                 stacklevel=2,
             )
@@ -173,10 +170,10 @@ def build_shot_prompt(
     if lighting_parts:
         layers.append(", ".join(filter(None, lighting_parts)))
 
-    # Layer 5: Style -- adapted from playbook (NOT verbatim prefix)
-    if resolved_style:
-        mood = resolved_style.get("mood", "")
-        visual_lang = resolved_style.get("visual_language", {})
+    # Layer 5: Style — adapted from playbook (NOT verbatim prefix)
+    if _resolved_style:
+        mood = _resolved_style.get("mood", "")
+        visual_lang = _resolved_style.get("visual_language", {})
         style_hint = visual_lang.get("aesthetic", "") or mood
         if style_hint:
             layers.append(f"Style: {style_hint}")
@@ -195,7 +192,6 @@ def build_batch_prompts(
     """
     results = []
     for scene in scenes:
-        # Skip non-visual scene types
         scene_type = scene.get("type", "")
         if scene_type in ("transition",):
             continue
