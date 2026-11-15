@@ -248,6 +248,8 @@ interface Cut {
     scale?: number;
     position?: string | { x: number; y: number };
   };
+  // Preserve original video audio track (default: muted)
+  preserveAudio?: boolean;
   // Anime scene props (type: "anime_scene")
   images?: string[];
   particles?: ParticleType;
@@ -292,8 +294,20 @@ interface AudioLayer {
   volume?: number;
 }
 
+export interface NarrationSegment {
+  src: string;
+  start_seconds: number;
+  duration_seconds: number;
+  volume?: number;
+  audio_offset_seconds?: number;
+}
+
 interface AudioConfig {
-  narration?: AudioLayer;
+  narration?: {
+    src?: string;
+    volume?: number;
+    segments?: NarrationSegment[];
+  };
   music?: AudioLayer & {
     fadeInSeconds?: number;
     fadeOutSeconds?: number;
@@ -428,6 +442,7 @@ const VideoScene: React.FC<{
   transitionDuration?: number;
   sceneDurationSeconds: number;
   backgroundColor?: string;
+  preserveAudio?: boolean;
 }> = ({
   src,
   startFrom = 0,
@@ -436,6 +451,7 @@ const VideoScene: React.FC<{
   transitionDuration,
   sceneDurationSeconds,
   backgroundColor = "#0F172A",
+  preserveAudio = false,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -472,7 +488,7 @@ const VideoScene: React.FC<{
           objectFit: "cover",
           opacity: fadeIn * fadeOut,
         }}
-        muted
+        muted={!preserveAudio}
       />
       <Vignette />
     </AbsoluteFill>
@@ -764,6 +780,7 @@ const SceneRenderer: React.FC<{ cut: Cut; theme: ThemeConfig }> = ({ cut, theme 
         transitionDuration={cut.transition_duration}
         sceneDurationSeconds={cut.out_seconds - cut.in_seconds}
         backgroundColor={cut.backgroundColor}
+        preserveAudio={cut.preserveAudio}
       />,
     );
   }
@@ -934,14 +951,16 @@ export const Explainer: React.FC<ExplainerProps> = (props) => {
               extrapolateLeft: "clamp",
               extrapolateRight: "clamp",
             });
-            // Fade out
+            // Fade-out must not start before fade-in completes
+            const fadeOutStartFrame = Math.max(fadeInDur, totalFrames - fadeOutDur);
             const fadeOut = interpolate(
               f,
-              [totalFrames - fadeOutDur, totalFrames],
+              [fadeOutStartFrame, Math.max(fadeOutStartFrame + 1, totalFrames)],
               [baseVol, 0],
               { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
             );
-            return Math.min(fadeIn, fadeOut);
+            // Use fadeIn until it peaks, then allow fadeOut to take over
+            return f < fadeInDur ? fadeIn : Math.min(fadeIn, fadeOut);
           }}
         />
       )}
