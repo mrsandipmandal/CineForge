@@ -252,9 +252,9 @@ class AudioMixer(BaseTool):
         and add the timeline delay last so both fades follow the track itself.
         """
         filters = []
-        # Always normalize to 48kHz before any mixing — prevents silent quality
-        # degradation when Piper (22kHz), ElevenLabs (44.1kHz), and FFmpeg
-        # silence (48kHz) are amixed without consistent input rates.
+        # Always resample to 48kHz first â€” prevents quality degradation when mixing
+        # Piper (22kHz), ElevenLabs (44.1kHz), and FFmpeg silence (48kHz) without
+        # a consistent sample rate. Use swr resampler with high precision.
         filters.append("aresample=48000:resampler=swr:precision=28")
         volume = track.get("volume", 1.0)
         delay_ms = int(track.get("start_seconds", 0) * 1000)
