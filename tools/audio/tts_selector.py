@@ -343,6 +343,59 @@ class TTSSelector(BaseTool):
             elif tool.name == "google_tts" and "voice_id" not in adapted:
                 adapted["voice_id"] = "hi-IN-Neural2-A"
 
+        if tool.name == "elevenlabs_tts":
+            lang = str(inputs.get("language_code") or "").lower()
+            # Strip region suffix: "bn-BD" -> "bn", "hi-IN" -> "hi"
+            lang_code = lang[:2] if lang else ""
+
+            # Language-aware voice selection — only set if caller did not specify
+            ELEVENLABS_MULTILINGUAL_VOICES = {
+                "bn": "pNInz6obpgDQGcFmaJgB",  # Adam — multilingual capable
+                "hi": "pNInz6obpgDQGcFmaJgB",
+                "zh": "yoZ06aMxZJJ28mfd3POQ",  # Sam
+                "ar": "pNInz6obpgDQGcFmaJgB",
+                "es": "ErXwobaYiN019PkySvjV",  # Antoni
+                "fr": "MF3mGyEYCl7XYWbV9V6O",  # Elli
+                "de": "pNInz6obpgDQGcFmaJgB",
+                "pt": "ErXwobaYiN019PkySvjV",
+                "ja": "pNInz6obpgDQGcFmaJgB",
+                "ko": "pNInz6obpgDQGcFmaJgB",
+            }
+            if lang_code and lang_code not in ("en", "") and not adapted.get("voice_id"):
+                adapted["voice_id"] = ELEVENLABS_MULTILINGUAL_VOICES.get(lang_code)
+                if adapted["voice_id"] is None:
+                    adapted.pop("voice_id", None)  # remove None to use default
+
+            # Force multilingual model for non-English
+            if lang_code and lang_code not in ("en", "") and not adapted.get("model_id"):
+                adapted["model_id"] = "eleven_multilingual_v2"
+
+            # Auto-downgrade model if text exceeds its character limit
+            text = inputs.get("text", "")
+            model = adapted.get("model_id", "eleven_multilingual_v2")
+            MODEL_CHAR_LIMITS = {
+                "eleven_v4": 2000,
+                "eleven_v4_turbo": 2000,
+                "eleven_v3": 5000,
+            }
+            limit = MODEL_CHAR_LIMITS.get(model, 40000)
+            if len(text) > limit:
+                adapted["model_id"] = "eleven_multilingual_v2"
+
+            # voice_performance -> ElevenLabs expressiveness parameters
+            vp = inputs.get("voice_performance") or {}
+            if isinstance(vp, dict):
+                pace_map = {"very_slow": 0.75, "slow": 0.85, "normal": 1.0, "fast": 1.1, "very_fast": 1.2}
+                energy_map = {"calm": 0.0, "moderate": 0.2, "energetic": 0.5, "intense": 0.8}
+                cons_map = {"very_consistent": 0.9, "consistent": 0.7, "natural": 0.5, "expressive": 0.3}
+
+                if vp.get("pace") and "speed" not in adapted:
+                    adapted["speed"] = pace_map.get(str(vp["pace"]).lower(), 1.0)
+                if vp.get("energy") and "style" not in adapted:
+                    adapted["style"] = energy_map.get(str(vp["energy"]).lower(), 0.0)
+                if vp.get("consistency") and "stability" not in adapted:
+                    adapted["stability"] = cons_map.get(str(vp["consistency"]).lower(), 0.5)
+
         if tool.name not in {"azure_tts", "mai_tts"}:
             return adapted
 
