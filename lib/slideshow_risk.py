@@ -45,6 +45,7 @@ def score_slideshow_risk(
     Returns:
         {
             "average": float,
+            "risk_score": float,
             "verdict": str,
             "dimensions": {dimension_name: {"score": float, "reason": str}},
             "render_runtime": str | None,
@@ -53,6 +54,7 @@ def score_slideshow_risk(
     if not scenes:
         return {
             "average": 5.0,
+            "risk_score": 5.0,
             "verdict": "fail",
             "dimensions": {},
             "render_runtime": render_runtime,
@@ -69,18 +71,23 @@ def score_slideshow_risk(
 
     scores = [d["score"] for d in dimensions.values()]
     average = sum(scores) / len(scores)
+    max_score = max(scores)
+    # If any single dimension fully fails, penalize the aggregate so a single
+    # catastrophic failure can never be masked by good scores elsewhere.
+    risk_score = max(average, max_score * 0.5)
 
-    if average < 2.0:
+    if risk_score < 2.0:
         verdict = "strong"
-    elif average < 3.0:
+    elif risk_score < 3.0:
         verdict = "acceptable"
-    elif average < 4.0:
+    elif risk_score < 4.0:
         verdict = "revise"
     else:
         verdict = "fail"
 
     return {
         "average": round(average, 2),
+        "risk_score": round(risk_score, 2),
         "verdict": verdict,
         "dimensions": dimensions,
         "render_runtime": render_runtime,
@@ -92,17 +99,23 @@ def _score_repetition(scenes: list[dict]) -> dict[str, Any]:
     if len(scenes) < 3:
         return {"score": 0.0, "reason": "Too few scenes to assess repetition"}
 
-    # Check for repeated scene types
     from collections import Counter
     types = Counter(s.get("type", "unknown") for s in scenes)
     most_common_type, most_common_count = types.most_common(1)[0]
     type_ratio = most_common_count / len(scenes)
 
-    # Check for repeated descriptions (crude similarity)
-    descriptions = [s.get("description", "").lower()[:50] for s in scenes]
-    unique_desc_ratio = len(set(descriptions)) / len(descriptions)
+    # Token-overlap based near-duplicate detection (replaces crude str[:50] hashing)
+    from lib.scoring import _tokenize_text, _keyword_overlap
+    desc_token_sets = [set(_tokenize_text(s.get("description", ""))) for s in scenes]
+    near_dupe_pairs = sum(
+        1 for i in range(len(desc_token_sets))
+        for j in range(i + 1, len(desc_token_sets))
+        if desc_token_sets[i] and desc_token_sets[j]
+        and _keyword_overlap(desc_token_sets[i], desc_token_sets[j]) > 0.7
+    )
+    unique_desc_ratio = 1.0 - (near_dupe_pairs / max(1, len(scenes) * (len(scenes) - 1) / 2))
 
-    # Check shot size repetition
+    # Shot size repetition
     sizes = [s.get("shot_language", {}).get("shot_size", "none") for s in scenes]
     size_ratio = Counter(sizes).most_common(1)[0][1] / len(scenes)
 
@@ -114,7 +127,7 @@ def _score_repetition(scenes: list[dict]) -> dict[str, Any]:
         reasons.append(f"Scene type '{most_common_type}' dominates at {type_ratio:.0%}")
     if unique_desc_ratio < 0.6:
         score += 1.5
-        reasons.append(f"Only {unique_desc_ratio:.0%} unique descriptions")
+        reasons.append(f"Only {unique_desc_ratio:.0%} unique descriptions (token overlap check)")
     if size_ratio > 0.6:
         score += 1.5
         reasons.append(f"Same shot size in {size_ratio:.0%} of scenes")
