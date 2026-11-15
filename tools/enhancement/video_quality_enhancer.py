@@ -1,4 +1,4 @@
-"""Dedicated Video Quality Enhancer for CineForge.
+﻿"""Dedicated Video Quality Enhancer for CineForge.
 
 Runs after the initial composed render and before final export/publish.
 Reuses existing FFmpeg filters and upscaling tools while providing
@@ -116,12 +116,7 @@ class VideoQualityEnhancer(BaseTool):
                 "default": 1,
                 "description": "Upscale factor (1 = no upscale)",
             },
-            "crf": {
-                "type": "integer",
-                "minimum": 14,
-                "maximum": 28,
-                "default": 18,
-            },
+
             "custom_vf": {
                 "type": "string",
                 "description": "Custom FFmpeg filter chain (used when profile='custom')",
@@ -194,7 +189,8 @@ class VideoQualityEnhancer(BaseTool):
 
         # Handle Auto profile / AI decision
         if profile == "auto":
-            profile, decision_reason = self._ai_decide_profile(input_probe)
+            content_type = inputs.get("content_type", "unknown")
+            profile, decision_reason = self._ai_decide_profile(input_probe, content_type)
             selection_mode = "ai_decided"
 
         # Resolve filter chain
@@ -331,17 +327,62 @@ class VideoQualityEnhancer(BaseTool):
             duration_seconds=elapsed,
         )
 
-    def _ai_decide_profile(self, probe: dict[str, Any]) -> tuple[str, str]:
-        """Make a reasoned AI decision on enhancement profile based on source properties."""
+    def _ai_decide_profile(
+        self,
+        probe: dict[str, Any],
+        content_type: str = "unknown",
+    ) -> tuple[str, str]:
+        """Select enhancement profile based on content type, with resolution as fallback.
+
+        Resolution-only selection was broken: 1920x1080 Remotion data visualizations
+        and live-action footage both got "cinematic", but cinematic curves (shadow lift
+        + S-curve contrast) actively degrade flat-color renders by muddying dark
+        backgrounds and adding ringing artifacts around text edges.
+        """
         w = probe.get("width", 1920)
         h = probe.get("height", 1080)
 
+        ct = (content_type or "unknown").lower()
+
+        # Content type is authoritative � bypass resolution heuristic
+        if ct in ("animation", "data_viz", "diagram", "explainer", "text_card",
+                  "screen_recording", "motion_graphics"):
+            return (
+                "gentle",
+                f"Content type {ct!r} � gentle profile preserves flat colors and text crispness. "
+                "Cinematic curves would muddy flat backgrounds and add edge ringing to text."
+            )
+
+        if ct == "talking_head":
+            return (
+                "balanced",
+                "Talking-head content � balanced denoise + mild sharpening. "
+                "No S-curve contrast (would flatten skin texture)."
+            )
+
+        if ct == "cinematic":
+            return (
+                "cinematic",
+                "Cinematic live-action � cinematic curve enhancement appropriate."
+            )
+
+        # Fallback: resolution heuristic for unknown content
         if w < 1280 or h < 720:
-            return "maximum", f"Input resolution ({w}x{h}) is below HD; maximum profile with upscaling selected to reach delivery target."
+            return (
+                "maximum",
+                f"Sub-HD ({w}x{h}) unknown content � maximum enhancement with upscale."
+            )
         elif w >= 1920:
-            return "cinematic", f"Full HD ({w}x{h}) source detected; applying cinematic curve and crisp detail enhancement."
+            return (
+                "balanced",
+                f"Full HD ({w}x{h}) unknown content � safe balanced profile "
+                "(not cinematic, to avoid degrading data/text content)."
+            )
         else:
-            return "balanced", f"Standard HD ({w}x{h}) source; applying balanced denoise and sharpening."
+            return (
+                "gentle",
+                f"Standard HD ({w}x{h}) unknown content � gentle enhancement."
+            )
 
     def _probe_media(self, path: Path) -> dict[str, Any]:
         """Probe video with ffprobe."""
