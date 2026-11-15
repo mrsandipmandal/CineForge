@@ -16,6 +16,31 @@ from __future__ import annotations
 from typing import Any
 
 
+# Default style contexts per playbook — used as fallback when style_context is not passed.
+# Prevents visually incoherent output from missing style layer.
+_DEFAULT_STYLE_CONTEXTS: dict[str, dict] = {
+    "clean-professional": {
+        "mood": "clean, professional",
+        "visual_language": {"aesthetic": "minimal, bright, corporate, airy"},
+    },
+    "flat-motion-graphics": {
+        "mood": "dynamic, bold, vibrant",
+        "visual_language": {"aesthetic": "bold colors, dark background, motion graphics"},
+    },
+    "cinematic": {
+        "mood": "dramatic, epic, atmospheric",
+        "visual_language": {"aesthetic": "cinematic, film grain, anamorphic, moody"},
+    },
+    "minimalist-diagram": {
+        "mood": "clean, precise",
+        "visual_language": {"aesthetic": "minimal, diagram, clean lines, whitespace"},
+    },
+    "anime-ghibli": {
+        "mood": "whimsical, warm, painterly",
+        "visual_language": {"aesthetic": "anime, hand-painted, soft light, Ghibli"},
+    },
+}
+
 # Mapping from shot_language enums to natural language for prompting
 _SHOT_SIZE_PHRASES = {
     "extreme_wide": "extreme wide shot showing vast environment",
@@ -82,6 +107,7 @@ _COLOR_TEMP_PHRASES = {
 def build_shot_prompt(
     scene: dict[str, Any],
     style_context: dict[str, Any] | None = None,
+    playbook_name: str | None = None,
 ) -> str:
     """Convert a scene with structured shot language into a generation prompt.
 
@@ -94,6 +120,21 @@ def build_shot_prompt(
     Returns:
         A natural-language prompt optimized for image/video generation.
     """
+    # Resolve style context: explicit > playbook default > warn + empty
+    resolved_style = style_context
+    if resolved_style is None:
+        if playbook_name:
+            resolved_style = _DEFAULT_STYLE_CONTEXTS.get(playbook_name)
+        if resolved_style is None:
+            import warnings
+            warnings.warn(
+                "build_shot_prompt called without style_context or playbook_name. "
+                "Generated images will lack consistent aesthetic direction. "
+                "Pass style_context from the active playbook to build_shot_prompt.",
+                UserWarning,
+                stacklevel=2,
+            )
+
     sl = scene.get("shot_language", {})
     layers: list[str] = []
 
@@ -132,10 +173,10 @@ def build_shot_prompt(
     if lighting_parts:
         layers.append(", ".join(filter(None, lighting_parts)))
 
-    # Layer 5: Style â€” adapted from playbook (NOT verbatim prefix)
-    if style_context:
-        mood = style_context.get("mood", "")
-        visual_lang = style_context.get("visual_language", {})
+    # Layer 5: Style -- adapted from playbook (NOT verbatim prefix)
+    if resolved_style:
+        mood = resolved_style.get("mood", "")
+        visual_lang = resolved_style.get("visual_language", {})
         style_hint = visual_lang.get("aesthetic", "") or mood
         if style_hint:
             layers.append(f"Style: {style_hint}")
@@ -146,6 +187,7 @@ def build_shot_prompt(
 def build_batch_prompts(
     scenes: list[dict[str, Any]],
     style_context: dict[str, Any] | None = None,
+    playbook_name: str | None = None,
 ) -> list[dict[str, str]]:
     """Build prompts for all visual scenes in a scene plan.
 
@@ -157,7 +199,7 @@ def build_batch_prompts(
         scene_type = scene.get("type", "")
         if scene_type in ("transition",):
             continue
-        prompt = build_shot_prompt(scene, style_context)
+        prompt = build_shot_prompt(scene, style_context, playbook_name=playbook_name)
         results.append({
             "scene_id": scene.get("id", "unknown"),
             "prompt": prompt,
