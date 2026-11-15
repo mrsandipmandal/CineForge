@@ -104,7 +104,8 @@ class ColorGrade(BaseTool):
             "profile": {
                 "type": "string",
                 "enum": list(PROFILES.keys()),
-                "default": "cinematic_warm",
+                "default": "neutral",   # was "cinematic_warm" -- caused orange shift on all content
+                "description": "Color grading profile. Defaults to neutral (safe for all content). Use cinematic_warm/cool for live-action footage explicitly.",
             },
             "lut_path": {
                 "type": "string",
