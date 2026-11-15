@@ -412,15 +412,17 @@ class VideoCompose(BaseTool):
     def _mux_external_audio(self, video_path: Path, audio_path: str | Path) -> ToolResult:
         """Atomically replace a rendered video's audio with the approved mix.
 
-        Uses the probed video duration as the authoritative trim point instead of
-        -shortest, which truncates to whichever stream ends first and silently
-        drops the final seconds of either video or audio when they differ.
+        Uses the probed video duration as the authoritative trim point.
+        The shortest-stream flag truncates whichever stream ends first and
+        silently drops the final seconds of either video or audio when they
+        differ by >0; probing and passing -t avoids that.
         """
         audio = Path(audio_path).resolve()
         if not audio.is_file():
             return ToolResult(success=False, error=f"Mixed audio not found: {audio}")
 
-        # Probe actual video duration
+        # Probe actual video duration — use this as authoritative -t value
+        # so neither stream truncates the other.
         video_duration: float | None = None
         try:
             probe_out = subprocess.check_output(
@@ -430,7 +432,7 @@ class VideoCompose(BaseTool):
             )
             video_duration = float(probe_out.strip().split("\n")[0])
         except Exception:
-            pass
+            pass  # fall through — will mux without -t
 
         temp_output = video_path.with_name(
             f".{video_path.stem}.audio-mux-{time.time_ns()}{video_path.suffix}"
@@ -466,8 +468,11 @@ class VideoCompose(BaseTool):
 
         return ToolResult(
             success=True,
-            data={"output": str(video_path), "has_mixed_audio": True,
-              "probed_video_duration": video_duration},
+            data={
+                "output": str(video_path),
+                "has_mixed_audio": True,
+                "probed_video_duration": video_duration,
+            },
             artifacts=[str(video_path)],
         )
 

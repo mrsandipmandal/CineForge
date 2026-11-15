@@ -1,4 +1,4 @@
-"""Face enhancement tool wrapping FFmpeg filters.
+﻿"""Face enhancement tool wrapping FFmpeg filters.
 
 Applies skin smoothing, sharpening, and lighting correction presets
 to talking-head footage. All presets are FFmpeg filter chains — no GPU
@@ -62,6 +62,20 @@ PRESETS = {
             "smartblur=lr=1.0:ls=-0.5:lt=-3.0:cr=0.5:cs=-0.5:ct=-3.0,"
             "unsharp=5:5:0.6:5:5:0.0,"
             "colorbalance=rs=0.06:gs=0.01:bs=-0.04:rm=0.04:gm=0.01:bm=-0.03"
+        ),
+    },
+    "talking_head_final": {
+        "description": (
+            "Single-pass combined preset: gentle denoise + mild skin smoothing + "
+            "one unsharp pass + warm skin tones. Use this INSTEAD of running "
+            "talking_head_standard + video_quality_enhancer balanced separately — "
+            "chaining two unsharp passes produces smeared+ringed skin texture."
+        ),
+        "vf": (
+            "hqdn3d=2:1.5:3:2.5,"
+            "smartblur=lr=0.5:ls=-0.3:lt=-3.0:cr=0.3:cs=-0.3:ct=-3.0,"
+            "unsharp=3:3:0.5:3:3:0.0,"
+            "colorbalance=rs=0.03:gs=0.0:bs=-0.02:rm=0.03:gm=0.0:bm=-0.01"
         ),
     },
 }
