@@ -175,3 +175,45 @@ def ffmpeg_output_args(profile: MediaProfile) -> list[str]:
         "-vf", f"scale={profile.width}:{profile.height}",
     ]
     return args
+
+
+# ---- Platform LUFS targets ----
+# Reference: YouTube -14 LUFS, Broadcast -23 LUFS, Podcasts/general -16 LUFS
+
+PLATFORM_LUFS: dict[str, float] = {
+    "youtube_landscape": -14.0,
+    "youtube_4k": -14.0,
+    "youtube_shorts": -14.0,
+    "instagram_reels": -14.0,
+    "instagram_feed": -14.0,
+    "instagram_portrait": -14.0,
+    "tiktok": -14.0,
+    "linkedin": -16.0,
+    "cinematic": -23.0,
+    "generic_hd": -16.0,
+}
+
+
+def get_lufs_target(profile_name: str, default: float = -16.0) -> float:
+    """Return the recommended integrated loudness target (LUFS) for a platform profile.
+
+    Args:
+        profile_name: Name of a MediaProfile (e.g. 'youtube_landscape').
+        default: Fallback LUFS if profile not found (default -16.0, Apple Podcasts).
+
+    Returns:
+        Negative float representing the LUFS target.
+    """
+    return PLATFORM_LUFS.get(profile_name, default)
+
+
+def get_crf_for_profile(profile_name: str) -> int:
+    """Return the CRF value for a named media profile.
+
+    Convenience wrapper so callers don't need to instantiate a MediaProfile
+    just to get the CRF.
+    """
+    try:
+        return get_profile(profile_name).crf
+    except ValueError:
+        return 23  # global default fallback
