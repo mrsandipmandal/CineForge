@@ -83,9 +83,12 @@ def test_full_mix_matches_independent_millisecond_ffmpeg_reference(tmp_path):
     output, speech, music = _execute(tmp_path, "full_mix", {"attack_ms": 200, "release_ms": 500})
     reference = tmp_path / "reference.wav"
     # Explicit native sidechain inputs, with the requested millisecond values.
+    # Resample inputs to 48kHz to match the mixer (which normalizes all tracks to 48kHz).
     graph = (
-        "[0:a]asplit=2[voice][key];"
-        "[1:a][key]sidechaincompress=threshold=0.02:ratio=9:attack=200:release=500:"
+        "[0:a]aresample=48000[s_rs];"
+        "[1:a]aresample=48000[m_rs];"
+        "[s_rs]asplit=2[voice][key];"
+        "[m_rs][key]sidechaincompress=threshold=0.02:ratio=9:attack=200:release=500:"
         "level_sc=1:mix=0.9,volume=0.45[bed];"
         "[voice][bed]amix=inputs=2:duration=longest:normalize=0,alimiter=limit=1:level=0[out]"
     )
@@ -96,7 +99,7 @@ def test_full_mix_matches_independent_millisecond_ffmpeg_reference(tmp_path):
     )
     actual, rate = _samples(output)
     expected, reference_rate = _samples(reference)
-    assert rate == reference_rate
+    assert rate == reference_rate, f"Output rate {rate} != reference rate {reference_rate}"
     assert len(actual) == len(expected)
     # Compare the attack and early-release envelope while both inputs are
     # active, independently of sidechain EOF/tail behavior.

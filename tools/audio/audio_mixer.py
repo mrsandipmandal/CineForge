@@ -252,6 +252,10 @@ class AudioMixer(BaseTool):
         and add the timeline delay last so both fades follow the track itself.
         """
         filters = []
+        # Always normalize to 48kHz before any mixing — prevents silent quality
+        # degradation when Piper (22kHz), ElevenLabs (44.1kHz), and FFmpeg
+        # silence (48kHz) are amixed without consistent input rates.
+        filters.append("aresample=48000:resampler=swr:precision=28")
         volume = track.get("volume", 1.0)
         delay_ms = int(track.get("start_seconds", 0) * 1000)
         fade_in = track.get("fade_in_seconds", 0)
@@ -598,12 +602,18 @@ class AudioMixer(BaseTool):
                 filter_parts.append(f"[a{speech_indices[0]}]acopy[speech_all]")
             if target is not None:
                 filter_parts.append("[speech_all]asplit=2[speech_key_raw][speech_out]")
+                release_ms = ducking.get("release_ms", 500) if isinstance(ducking, dict) else 500
                 filter_parts.append(
                     f"[speech_key_raw]apad=whole_dur={target},"
+                    f"agate=threshold=0.005:attack=10:release={release_ms},"
                     f"atrim=duration={target},asetpts=PTS-STARTPTS[speech_key]"
                 )
             else:
-                filter_parts.append("[speech_all]asplit=2[speech_key][speech_out]")
+                filter_parts.append("[speech_all]asplit=2[speech_key_raw2][speech_out]")
+                release_ms2 = ducking.get("release_ms", 500) if isinstance(ducking, dict) else 500
+                filter_parts.append(
+                    f"[speech_key_raw2]agate=threshold=0.005:attack=10:release={release_ms2}[speech_key]"
+                )
 
             # Mix music tracks together
             music_start = len(speech_tracks)
