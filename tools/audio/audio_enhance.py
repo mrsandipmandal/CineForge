@@ -80,9 +80,9 @@ PRESETS = {
     "voice_clarity_no_norm": {
         "description": (
             "Vocal EQ + compression WITHOUT loudnorm. "
-            "Use this preset when the audio will be processed by audio_mixer's "
-            "full_mix loudnorm pass -- applying loudnorm twice causes audible "
-            "gain-riding (pumping) at sentence boundaries."
+            "Use this when audio will be processed by audio_mixer's full_mix "
+            "loudnorm pass — applying loudnorm twice causes audible gain-riding "
+            "(pumping) at sentence boundaries."
         ),
         "af": (
             "highpass=f=80,"
