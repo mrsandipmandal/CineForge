@@ -600,19 +600,20 @@ class AudioMixer(BaseTool):
                 )
             else:
                 filter_parts.append(f"[a{speech_indices[0]}]acopy[speech_all]")
+            duck_params = ducking if isinstance(ducking, dict) else {}
             if target is not None:
                 filter_parts.append("[speech_all]asplit=2[speech_key_raw][speech_out]")
-                release_ms = ducking.get("release_ms", 500) if isinstance(ducking, dict) else 500
+                _release_ms = duck_params.get("release_ms", 500) if isinstance(duck_params, dict) else 500
                 filter_parts.append(
                     f"[speech_key_raw]apad=whole_dur={target},"
-                    f"agate=threshold=0.005:attack=10:release={release_ms},"
+                    f"agate=threshold=0.005:attack=10:release={_release_ms},"
                     f"atrim=duration={target},asetpts=PTS-STARTPTS[speech_key]"
                 )
             else:
                 filter_parts.append("[speech_all]asplit=2[speech_key_raw2][speech_out]")
-                release_ms2 = ducking.get("release_ms", 500) if isinstance(ducking, dict) else 500
+                _release_ms2 = duck_params.get("release_ms", 500) if isinstance(duck_params, dict) else 500
                 filter_parts.append(
-                    f"[speech_key_raw2]agate=threshold=0.005:attack=10:release={release_ms2}[speech_key]"
+                    f"[speech_key_raw2]agate=threshold=0.005:attack=10:release={_release_ms2}[speech_key]"
                 )
 
             # Mix music tracks together
@@ -629,7 +630,7 @@ class AudioMixer(BaseTool):
                 music_in = f"[a{music_indices[0]}]"
 
             # Apply sidechain ducking — music is compressed, [speech_key] is the key
-            duck_params = ducking if isinstance(ducking, dict) else {}
+            # (duck_params already defined above for agate release calculation)
             # FFmpeg sidechaincompress accepts milliseconds, like this API.
             attack = duck_params.get("attack_ms", 200)
             release = duck_params.get("release_ms", 500)
