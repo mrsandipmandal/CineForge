@@ -414,8 +414,31 @@ class TTSSelector(BaseTool):
     def _prepare_task_context(self, inputs: dict[str, Any]) -> dict[str, Any]:
         from lib.scoring import normalize_task_context
 
+        task_ctx = dict(inputs.get("task_context") or {})
+        lang = str(inputs.get("language_code") or "").lower()
+
+        LANG_SIGNAL_MAP = {
+            "bn": ["bengali", "multilingual", "indic", "narration"],
+            "hi": ["hindi", "multilingual", "indic", "narration"],
+            "zh": ["chinese", "mandarin", "multilingual", "narration"],
+            "ar": ["arabic", "multilingual", "narration"],
+            "es": ["spanish", "multilingual", "narration"],
+            "fr": ["french", "multilingual", "narration"],
+            "de": ["german", "multilingual", "narration"],
+            "pt": ["portuguese", "multilingual", "narration"],
+            "ja": ["japanese", "multilingual", "narration"],
+            "ko": ["korean", "multilingual", "narration"],
+        }
+        for code, signals in LANG_SIGNAL_MAP.items():
+            if code in lang:
+                existing = list(task_ctx.get("style_keywords") or [])
+                task_ctx["style_keywords"] = list(set(existing) | set(signals))
+                if not task_ctx.get("intent"):
+                    task_ctx["intent"] = " ".join(signals)
+                break
+
         return normalize_task_context(
-            inputs.get("task_context", {}),
+            task_ctx,
             prompt=inputs.get("text", ""),
             capability=self.capability,
             operation=inputs.get("operation", "generate"),
