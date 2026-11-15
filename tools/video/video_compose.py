@@ -487,8 +487,14 @@ class VideoCompose(BaseTool):
         audio_path = inputs.get("audio_path")
         subtitle_path = inputs.get("subtitle_path")
         codec = inputs.get("codec", "libx264")
-        crf = inputs.get("crf", 23)
-        preset = inputs.get("preset", "medium")
+        # Use separate CRF values for intermediate segments vs final delivery.
+        # CRF 23 on intermediates causes multi-generation quality loss when subtitle
+        # burn and enhancement add further encode passes. CRF 16 on intermediates
+        # is visually lossless and costs ~30% more disk space temporarily.
+        intermediate_crf = inputs.get("intermediate_crf", 16)
+        delivery_crf = inputs.get("delivery_crf", inputs.get("crf", 23))
+        crf = intermediate_crf  # used in the segment loop below
+        preset = inputs.get("preset", "fast")  # "medium" is too slow for temp files
         profile_name = inputs.get("profile")
 
         # Resolve target resolution + fit mode. Priority: explicit `profile`
@@ -720,7 +726,7 @@ class VideoCompose(BaseTool):
             if needs_reencode:
                 if vfilters:
                     cmd.extend(["-vf", ",".join(vfilters)])
-                cmd.extend(["-c:v", codec, "-crf", str(crf), "-preset", preset])
+                cmd.extend(["-c:v", codec, "-crf", str(delivery_crf), "-preset", preset])
                 cmd.extend(profile_flags)
             else:
                 cmd.extend(["-c:v", "copy"])
@@ -2931,8 +2937,14 @@ class VideoCompose(BaseTool):
         input_path = Path(inputs["input_path"])
         output_path = Path(inputs.get("output_path", str(input_path.with_stem(f"{input_path.stem}_encoded"))))
         codec = inputs.get("codec", "libx264")
-        crf = inputs.get("crf", 23)
-        preset = inputs.get("preset", "medium")
+        # Use separate CRF values for intermediate segments vs final delivery.
+        # CRF 23 on intermediates causes multi-generation quality loss when subtitle
+        # burn and enhancement add further encode passes. CRF 16 on intermediates
+        # is visually lossless and costs ~30% more disk space temporarily.
+        intermediate_crf = inputs.get("intermediate_crf", 16)
+        delivery_crf = inputs.get("delivery_crf", inputs.get("crf", 23))
+        crf = intermediate_crf  # used in the segment loop below
+        preset = inputs.get("preset", "fast")  # "medium" is too slow for temp files
         profile_name = inputs.get("profile")
 
         if not input_path.exists():
