@@ -1,7 +1,7 @@
-"""Timing reconciler -- adjusts scene cut timestamps to match actual TTS durations.
+"""Timing reconciler — adjusts scene cut timestamps to match actual TTS durations.
 
 The scene director assigns timestamps before TTS is generated. After asset
-generation, actual narration durations diverge from planned durations by +/-15%.
+generation, actual narration durations diverge from planned durations by ±15%.
 This tool recomputes cut in/out times from actual asset durations so the edit
 director works with ground-truth timing, not estimates.
 
@@ -14,8 +14,17 @@ Usage:
     total_duration = result.data["total_duration_seconds"]
 """
 from __future__ import annotations
+
 from typing import Any
-from tools.base_tool import BaseTool, ToolResult, ToolRuntime, ToolStability, ToolTier, ToolStatus
+
+from tools.base_tool import (
+    BaseTool,
+    ToolResult,
+    ToolRuntime,
+    ToolStability,
+    ToolTier,
+    ToolStatus,
+)
 
 
 class TimingReconciler(BaseTool):
@@ -31,6 +40,7 @@ class TimingReconciler(BaseTool):
         "adjusting scene timestamps after TTS generation",
         "preventing narration bleed into adjacent scenes",
         "edit director pre-flight timing check",
+        "ground-truth cut timing from probed audio durations",
     ]
     capabilities = ["timing_reconciliation", "cut_adjustment"]
     supports = {"offline": True, "stateless": True}
@@ -82,11 +92,13 @@ class TimingReconciler(BaseTool):
 
         cursor = 0.0
         adjusted_cuts = []
-        warnings_list = []
+        warnings_list: list[str] = []
 
         for scene in scenes:
             sid = scene.get("id", "")
-            planned_duration = scene.get("end_seconds", 0.0) - scene.get("start_seconds", 0.0)
+            planned_start = scene.get("start_seconds", 0.0)
+            planned_end = scene.get("end_seconds", 0.0)
+            planned_duration = planned_end - planned_start
 
             asset = narration_by_scene.get(sid)
             if asset and asset.get("duration_seconds"):
@@ -98,10 +110,11 @@ class TimingReconciler(BaseTool):
                         f"actual {actual_duration:.2f}s, drift {drift:+.2f}s"
                     )
             else:
-                actual_duration = planned_duration
+                actual_duration = max(0.0, planned_duration)
                 if planned_duration > 0:
                     warnings_list.append(
-                        f"Scene '{sid}': no narration asset found, using planned duration {planned_duration:.2f}s"
+                        f"Scene '{sid}': no narration asset found — "
+                        f"using planned duration {planned_duration:.2f}s"
                     )
 
             adjusted_cuts.append({
@@ -114,14 +127,17 @@ class TimingReconciler(BaseTool):
             })
             cursor += actual_duration + gap
 
+        total = round(cursor - gap if gap > 0 and cursor > 0 else cursor, 3)
+
         return ToolResult(
             success=True,
             data={
                 "adjusted_cuts": adjusted_cuts,
-                "total_duration_seconds": round(cursor - gap if cursor > 0 else 0, 3),
+                "total_duration_seconds": total,
                 "scene_count": len(adjusted_cuts),
                 "scenes_with_actual_timing": sum(
-                    1 for c in adjusted_cuts if c["drift_seconds"] != 0.0 or narration_by_scene.get(c["scene_id"])
+                    1 for c in adjusted_cuts
+                    if narration_by_scene.get(c["scene_id"])
                 ),
                 "warnings": warnings_list,
             },
