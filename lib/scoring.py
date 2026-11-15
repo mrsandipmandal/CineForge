@@ -475,7 +475,7 @@ def score_provider(tool, task_context: dict[str, Any]) -> ProviderScore:
     else:
         stability = info.get("stability", "experimental")
         tier = info.get("tier", "")
-        quality_map = {"production": 0.9, "beta": 0.7, "experimental": 0.4}
+        quality_map = {"production": 0.90, "beta": 0.75, "experimental": 0.55}
         output_quality = quality_map.get(stability, 0.5)
         # Tier bonus: generate-tier tools that are production-stable get a nudge
         if tier == "generate" and stability == "production":
