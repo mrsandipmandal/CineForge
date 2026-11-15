@@ -156,8 +156,12 @@ def check_scene_variation(scenes: list[dict[str, Any]]) -> dict[str, Any]:
         )
 
     # --- Score ---
-    # Each violation category adds ~0.6 to score
-    score = min(5.0, len(violations) * 0.6)
+    # Each violation category adds ~0.6 to score.
+    # 3+ simultaneous violations are more serious than their sum implies.
+    base = len(violations) * 0.6
+    if len(violations) >= 3:
+        base *= 1.5
+    score = min(5.0, base)
 
     if score < 2.0:
         verdict = "strong"
