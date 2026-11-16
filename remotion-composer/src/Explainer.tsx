@@ -1,4 +1,4 @@
-﻿import {
+import {
   AbsoluteFill,
   Audio,
   Img,
@@ -935,6 +935,10 @@ export const Explainer: React.FC<ExplainerProps> = (props) => {
           Single-file fallback: preserved for backwards-compatibility. */}
       {audio?.narration?.segments && audio.narration.segments.length > 0
         ? audio.narration.segments.map((seg: NarrationSegment, i: number) => {
+            const segSrc = seg.src || (seg as any).path || (seg as any).source || "";
+            if (!segSrc) {
+              return null;
+            }
             const fromFrame = Math.round((seg.start_seconds ?? 0) * fps);
             const segDuration = Math.max(1, Math.round((seg.duration_seconds ?? 5) * fps));
             const startFromFrame = Math.round((seg.audio_offset_seconds ?? 0) * fps);
@@ -945,7 +949,7 @@ export const Explainer: React.FC<ExplainerProps> = (props) => {
                 durationInFrames={segDuration}
               >
                 <Audio
-                  src={resolveAsset(seg.src)}
+                  src={resolveAsset(segSrc)}
                   startFrom={startFromFrame}
                   volume={seg.volume ?? (audio.narration?.volume ?? 1)}
                 />

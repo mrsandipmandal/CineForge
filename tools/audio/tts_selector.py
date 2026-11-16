@@ -348,9 +348,9 @@ class TTSSelector(BaseTool):
             # Strip region suffix: "bn-BD" -> "bn", "hi-IN" -> "hi"
             lang_code = lang[:2] if lang else ""
 
-            # Language-aware voice selection — only set if caller did not specify
+            # Language-aware voice selection  â€”  only set if caller did not specify
             ELEVENLABS_MULTILINGUAL_VOICES = {
-                "bn": "pNInz6obpgDQGcFmaJgB",  # Adam — multilingual capable
+                "bn": "pNInz6obpgDQGcFmaJgB",  # Adam  â€”  multilingual capable
                 "hi": "pNInz6obpgDQGcFmaJgB",
                 "zh": "yoZ06aMxZJJ28mfd3POQ",  # Sam
                 "ar": "pNInz6obpgDQGcFmaJgB",

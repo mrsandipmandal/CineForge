@@ -63,7 +63,7 @@
           },
           "reason": { "type": "string" }
         },
-        "additionalProperties": false
+        "additionalProperties": true
       }
     },
     "overlays": {
