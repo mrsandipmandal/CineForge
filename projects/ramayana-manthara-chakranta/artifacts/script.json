@@ -1,0 +1,151 @@
+{
+  "version": "1.0",
+  "project_id": "ramayana-manthara-chakranta",
+  "title": "রামাযণ পর্ব ৭ — মন্থরার কুটিল চক্রান্ত ও দশরথের কালরাত্রি",
+  "total_duration": 58.5,
+  "total_duration_seconds": 58.5,
+  "scenes": [
+    {
+      "id": 1,
+      "start_time": 0.0,
+      "end_time": 8.5,
+      "duration": 8.5,
+      "title": "Scene 1: অযোধ্যায় আনন্দের জোয়ার ও আসন্ন অভিষেক",
+      "narration_bn": "অযোধ্যায় আনন্দের মহোৎসব! প্রভাত হলেই রঘুকুলতিলক শ্রীরামের রাজ্যাভিষেক। চারদিকে জয়ধ্বনি আর আলোকমালা, কিন্তু রাজপ্রাসাদের গভীর অন্ধকারে ঘনাচ্ছে এক মারাত্মক চক্রান্ত।",
+      "subtitle_bn": "প্রভাত হলেই শ্রীরামের রাজ্যাভিষেক... কিন্তু প্রাসাদের অন্ধকারে ঘনাচ্ছে অমঙ্গল!",
+      "visual_prompt": "Masterpiece oil painting in the style of Raja Ravi Varma and divine cinematic Indian epic art, ancient Vedic Ayodhya palace illuminated with thousands of golden clay diyas, festive decorations, joyful citizens celebrating in royal courtyards, while dark ominous midnight shadows creep along ornate marble corridors, 8K resolution, volumetric golden lighting, cinematic vertical composition 9:16.",
+      "mood": "festive_yet_ominous",
+      "narration": "অযোধ্যায় আনন্দের মহোৎসব! প্রভাত হলেই রঘুকুলতিলক শ্রীরামের রাজ্যাভিষেক। চারদিকে জয়ধ্বনি আর আলোকমালা, কিন্তু রাজপ্রাসাদের গভীর অন্ধকারে ঘনাচ্ছে এক মারাত্মক চক্রান্ত।",
+      "subtitle": "প্রভাত হলেই শ্রীরামের রাজ্যাভিষেক... কিন্তু প্রাসাদের অন্ধকারে ঘনাচ্ছে অমঙ্গল!"
+    },
+    {
+      "id": 2,
+      "start_time": 8.5,
+      "end_time": 16.5,
+      "duration": 8.0,
+      "title": "Scene 2: কুটিল মন্থরার বিষাক্ত চক্রান্ত",
+      "narration_bn": "কুটিলদাসী মন্থরা ছুটে গেল রানী কৈকেয়ীর মহলে। বিষাক্ত ফিসফিসানিতে সে উস্কে দিল হিংসার আগুন—'শ্রীরাম রাজা হলে তোমার পুত্র ভরত হবে চিরদাস, ধ্বংস হবে তোমার রাজমহিষীর মর্যাদা!'",
+      "subtitle_bn": "কুটিলদাসী মন্থরা রানী কৈকেয়ীর কানে ঢালল বিষাক্ত সন্দেহের বিষ!",
+      "visual_prompt": "Masterpiece oil painting in the style of Raja Ravi Varma, sinister hunchbacked maidservant Manthara whispering malice into Queen Kaikeyi's ear in the royal chamber, flickering oil lamp casting sinister distorted shadows on the ancient stone wall, Kaikeyi dressed in regal Vedic silk saree looking conflicted, 8K resolution, dramatic chiaroscuro lighting, emotional tension, vertical 9:16.",
+      "mood": "conspiratorial_dark",
+      "narration": "কুটিলদাসী মন্থরা ছুটে গেল রানী কৈকেয়ীর মহলে। বিষাক্ত ফিসফিসানিতে সে উস্কে দিল হিংসার আগুন—'শ্রীরাম রাজা হলে তোমার পুত্র ভরত হবে চিরদাস, ধ্বংস হবে তোমার রাজমহিষীর মর্যাদা!'",
+      "subtitle": "কুটিলদাসী মন্থরা রানী কৈকেয়ীর কানে ঢালল বিষাক্ত সন্দেহের বিষ!"
+    },
+    {
+      "id": 3,
+      "start_time": 16.5,
+      "end_time": 25.0,
+      "duration": 8.5,
+      "title": "Scene 3: কৈকেয়ীর ক্রোধ ও অন্ধকার কোপভবন",
+      "narration_bn": "মন্থরার কুটিল চক্রান্তে অন্ধ হয়ে রানী কৈকেয়ী ছিঁড়ে ফেললেন রাজকীয় রত্নহার। রাজবেশ ত্যাগ করে তিনি প্রবেশ করলেন অন্ধকার কোপভবনে—ধূলিশয্যায় জ্বলতে লাগল প্রলয়ঙ্করী প্রতিহিংসা।",
+      "subtitle_bn": "মন্থরার বিষে উন্মাদ কৈকেয়ী প্রবেশ করলেন অন্ধকার কোপভবনে!",
+      "visual_prompt": "Masterpiece oil painting in the style of Raja Ravi Varma, Queen Kaikeyi furiously discarding her precious Navaratna pearl necklace and royal golden ornaments onto the floor of the Kopabhavan anger chamber, untied dark hair, disheveled dark crimson attire, lying on bare cold stone floor, dim ominous torchlight, cinematic Indian mythology, vertical 9:16.",
+      "mood": "furious_vengeful",
+      "narration": "মন্থরার কুটিল চক্রান্তে অন্ধ হয়ে রানী কৈকেয়ী ছিঁড়ে ফেললেন রাজকীয় রত্নহার। রাজবেশ ত্যাগ করে তিনি প্রবেশ করলেন অন্ধকার কোপভবনে—ধূলিশয্যায় জ্বলতে লাগল প্রলয়ঙ্করী প্রতিহিংসা।",
+      "subtitle": "মন্থরার বিষে উন্মাদ কৈকেয়ী প্রবেশ করলেন অন্ধকার কোপভবনে!"
+    },
+    {
+      "id": 4,
+      "start_time": 25.0,
+      "end_time": 34.0,
+      "duration": 9.0,
+      "title": "Scene 4: মহারাজা দশরথের নিশীথ আগমন",
+      "narration_bn": "গভীর রাতে আনন্দচিত্তে কোপভবনে এলেন বৃদ্ধ মহারাজা দশরথ। কিন্তু প্রিয়তমা রানীকে মাটিতে ধূসর বেশে ক্রন্দনরত দেখে শিউরে উঠলেন মহারাজ—'দেবী, কীসের এই নিদারুণ শোক? কী চাও তুমি?'",
+      "subtitle_bn": "আনন্দে বিহ্বল বৃদ্ধ রাজা দশরথ কোপভবনে প্রবেশ করলেন...",
+      "visual_prompt": "Masterpiece oil painting in the style of Raja Ravi Varma, elderly Emperor Dasharatha wearing royal golden mukut crown, pleated silk dhoti with intricate zari border and regal angavastram across shoulders, entering dark Kopabhavan chamber holding ornate golden lamp, reaching out with tears in his eyes towards weeping Kaikeyi, 8K resolution, dramatic emotional lighting, vertical 9:16.",
+      "mood": "heartbreaking_agony",
+      "narration": "গভীর রাতে আনন্দচিত্তে কোপভবনে এলেন বৃদ্ধ মহারাজা দশরথ। কিন্তু প্রিয়তমা রানীকে মাটিতে ধূসর বেশে ক্রন্দনরত দেখে শিউরে উঠলেন মহারাজ—'দেবী, কীসের এই নিদারুণ শোক? কী চাও তুমি?'",
+      "subtitle": "আনন্দে বিহ্বল বৃদ্ধ রাজা দশরথ কোপভবনে প্রবেশ করলেন..."
+    },
+    {
+      "id": 5,
+      "start_time": 34.0,
+      "end_time": 42.5,
+      "duration": 8.5,
+      "title": "Scene 5: কৈকেয়ীর নিষ্ঠুর দুই বর",
+      "narration_bn": "কুটিল হাস্যে কৈকেয়ী চাইলেন সেই প্রতিশ্রুত দুই বর—'প্রথম বরে আমার পুত্র ভরতের হোক অযোধ্যার রাজ্যাভিষেক, আর দ্বিতীয় বরে শ্রীরামের জন্য চোদ্দ বছরের কঠোর বনবাস!'",
+      "subtitle_bn": "'ভরতের রাজ্যাভিষেক, আর শ্রীরামের চোদ্দ বছরের কঠোর বনবাস!'",
+      "visual_prompt": "Masterpiece oil painting in the style of Raja Ravi Varma, Queen Kaikeyi rising like a vengeful empress in dim royal chamber, pointing two fingers demanding two fatal boons from broken King Dasharatha, stone-cold stern expression, ancient Vedic architecture, ominous shadows, high drama, vertical 9:16.",
+      "mood": "cruel_demand",
+      "narration": "কুটিল হাস্যে কৈকেয়ী চাইলেন সেই প্রতিশ্রুত দুই বর—'প্রথম বরে আমার পুত্র ভরতের হোক অযোধ্যার রাজ্যাভিষেক, আর দ্বিতীয় বরে শ্রীরামের জন্য চোদ্দ বছরের কঠোর বনবাস!'",
+      "subtitle": "'ভরতের রাজ্যাভিষেক, আর শ্রীরামের চোদ্দ বছরের কঠোর বনবাস!'"
+    },
+    {
+      "id": 6,
+      "start_time": 42.5,
+      "end_time": 51.0,
+      "duration": 8.5,
+      "title": "Scene 6: মহারাজা দশরথের মর্মান্তিক পতন",
+      "narration_bn": "বজ্রাঘাতের মতো স্তব্ধ হলো মহারাজা দশরথের বক্ষ! ধূলিতলে লুটিয়ে পড়ে হাহাকার করে উঠলেন মহারাজ—'কৈকেয়ী, আমার সর্বস্ব নাও, আমার প্রাণ নাও, কিন্তু আমার নয়নের মণি শ্রীরামকে কেড়ে নিও না!'",
+      "subtitle_bn": "'কৈকেয়ী, আমার প্রাণ নাও, কিন্তু আমার রামকে বনবাস দিও না!'",
+      "visual_prompt": "Masterpiece oil painting in the style of Raja Ravi Varma, Emperor Dasharatha collapsing onto palace marble floor in unbearable grief, golden mukut slipping, hands clasped pleading in agony, heart-wrenching tragedy, royal Vedic palace interior, dramatic volumetric spotlight on fallen monarch, 8K resolution, vertical 9:16.",
+      "mood": "tragic_collapse",
+      "narration": "বজ্রাঘাতের মতো স্তব্ধ হলো মহারাজা দশরথের বক্ষ! ধূলিতলে লুটিয়ে পড়ে হাহাকার করে উঠলেন মহারাজ—'কৈকেয়ী, আমার সর্বস্ব নাও, আমার প্রাণ নাও, কিন্তু আমার নয়নের মণি শ্রীরামকে কেড়ে নিও না!'",
+      "subtitle": "'কৈকেয়ী, আমার প্রাণ নাও, কিন্তু আমার রামকে বনবাস দিও না!'"
+    },
+    {
+      "id": 7,
+      "start_time": 51.0,
+      "end_time": 58.5,
+      "duration": 7.5,
+      "title": "Scene 7: অযোধ্যার কালরাত্রি ও ভাগ্যনির্ধারণ",
+      "narration_bn": "নিষ্ঠুর কৈকেয়ী রইলেন অনড়, সংজ্ঞাহীন দশরথের বুক চিরে নামল কালরাত্রি! সূর্যবংশের ভবিতব্যে কী করবেন শ্রীরাম? কমেন্টে লিখুন 'জয় শ্রীরাম', সাবস্ক্রাইব করুন পরের পর্বের জন্য!",
+      "subtitle_bn": "নিষ্ঠুর কৈকেয়ী, অচেতন দশরথ... এরপর কী করবেন শ্রীরাম?",
+      "visual_prompt": "Masterpiece oil painting in the style of Raja Ravi Varma, dark silent midnight over ancient Ayodhya palace under a blood-red moon, Emperor Dasharatha lying unconscious attended by grieving shadows while Queen Kaikeyi stands unyielding like stone, cinematic cliffhanger, epic mythological Sanskrit aura, vertical 9:16.",
+      "mood": "epic_cliffhanger",
+      "narration": "নিষ্ঠুর কৈকেয়ী রইলেন অনড়, সংজ্ঞাহীন দশরথের বুক চিরে নামল কালরাত্রি! সূর্যবংশের ভবিতব্যে কী করবেন শ্রীরাম? কমেন্টে লিখুন 'জয় শ্রীরাম', সাবস্ক্রাইব করুন পরের পর্বের জন্য!",
+      "subtitle": "নিষ্ঠুর কৈকেয়ী, অচেতন দশরথ... এরপর কী করবেন শ্রীরাম?"
+    }
+  ],
+  "sections": [
+    {
+      "id": "s1",
+      "label": "Scene 1: অযোধ্যায় আনন্দের জোয়ার ও আসন্ন অভিষেক",
+      "text": "অযোধ্যায় আনন্দের মহোৎসব! প্রভাত হলেই রঘুকুলতিলক শ্রীরামের রাজ্যাভিষেক। চারদিকে জয়ধ্বনি আর আলোকমালা, কিন্তু রাজপ্রাসাদের গভীর অন্ধকারে ঘনাচ্ছে এক মারাত্মক চক্রান্ত।",
+      "start_seconds": 0.0,
+      "end_seconds": 8.5
+    },
+    {
+      "id": "s2",
+      "label": "Scene 2: কুটিল মন্থরার বিষাক্ত চক্রান্ত",
+      "text": "কুটিলদাসী মন্থরা ছুটে গেল রানী কৈকেয়ীর মহলে। বিষাক্ত ফিসফিসানিতে সে উস্কে দিল হিংসার আগুন—'শ্রীরাম রাজা হলে তোমার পুত্র ভরত হবে চিরদাস, ধ্বংস হবে তোমার রাজমহিষীর মর্যাদা!'",
+      "start_seconds": 8.5,
+      "end_seconds": 16.5
+    },
+    {
+      "id": "s3",
+      "label": "Scene 3: কৈকেয়ীর ক্রোধ ও অন্ধকার কোপভবন",
+      "text": "মন্থরার কুটিল চক্রান্তে অন্ধ হয়ে রানী কৈকেয়ী ছিঁড়ে ফেললেন রাজকীয় রত্নহার। রাজবেশ ত্যাগ করে তিনি প্রবেশ করলেন অন্ধকার কোপভবনে—ধূলিশয্যায় জ্বলতে লাগল প্রলয়ঙ্করী প্রতিহিংসা।",
+      "start_seconds": 16.5,
+      "end_seconds": 25.0
+    },
+    {
+      "id": "s4",
+      "label": "Scene 4: মহারাজা দশরথের নিশীথ আগমন",
+      "text": "গভীর রাতে আনন্দচিত্তে কোপভবনে এলেন বৃদ্ধ মহারাজা দশরথ। কিন্তু প্রিয়তমা রানীকে মাটিতে ধূসর বেশে ক্রন্দনরত দেখে শিউরে উঠলেন মহারাজ—'দেবী, কীসের এই নিদারুণ শোক? কী চাও তুমি?'",
+      "start_seconds": 25.0,
+      "end_seconds": 34.0
+    },
+    {
+      "id": "s5",
+      "label": "Scene 5: কৈকেয়ীর নিষ্ঠুর দুই বর",
+      "text": "কুটিল হাস্যে কৈকেয়ী চাইলেন সেই প্রতিশ্রুত দুই বর—'প্রথম বরে আমার পুত্র ভরতের হোক অযোধ্যার রাজ্যাভিষেক, আর দ্বিতীয় বরে শ্রীরামের জন্য চোদ্দ বছরের কঠোর বনবাস!'",
+      "start_seconds": 34.0,
+      "end_seconds": 42.5
+    },
+    {
+      "id": "s6",
+      "label": "Scene 6: মহারাজা দশরথের মর্মান্তিক পতন",
+      "text": "বজ্রাঘাতের মতো স্তব্ধ হলো মহারাজা দশরথের বক্ষ! ধূলিতলে লুটিয়ে পড়ে হাহাকার করে উঠলেন মহারাজ—'কৈকেয়ী, আমার সর্বস্ব নাও, আমার প্রাণ নাও, কিন্তু আমার নয়নের মণি শ্রীরামকে কেড়ে নিও না!'",
+      "start_seconds": 42.5,
+      "end_seconds": 51.0
+    },
+    {
+      "id": "s7",
+      "label": "Scene 7: অযোধ্যার কালরাত্রি ও ভাগ্যনির্ধারণ",
+      "text": "নিষ্ঠুর কৈকেয়ী রইলেন অনড়, সংজ্ঞাহীন দশরথের বুক চিরে নামল কালরাত্রি! সূর্যবংশের ভবিতব্যে কী করবেন শ্রীরাম? কমেন্টে লিখুন 'জয় শ্রীরাম', সাবস্ক্রাইব করুন পরের পর্বের জন্য!",
+      "start_seconds": 51.0,
+      "end_seconds": 58.5
+    }
+  ]
+}
