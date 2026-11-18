@@ -261,6 +261,7 @@ class ImageSelector(BaseTool):
             record_image_fallback_event,
             save_image_config,
             validate_image_file,
+            delegate_to_local_diffusion,
         )
         from lib.scoring import rank_providers
 
@@ -423,6 +424,16 @@ class ImageSelector(BaseTool):
 
         # All eligible candidates failed
         failed_summary = "; ".join(f"{h['provider']}: {h['reason']}" for h in fallback_history)
+        if auto_fallback:
+            logger.info("All providers failed. Attempting ultimate fallback to local_diffusion.")
+            fallback_res = delegate_to_local_diffusion(inputs, reason=f"All providers failed: {failed_summary}")
+            logger.info("Ultimate fallback attempt result: %s", fallback_res)
+            if fallback_res.get("success"):
+                return ToolResult(success=True, data=fallback_res)
+            else:
+                fallback_res["fallback_history"] = fallback_history
+                return ToolResult(success=False, error=fallback_res.get("error"), data=fallback_res)
+
         return ToolResult(
             success=False,
             error=f"All attempted image providers failed: {failed_summary}",

@@ -21,8 +21,10 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from tools.tool_registry import registry
 
 logger = logging.getLogger(__name__)
 
@@ -40,12 +42,100 @@ DEFAULT_IMAGE_PRIORITY: List[str] = [
     "comfyui",
     "kling",
     "openai",
+    "local_diffusion",
     "pixabay",
     "pexels",
 ]
 
 # Free / quota-tier vs paid credit providers
 PAID_PROVIDERS = {"openai", "bfl", "fal_flux", "replicate", "atlas", "kling"}
+
+IMAGE_PROVIDER_METADATA = {
+    "google_imagen": {
+        "label": "Google Imagen",
+        "tool_name": "google_imagen",
+        "is_paid": False,
+        "is_primary": True,
+        "description": "Primary photorealistic image generation (gemini-3.1-flash-image / Imagen 3).",
+    },
+    "fal_flux": {
+        "label": "fal.ai FLUX",
+        "tool_name": "flux_image",
+        "is_paid": True,
+        "is_primary": False,
+        "description": "Secondary high-speed FLUX.1 / FLUX.2 on fal.ai.",
+    },
+    "replicate": {
+        "label": "Replicate FLUX",
+        "tool_name": "flux3_replicate_image",
+        "is_paid": True,
+        "is_primary": False,
+        "description": "Tertiary cloud diffusion provider for FLUX & open models.",
+    },
+    "bfl": {
+        "label": "Black Forest Labs (BFL)",
+        "tool_name": "bfl_image",
+        "is_paid": True,
+        "is_primary": False,
+        "description": "Direct BFL API for FLUX.1 [pro] and [dev].",
+    },
+    "atlas": {
+        "label": "Atlas Cloud",
+        "tool_name": "atlas_image",
+        "is_paid": True,
+        "is_primary": False,
+        "description": "Multi-model cloud gateway (Seedream 5.0, GPT Image 2, Nano Banana).",
+    },
+    "dashscope": {
+        "label": "DashScope (Qwen-Image)",
+        "tool_name": "dashscope_image",
+        "is_paid": False,
+        "is_primary": False,
+        "description": "Alibaba Cloud Bailian Qwen-Image-2.0-Pro text-to-image.",
+    },
+    "comfyui": {
+        "label": "ComfyUI",
+        "tool_name": "comfyui_image",
+        "is_paid": False,
+        "is_primary": False,
+        "description": "Local GPU diffusion workflow server (free, offline).",
+    },
+    "kling": {
+        "label": "Kling Official Image",
+        "tool_name": "kling_official_image",
+        "is_paid": True,
+        "is_primary": False,
+        "description": "Direct Kling v1.5 / v2.0 image generation API.",
+    },
+    "openai": {
+        "label": "Official OpenAI Image API",
+        "tool_name": "openai_image",
+        "is_paid": True,
+        "is_primary": False,
+        "description": "Commercial DALL-E 3 API (platform.openai.com).",
+    },
+    "local_diffusion": {
+        "label": "Local Diffusion (Low-VRAM)",
+        "tool_name": "local_diffusion",
+        "is_paid": False,
+        "is_primary": False,
+        "description": "Offline diffusers fallback optimized for 4GB RTX 3050 hardware.",
+    },
+    "pixabay": {
+        "label": "Pixabay Stock",
+        "tool_name": "pixabay_image",
+        "is_paid": False,
+        "is_primary": False,
+        "description": "Free royalty-free stock photography library.",
+    },
+    "pexels": {
+        "label": "Pexels Stock",
+        "tool_name": "pexels_image",
+        "is_paid": False,
+        "is_primary": False,
+        "description": "Free high-resolution stock photography.",
+    },
+}
 
 # Known quota, rate-limit, and credit exhaustion patterns
 QUOTA_ERROR_PATTERNS = (
@@ -77,6 +167,57 @@ def _default_config() -> Dict[str, Any]:
         "max_retries": 1,
         "timeout_seconds": 30,
         "last_fallback_event": None,
+    }
+
+
+def get_image_status_summary() -> Dict[str, Any]:
+    cfg = load_image_config()
+    providers = []
+    
+    # Get available tools from registry
+    available_tools = registry.get_by_capability("image_generation")
+    available_tool_names = {t.name for t in available_tools}
+    
+    for p_key in cfg["provider_priority"]:
+        meta = IMAGE_PROVIDER_METADATA.get(p_key, {"label": p_key, "is_paid": False, "is_primary": False, "description": ""})
+        is_enabled = cfg["enabled_providers"].get(p_key, True)
+        is_ready = meta["tool_name"] in available_tool_names
+        
+        providers.append({
+            "key": p_key,
+            "label": meta["label"],
+            "is_paid": meta["is_paid"],
+            "is_primary": meta["is_primary"],
+            "description": meta["description"],
+            "enabled": is_enabled,
+            "ready": is_ready,
+        })
+        
+    # Determine current active
+    current_active = None
+    for p in providers:
+        if p["enabled"] and p["ready"]:
+            current_active = p
+            break
+            
+    fallback_status = "ready"
+    if current_active and current_active["key"] != cfg["primary_provider"]:
+        fallback_status = f"fallback_active ({current_active['label']})"
+    elif not current_active:
+        fallback_status = "no_providers_available"
+        
+    return {
+        "primary_provider": cfg["primary_provider"],
+        "primary_provider_key": "google_imagen", # Based on R1 report
+        "provider_priority": cfg["provider_priority"],
+        "enabled_providers": cfg["enabled_providers"],
+        "auto_fallback": cfg["auto_fallback"],
+        "manual_mode": cfg["manual_mode"],
+        "providers": providers,
+        "last_fallback_event": cfg.get("last_fallback_event"),
+        "fallback_status": fallback_status,
+        "discovered_providers": list(IMAGE_PROVIDER_METADATA.keys()),
+        "discovered_tools": list(available_tool_names),
     }
 
 
@@ -194,6 +335,33 @@ def get_effective_image_priority(inputs: Optional[Dict[str, Any]] = None) -> Lis
             filtered.insert(0, pref)
 
     return filtered
+
+
+def delegate_to_local_diffusion(
+    inputs: Dict[str, Any],
+    reason: str = "Primary image providers unavailable",
+    primary_provider: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Delegate image generation to local diffusion fallback with low-VRAM guard."""
+    from tools.graphics.local_diffusion import generate_local_diffusion_fallback
+
+    cfg = load_image_config()
+    
+    primary = primary_provider or cfg.get("primary_provider", "google_imagen")
+    record_image_fallback_event(primary=primary, reason=reason, fallback="local_diffusion")
+
+    prompt = inputs.get("prompt", "")
+    out_path = inputs.get("output_path")
+    return generate_local_diffusion_fallback(
+        prompt=prompt,
+        output_path=out_path,
+        negative_prompt=inputs.get("negative_prompt", ""),
+        width=inputs.get("width", 512),
+        height=inputs.get("height", 512),
+        seed=inputs.get("seed"),
+        model=inputs.get("model", "stabilityai/stable-diffusion-2-1-base"),
+        low_vram=cfg.get("low_vram_guard", True),
+    )
 
 
 def record_image_fallback_event(primary: str, reason: str, fallback: str) -> None:

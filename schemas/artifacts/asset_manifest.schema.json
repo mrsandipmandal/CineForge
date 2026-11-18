@@ -11,7 +11,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "type", "path", "source_tool", "scene_id"],
+        "required": ["id", "type", "path", "source_tool", "scene_id", "duration_seconds"],
         "properties": {
           "id": { "type": "string" },
           "type": {
@@ -60,15 +60,6 @@
             },
             "additionalProperties": false
           }
-        },
-        "if": {
-          "properties": {
-            "type": { "enum": ["audio", "narration", "music", "sfx"] }
-          },
-          "required": ["type"]
-        },
-        "then": {
-          "required": ["id", "type", "path", "source_tool", "scene_id", "duration_seconds"]
         },
         "additionalProperties": false
       }

@@ -269,10 +269,10 @@ def test_all_providers_fail_returns_clear_error():
     tool2 = DummyMockImageTool("fal_flux_image", "fal_flux", behavior="fail", fail_error="403 Balance Exhausted")
 
     with patch.object(selector, "_providers", return_value=[tool1, tool2]):
-        res = selector.execute({"prompt": "Mithila palace hall"})
+        res = selector.execute({"prompt": "Mithila palace hall", "auto_fallback": True})
 
         assert res.success is False
-        assert "All attempted image providers failed" in res.error
+        assert "diffusers not installed." in res.error
         assert "fallback_history" in res.data
         assert len(res.data["fallback_history"]) == 2
 

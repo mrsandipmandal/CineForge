@@ -1196,6 +1196,7 @@ function renderMatrixNav() {
     { id: "voice_lab", label: "VOICE LAB" },
     { id: "face_lab", label: "FACE LAB" },
     { id: "tts_priority", label: "TTS PRIORITY" },
+    { id: "image_priority", label: "IMAGE PRIORITY" },
     { id: "assets", label: "ASSETS" },
     { id: "decisions", label: "DECISIONS" },
     { id: "providers", label: "PROVIDERS" },
@@ -1695,6 +1696,115 @@ function renderTTSPriorityView() {
   return container;
 }
 
+function renderImagePriorityView() {
+  const container = el("div", { class: "lab-container" });
+  const head = el("div", { class: "lab-head" },
+    el("div", {},
+      el("h2", {}, "IMAGE PROVIDER PRIORITY & FALLBACK ENGINE"),
+      el("span", { style: "font-family:var(--mono);font-size:12px;color:var(--matrix-muted);" },
+        "Configure image generation order and toggle provider availability."
+      ),
+    ),
+    el("div", { id: "image-top-badges", style: "display:flex;gap:8px;align-items:center;" })
+  );
+  container.append(head);
+
+  const mainGrid = el("div", { style: "display:flex;flex-direction:column;gap:16px;margin-top:16px;" });
+  container.append(mainGrid);
+
+  function loadAndRenderStatus() {
+    mainGrid.innerHTML = `<div class="identity-card" style="color:var(--matrix-muted)">Loading image provider configuration & status...</div>`;
+
+    getJSON("/api/settings/image").then((status) => {
+      mainGrid.innerHTML = "";
+
+      // Top badges
+      const topBadges = document.getElementById("image-top-badges");
+      if (topBadges) {
+        topBadges.innerHTML = "";
+        topBadges.append(
+          el("span", { class: "chip", style: "font-family:var(--mono);font-size:11px;" },
+            `STATUS: ${status.fallback_status.toUpperCase()}`
+          )
+        );
+      }
+
+      // Fallback event
+      if (status.last_fallback_event) {
+        const e = status.last_fallback_event;
+        const banner = el("div", { class: "identity-card", style: "border:1px solid var(--matrix-error);color:var(--matrix-error);" },
+          `⚠ FALLBACK: ${e.primary_provider} failed (${e.reason}) ➔ Switched to ${e.fallback_provider}`
+        );
+        mainGrid.append(banner);
+      }
+
+      // Controls
+      const controls = el("div", { style: "display:flex;gap:8px;" },
+        el("button", { class: "matrix-btn", onclick: () => postJSON("/api/settings/image", { auto_fallback: !status.auto_fallback }).then(loadAndRenderStatus) },
+          `AUTO-FALLBACK: ${status.auto_fallback ? "ON" : "OFF"}`
+        ),
+        el("button", { class: "matrix-btn", onclick: () => postJSON("/api/settings/image", { manual_mode: !status.manual_mode }).then(loadAndRenderStatus) },
+          `MANUAL MODE: ${status.manual_mode ? "ON" : "OFF"}`
+        )
+      );
+      mainGrid.append(controls);
+
+      // Provider List
+      const list = el("div", { style: "display:flex;flex-direction:column;gap:4px;" });
+      status.providers.forEach((p, index) => {
+        const card = el("div", { class: "identity-card", style: "display:flex;align-items:center;gap:12px;padding:8px;" },
+          el("div", { style: "font-family:var(--mono);font-size:12px;color:var(--matrix-muted);width:30px;" }, `#${index + 1}`),
+          el("div", { style: "flex:1;" }, 
+            el("div", { style: "font-weight:700;" }, p.label),
+            el("div", { style: "font-size:11px;color:var(--matrix-muted);" }, p.description)
+          ),
+          el("div", { style: "display:flex;gap:4px;" },
+            p.is_primary ? el("span", { class: "chip", style: "font-size:10px;" }, "PRIMARY") : "",
+            p.is_paid ? el("span", { class: "chip", style: "font-size:10px;background:var(--matrix-muted);color:var(--matrix-bg);" }, "PAID") : "",
+            el("span", { class: `chip ${p.ready ? "verified" : "unverified"}`, style: "font-size:10px;" }, p.ready ? "✓ READY" : "✗ UNAVAILABLE")
+          ),
+          el("div", { style: "display:flex;gap:4px;" },
+            el("button", { class: "matrix-btn", onclick: () => {
+              const newPriority = [...status.provider_priority];
+              if (index > 0) { [newPriority[index], newPriority[index-1]] = [newPriority[index-1], newPriority[index]]; }
+              postJSON("/api/settings/image", { provider_priority: newPriority }).then(loadAndRenderStatus);
+            } }, "▲"),
+            el("button", { class: "matrix-btn", onclick: () => {
+              const newPriority = [...status.provider_priority];
+              if (index < newPriority.length - 1) { [newPriority[index], newPriority[index+1]] = [newPriority[index+1], newPriority[index]]; }
+              postJSON("/api/settings/image", { provider_priority: newPriority }).then(loadAndRenderStatus);
+            } }, "▼"),
+            el("button", { class: "matrix-btn", onclick: () => {
+              const newEnabled = { ...status.enabled_providers, [p.key]: !p.enabled };
+              postJSON("/api/settings/image", { enabled_providers: newEnabled }).then(loadAndRenderStatus);
+            } }, p.enabled ? "ENABLED" : "DISABLED")
+          )
+        );
+        list.append(card);
+      });
+      mainGrid.append(list);
+
+      // Test Console
+      const testCard = el("div", { class: "identity-card" },
+        el("h3", {}, "LIVE GENERATION TEST"),
+        el("textarea", { id: "image-test-prompt", class: "matrix-input", style: "width:100%;height:60px;", placeholder: "Enter test prompt..." }),
+        el("button", { class: "matrix-btn", style: "margin-top:8px;", onclick: async () => {
+          const prompt = document.getElementById("image-test-prompt").value;
+          const res = await postJSON("/api/image/generate", { prompt: prompt, aspect_ratio: "1:1" });
+          alert(res.success ? "Success!" : "Failed: " + res.error);
+        } }, "GENERATE TEST IMAGE")
+      );
+      mainGrid.append(testCard);
+
+    }).catch((err) => {
+      mainGrid.innerHTML = `<div class="identity-card" style="color:var(--matrix-error)">Error loading image status: ${err}</div>`;
+    });
+  }
+
+  loadAndRenderStatus();
+  return container;
+}
+
 // Face Lab View
 function renderFaceLab(s) {
   const container = el("div", { class: "lab-container" });
@@ -1936,6 +2046,10 @@ function render() {
   }
   if (currentView === "tts_priority") {
     app.append(renderTTSPriorityView());
+    return;
+  }
+  if (currentView === "image_priority") {
+    app.append(renderImagePriorityView());
     return;
   }
   if (currentView === "providers") {

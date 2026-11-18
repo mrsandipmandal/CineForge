@@ -353,6 +353,7 @@ for i, (sid, label, start, end, _) in enumerate(SECTIONS):
         "path": tts_files[sid],
         "source_tool": "elevenlabs_tts",
         "scene_id": scene_id,
+        "duration_seconds": float(end - start),
     })
     # Image fixture
     img_path = str(ASSETS_DIR / f"img_{scene_id}.png")
@@ -367,6 +368,7 @@ for i, (sid, label, start, end, _) in enumerate(SECTIONS):
         "path": img_path,
         "source_tool": "image_selector",
         "scene_id": scene_id,
+        "duration_seconds": 1.0,
     })
 
 clean_assets.append({
@@ -375,6 +377,7 @@ clean_assets.append({
     "path": music_path,
     "source_tool": "music_gen",
     "scene_id": "sc1",
+    "duration_seconds": 60.0,
 })
 
 asset_manifest = {
