@@ -1,4 +1,4 @@
-﻿"""Audio enhancement tool for noise reduction and cleanup.
+"""Audio enhancement tool for noise reduction and cleanup.
 
 Provides noise reduction, normalization, and EQ via FFmpeg audio
 filters. Optional pedalboard integration for higher-quality

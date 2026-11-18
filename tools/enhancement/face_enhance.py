@@ -1,4 +1,4 @@
-﻿"""Face enhancement tool wrapping FFmpeg filters.
+"""Face enhancement tool wrapping FFmpeg filters.
 
 Applies skin smoothing, sharpening, and lighting correction presets
 to talking-head footage. All presets are FFmpeg filter chains — no GPU

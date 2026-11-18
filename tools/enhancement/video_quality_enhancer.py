@@ -1,4 +1,4 @@
-﻿"""Dedicated Video Quality Enhancer for CineForge.
+"""Dedicated Video Quality Enhancer for CineForge.
 
 Runs after the initial composed render and before final export/publish.
 Reuses existing FFmpeg filters and upscaling tools while providing
