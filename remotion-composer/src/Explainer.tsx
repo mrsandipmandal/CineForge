@@ -651,25 +651,29 @@ const SceneRenderer: React.FC<{ cut: Cut; theme: ThemeConfig }> = ({ cut, theme 
       />
     );
   }
-  if (cut.type === "terminal_scene" && cut.steps) {
+  if (cut.type === "terminal_scene" && (cut.steps || (cut as any).terminalSteps || (cut as any).terminal_steps)) {
+    const termSteps = cut.steps || (cut as any).terminalSteps || (cut as any).terminal_steps;
     return maybeWrapWithBg(
       <TerminalScene
-        title={cut.terminalTitle || "Terminal"}
-        steps={cut.steps as TerminalStep[]}
+        title={cut.terminalTitle || (cut as any).terminal_title || "Terminal"}
+        steps={termSteps as TerminalStep[]}
         prompt={cut.prompt}
         accentColor={accent}
         backgroundColor={bgColor || theme.backgroundColor}
       />
     );
   }
-  if (cut.type === "screenshot_scene" && cut.backgroundImage && cut.screenshotSteps) {
+
+  const bgImg = cut.backgroundImage || (cut as any).background_image || (cut as any).source || (cut as any).image;
+  const scSteps = cut.screenshotSteps || (cut as any).screenshot_steps || cut.steps || [];
+  if (cut.type === "screenshot_scene" && bgImg) {
     return (
       <ScreenshotScene
-        backgroundImage={cut.backgroundImage}
-        backgroundSize={cut.screenshotSize}
-        steps={cut.screenshotSteps as ScreenshotStep[]}
+        backgroundImage={bgImg}
+        backgroundSize={cut.screenshotSize || (cut as any).screenshot_size}
+        steps={scSteps as ScreenshotStep[]}
         accentColor={accent}
-        cursorStartAt={cut.cursorStartAt}
+        cursorStartAt={cut.cursorStartAt || (cut as any).cursor_start_at}
       />
     );
   }

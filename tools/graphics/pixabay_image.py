@@ -165,8 +165,22 @@ class PixabayImage(BaseTool):
             image_url = hit.get("largeImageURL", hit.get("webformatURL"))
 
             # Download immediately — Pixabay URLs contain embedded tokens that expire
-            image_response = requests.get(image_url, timeout=60)
-            image_response.raise_for_status()
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            try:
+                image_response = requests.get(image_url, headers=headers, timeout=60)
+                image_response.raise_for_status()
+            except Exception:
+                prev = hit.get("previewURL", "")
+                alt_url = None
+                if "_150." in prev:
+                    alt_url = prev.replace("_150.", "_1280.")
+                elif "_640." in prev:
+                    alt_url = prev.replace("_640.", "_1280.")
+                if alt_url:
+                    image_response = requests.get(alt_url, headers=headers, timeout=60)
+                    image_response.raise_for_status()
+                else:
+                    raise
 
             output_path = Path(inputs.get("output_path", f"pixabay_{hit['id']}.jpg"))
             output_path.parent.mkdir(parents=True, exist_ok=True)

@@ -280,6 +280,55 @@ def create_app() -> FastAPI:
         registry.ensure_discovered()
         return await asyncio.to_thread(registry.provider_menu_summary)
 
+    # ---- TTS Provider Priority & Fallback API --------------------------
+
+    @app.get("/api/tts/status")
+    async def tts_status() -> dict:
+        from lib.tts_config import get_tts_status_summary
+        return await asyncio.to_thread(get_tts_status_summary)
+
+    @app.get("/api/tts/config")
+    async def tts_config() -> dict:
+        from lib.tts_config import load_tts_config
+        return await asyncio.to_thread(load_tts_config)
+
+    @app.post("/api/tts/config")
+    async def update_tts_config(request: Request) -> dict:
+        from lib.tts_config import get_tts_status_summary, save_tts_config
+        try:
+            body = await request.json()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON body")
+        if not isinstance(body, dict):
+            raise HTTPException(status_code=400, detail="Expected a JSON object")
+        await asyncio.to_thread(save_tts_config, body)
+        return await asyncio.to_thread(get_tts_status_summary)
+
+    @app.post("/api/tts/synthesize")
+    async def tts_synthesize(request: Request) -> dict:
+        from tools.audio.tts_selector import TTSSelector
+        try:
+            body = await request.json()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON body")
+        selector = TTSSelector()
+        result = await asyncio.to_thread(selector.execute, body)
+        return {
+            "success": result.success,
+            "error": result.error,
+            "data": result.data,
+            "artifacts": result.artifacts,
+        }
+
+    @app.get("/api/tts/preview-audio")
+    async def tts_preview_audio(path: str) -> FileResponse:
+        p = Path(path).resolve()
+        if not p.is_file():
+            raise HTTPException(status_code=404, detail="Audio file not found")
+        if not str(p).startswith(str(REPO_ROOT.resolve())):
+            raise HTTPException(status_code=403, detail="Path outside repository")
+        return FileResponse(p)
+
     # ---- Thumbnails (downscaled, cached on disk) ------------------------
 
     @app.get("/thumb/{project_id}/{file_path:path}")

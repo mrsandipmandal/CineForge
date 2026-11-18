@@ -297,17 +297,19 @@ class ScreenRecorder(BaseTool):
         cmd += ["-i", "desktop"]
 
         # Audio input: dshow
+        has_audio = False
         if capture_audio:
             audio_device = _detect_audio_device_windows()
             if audio_device:
-                cmd += ["-f", "dshow", "-i", f"audio={audio_device}"]
+                cmd += ["-f", "dshow", "-t", str(duration), "-i", f"audio={audio_device}"]
+                has_audio = True
 
         # Output encoding
         cmd += ["-c:v", "libx264", "-preset", "ultrafast", "-crf", "23"]
-        if capture_audio:
+        if has_audio:
             cmd += ["-c:a", "aac", "-b:a", "128k"]
         cmd += ["-pix_fmt", "yuv420p"]
-        cmd += [output_path]
+        cmd += ["-t", str(duration), output_path]
 
         return cmd
 
