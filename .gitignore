@@ -106,6 +106,10 @@ venv/
 # Backlot local cache (thumbnails)
 .backlot/
 
+# Git Worktrees
+.worktrees/
+worktrees/
+
 # Workspace-local third-party runtimes (for example the portable Blender LTS
 # used by blender_world). These are checksum-verified but never committed.
 .runtime/
