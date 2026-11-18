@@ -1,7 +1,9 @@
 import json, os, datetime
+from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
 PROJECT_ID = "ramayana-parashurama-krodh"
-PROJECT_DIR = r"f:\CineForge\projects\ramayana-parashurama-krodh"
+PROJECT_DIR = str(REPO_ROOT / "projects" / PROJECT_ID)
 ARTIFACTS_DIR = os.path.join(PROJECT_DIR, "artifacts")
 os.makedirs(ARTIFACTS_DIR, exist_ok=True)
 

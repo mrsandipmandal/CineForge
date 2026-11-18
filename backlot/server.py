@@ -325,7 +325,9 @@ def create_app() -> FastAPI:
         p = Path(path).resolve()
         if not p.is_file():
             raise HTTPException(status_code=404, detail="Audio file not found")
-        if not str(p).startswith(str(REPO_ROOT.resolve())):
+        try:
+            p.relative_to(REPO_ROOT.resolve())
+        except ValueError:
             raise HTTPException(status_code=403, detail="Path outside repository")
         return FileResponse(p)
 

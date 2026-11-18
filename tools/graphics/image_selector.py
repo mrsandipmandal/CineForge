@@ -377,11 +377,12 @@ class ImageSelector(BaseTool):
                 continue
 
             # Validate generated image output file if path is returned
-            out_file = (
-                result.data.get("output_path")
-                or result.data.get("image_path")
-                or (result.artifacts[0] if result.artifacts else None)
-            )
+            out_file = None
+            if result.data:
+                out_file = result.data.get("output_path") or result.data.get("image_path")
+            if not out_file and result.artifacts:
+                out_file = result.artifacts[0]
+
             if out_file:
                 is_valid, fmt, val_reason = validate_image_file(out_file, min_bytes=100)
                 if not is_valid:
@@ -393,6 +394,8 @@ class ImageSelector(BaseTool):
                     continue
 
             # Success! Enrich result metadata
+            if result.data is None:
+                result.data = {}
             result.data.setdefault("selected_tool", tool.name)
             result.data["selected_provider"] = prov
             result.data["fallback_occurred"] = len(fallback_history) > 0

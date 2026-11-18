@@ -89,6 +89,10 @@ class TTSSelector(BaseTool):
                 "type": "string",
                 "description": "Alias for voice.",
             },
+            "voice_profile_id": {
+                "type": "string",
+                "description": "Voice profile identifier for voice consistency.",
+            },
             "language_code": {
                 "type": "string",
                 "description": "Language code (e.g. en, hi, bn).",
@@ -172,6 +176,31 @@ class TTSSelector(BaseTool):
         },
     }
 
+    def _prepare_task_context(self, inputs: dict[str, Any]) -> dict[str, Any]:
+        """Normalize task context from inputs, mapping language codes to style/intent keywords."""
+        from lib.scoring import normalize_task_context
+
+        task_ctx = dict(inputs.get("task_context") or {})
+        lang = str(inputs.get("language_code") or "").lower()
+        LANG_SIGNAL_MAP = {
+            "bn": ["bengali", "multilingual", "indic", "narration"],
+            "hi": ["hindi", "multilingual", "indic", "narration"],
+            "zh": ["chinese", "mandarin", "multilingual", "narration"],
+        }
+        for code, signals in LANG_SIGNAL_MAP.items():
+            if code in lang:
+                existing = list(task_ctx.get("style_keywords") or [])
+                task_ctx["style_keywords"] = list(set(existing) | set(signals))
+                if not task_ctx.get("intent"):
+                    task_ctx["intent"] = " ".join(signals)
+                break
+        return normalize_task_context(
+            task_ctx,
+            prompt=inputs.get("text", ""),
+            capability=self.capability,
+            operation=inputs.get("operation", "generate"),
+        )
+
     def _providers(self) -> list[BaseTool]:
         """Auto-discover TTS providers from the registry."""
         from tools.tool_registry import registry
@@ -249,6 +278,7 @@ class TTSSelector(BaseTool):
                 success=True,
                 data={
                     "primary_provider": "openaifm",
+                    "rankings": rankings,
                     "priority_rankings": rankings,
                     "allow_paid": inputs.get("allow_paid", False),
                 },
@@ -305,6 +335,8 @@ class TTSSelector(BaseTool):
             adapted = self._adapt_inputs(target_tool, inputs)
             res = target_tool.execute(adapted)
             if res.success:
+                if res.data is None:
+                    res.data = {}
                 res.data.setdefault("selected_provider", target_tool.provider)
                 res.data.setdefault("selected_tool", target_tool.name)
                 res.data["fallback_occurred"] = False
@@ -385,12 +417,16 @@ class TTSSelector(BaseTool):
                 fallback_history.append({"provider": prov, "tool": tool.name, "reason": err_msg, "status": "failed"})
                 logger.warning("TTS provider %s failed (%s). Moving to next fallback.", prov, err_msg)
                 if not auto_fallback:
+                    if result.data is None:
+                        result.data = {}
                     result.data["fallback_history"] = fallback_history
                     return result
                 continue
 
             # Validate generated audio on disk
-            out_file = result.data.get("output_path") or (result.artifacts[0] if result.artifacts else None)
+            out_file = result.data.get("output_path") if result.data else None
+            if not out_file and result.artifacts:
+                out_file = result.artifacts[0]
             if out_file:
                 is_valid, fmt, val_reason = validate_audio_file(out_file, min_bytes=100)
                 if not is_valid:
@@ -402,6 +438,8 @@ class TTSSelector(BaseTool):
                     continue
 
             # SUCCESS! Enrich result with provider and fallback audit trail
+            if result.data is None:
+                result.data = {}
             result.data["selected_provider"] = prov
             result.data["selected_tool"] = tool.name
             result.data["is_primary_provider"] = is_primary

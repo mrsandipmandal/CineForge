@@ -135,6 +135,7 @@ def _default_config() -> Dict[str, Any]:
         "manual_mode": False,           # If True, strictly use chosen provider
         "max_retries": 1,
         "timeout_seconds": 20,
+        "last_fallback_event": None,
     }
 
 
@@ -156,11 +157,10 @@ def load_tts_config() -> Dict[str, Any]:
         except Exception as exc:
             logger.warning("Failed to read %s: %s", CONFIG_FILE, exc)
 
-    # Ensure OpenAI.fm is always at the top of priority unless overridden
-    if not cfg["provider_priority"] or cfg["provider_priority"][0] != "openaifm":
-        # Keep openaifm as permanent default primary
-        if "openaifm" in cfg["provider_priority"]:
-            cfg["provider_priority"].remove("openaifm")
+    # Ensure openaifm is present in priority list
+    if not cfg.get("provider_priority"):
+        cfg["provider_priority"] = list(DEFAULT_PRIORITY)
+    elif "openaifm" not in cfg["provider_priority"]:
         cfg["provider_priority"].insert(0, "openaifm")
 
     return cfg

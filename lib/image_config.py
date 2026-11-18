@@ -76,6 +76,7 @@ def _default_config() -> Dict[str, Any]:
         "manual_mode": False,
         "max_retries": 1,
         "timeout_seconds": 30,
+        "last_fallback_event": None,
     }
 
 
@@ -96,10 +97,10 @@ def load_image_config() -> Dict[str, Any]:
         except Exception as exc:
             logger.warning("Failed to read %s: %s", CONFIG_FILE, exc)
 
-    # Ensure google_imagen remains at the top of priority unless explicitly customized
-    if not cfg["provider_priority"] or cfg["provider_priority"][0] != "google_imagen":
-        if "google_imagen" in cfg["provider_priority"]:
-            cfg["provider_priority"].remove("google_imagen")
+    # Ensure google_imagen is present in priority list
+    if not cfg.get("provider_priority"):
+        cfg["provider_priority"] = list(DEFAULT_IMAGE_PRIORITY)
+    elif "google_imagen" not in cfg["provider_priority"]:
         cfg["provider_priority"].insert(0, "google_imagen")
 
     return cfg
@@ -197,9 +198,23 @@ def get_effective_image_priority(inputs: Optional[Dict[str, Any]] = None) -> Lis
 
 def record_image_fallback_event(primary: str, reason: str, fallback: str) -> None:
     """Log and record provider fallback events for Backlot observability."""
+    import time
+
     logger.info(
         "IMAGE FALLBACK EVENT: Primary [%s] failed (%s). Switched to [%s].",
         primary,
         reason,
         fallback,
     )
+    event = {
+        "timestamp": time.time(),
+        "primary_provider": primary,
+        "fallback_provider": fallback,
+        "reason": reason,
+    }
+    cfg = load_image_config()
+    cfg["last_fallback_event"] = event
+    try:
+        save_image_config(cfg)
+    except Exception as exc:
+        logger.warning("Failed to persist image fallback event: %s", exc)
