@@ -254,14 +254,42 @@ class ImageSelector(BaseTool):
 
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
         import logging
+        from lib.image_config import (
+            get_effective_image_priority,
+            is_quota_or_rate_limit_error,
+            load_image_config,
+            record_image_fallback_event,
+            save_image_config,
+            validate_image_file,
+        )
         from lib.scoring import rank_providers
 
         logger = logging.getLogger(__name__)
+        operation = inputs.get("operation", "generate")
+
+        # Config operations for Backlot UI
+        if operation == "get_config":
+            cfg = load_image_config()
+            cfg["discovered_providers"] = [
+                {
+                    "provider": t.provider,
+                    "name": t.name,
+                    "status": t.get_status().value,
+                }
+                for t in self._providers()
+            ]
+            return ToolResult(success=True, data=cfg)
+
+        if operation == "set_config":
+            updates = inputs.get("config_updates") or {}
+            saved = save_image_config(updates)
+            return ToolResult(success=True, data=saved)
+
         task_context = self._prepare_task_context(inputs)
         candidates = self._filter_candidates(inputs, self._providers())
 
         # Rank mode — return scored provider rankings without generating
-        if inputs.get("operation") == "rank":
+        if operation == "rank":
             rankings = rank_providers(candidates, task_context)
             return ToolResult(
                 success=True,
@@ -272,19 +300,142 @@ class ImageSelector(BaseTool):
                 },
             )
 
-        # Normal generation — use scored selection
-        tool, score = self._select_best_tool(inputs, candidates, task_context)
-        if tool is None:
+        if not candidates:
             return ToolResult(success=False, error="No image provider available.")
 
-        # Adapt input keys: stock tools use 'query' while generators use 'prompt'
+        cfg = load_image_config()
+        auto_fallback = bool(
+            inputs.get("auto_fallback", cfg.get("auto_fallback", True))
+            and not inputs.get("manual_mode", cfg.get("manual_mode", False))
+        )
+
+        # Assemble prioritized candidates
+        effective_priority = get_effective_image_priority(inputs)
+        tools_by_provider: dict[str, list[BaseTool]] = {}
+        for t in candidates:
+            tools_by_provider.setdefault(t.provider, []).append(t)
+
+        ordered_tools: list[BaseTool] = []
+        for prov in effective_priority:
+            for t in tools_by_provider.get(prov, []):
+                if t not in ordered_tools and self._tool_selectable(t, inputs):
+                    ordered_tools.append(t)
+
+        for t in candidates:
+            if t not in ordered_tools and self._tool_selectable(t, inputs):
+                ordered_tools.append(t)
+
+        # Handle exact preferred_tool request (manual single tool mode)
+        preferred_tool = inputs.get("preferred_tool")
+        if preferred_tool:
+            p_tool = next((t for t in candidates if t.name == preferred_tool), None)
+            if p_tool:
+                ordered_tools = [p_tool]
+
+        if not ordered_tools:
+            return ToolResult(success=False, error="No selectable image provider found matching constraints.")
+
+        fallback_history: list[dict[str, Any]] = []
+
+        for idx, tool in enumerate(ordered_tools):
+            prov = tool.provider
+            logger.info(
+                "Attempting image generation with [%s] (%s) — priority rank #%d",
+                prov,
+                tool.name,
+                idx + 1,
+            )
+
+            try:
+                adapted = self._adapt_inputs(tool, inputs)
+            except Exception as exc:
+                err_msg = f"Input adaptation error for {tool.name}: {exc}"
+                fallback_history.append({"provider": prov, "tool": tool.name, "reason": err_msg, "status": "failed"})
+                if not auto_fallback:
+                    return ToolResult(success=False, error=err_msg, data={"fallback_history": fallback_history})
+                continue
+
+            try:
+                result = tool.execute(adapted)
+            except Exception as exc:
+                err_msg = f"Execution exception in {tool.name}: {exc}"
+                fallback_history.append({"provider": prov, "tool": tool.name, "reason": err_msg, "status": "failed"})
+                logger.warning("Image provider %s exception (%s). Moving to next fallback.", prov, err_msg)
+                if not auto_fallback:
+                    return ToolResult(success=False, error=err_msg, data={"fallback_history": fallback_history})
+                continue
+
+            if not result.success:
+                err_msg = result.error or f"{tool.name} returned success=False"
+                fallback_history.append({"provider": prov, "tool": tool.name, "reason": err_msg, "status": "failed"})
+                logger.warning("Image provider %s failed (%s). Moving to next fallback.", prov, err_msg)
+                if not auto_fallback:
+                    if result.data is None:
+                        result.data = {}
+                    result.data["fallback_history"] = fallback_history
+                    return result
+                continue
+
+            # Validate generated image output file if path is returned
+            out_file = (
+                result.data.get("output_path")
+                or result.data.get("image_path")
+                or (result.artifacts[0] if result.artifacts else None)
+            )
+            if out_file:
+                is_valid, fmt, val_reason = validate_image_file(out_file, min_bytes=100)
+                if not is_valid:
+                    err_msg = f"Invalid image output from {tool.name}: {val_reason}"
+                    fallback_history.append({"provider": prov, "tool": tool.name, "reason": err_msg, "status": "failed"})
+                    logger.warning("Image validation failed for %s (%s). Falling back.", prov, val_reason)
+                    if not auto_fallback:
+                        return ToolResult(success=False, error=err_msg, data={"fallback_history": fallback_history})
+                    continue
+
+            # Success! Enrich result metadata
+            result.data.setdefault("selected_tool", tool.name)
+            result.data["selected_provider"] = prov
+            result.data["fallback_occurred"] = len(fallback_history) > 0
+            result.data["fallback_history"] = fallback_history
+            result.data["priority_rank_used"] = idx + 1
+            result.data.update(self._tool_context_payload(tool))
+            result.data["alternatives_considered"] = [
+                t.name for t in ordered_tools if t.name != tool.name
+            ]
+
+            if fallback_history:
+                first_failed = fallback_history[0]
+                result.data["fallback_reason"] = (
+                    f"Primary provider '{first_failed['provider']}' failed: {first_failed['reason']}. "
+                    f"Successfully generated via fallback provider '{prov}'."
+                )
+                try:
+                    record_image_fallback_event(first_failed["provider"], str(first_failed["reason"]), prov)
+                except Exception:
+                    pass
+            else:
+                result.data["fallback_reason"] = None
+
+            return result
+
+        # All eligible candidates failed
+        failed_summary = "; ".join(f"{h['provider']}: {h['reason']}" for h in fallback_history)
+        return ToolResult(
+            success=False,
+            error=f"All attempted image providers failed: {failed_summary}",
+            data={"fallback_history": fallback_history},
+        )
+
+    def _adapt_inputs(self, tool: BaseTool, inputs: dict[str, Any]) -> dict[str, Any]:
+        """Adapt generic selector inputs to provider-native schema requirements."""
+        import logging
+
+        logger = logging.getLogger(__name__)
         adapted = dict(inputs)
         if hasattr(tool, "input_schema"):
             props = tool.input_schema.get("properties", {})
             if "query" in props and "query" not in adapted:
                 adapted["query"] = adapted.get("prompt", "")
-            # Normalize the selector's shared reference-image inputs for
-            # providers whose native contract accepts an ``images`` array.
             if "images" in props and "images" not in adapted:
                 refs = list(adapted.get("image_paths") or []) + list(
                     adapted.get("image_urls") or []
@@ -294,8 +445,6 @@ class ImageSelector(BaseTool):
                 ]
                 if refs:
                     adapted["images"] = refs
-            # The selector exposes a provider-neutral ``model_name`` field,
-            # while several providers call the same input ``model``.
             if "model_name" in adapted and "model" in props and "model" not in adapted:
                 adapted["model"] = adapted["model_name"]
             if "n" in adapted and "number_of_images" in props:
@@ -303,13 +452,13 @@ class ImageSelector(BaseTool):
             if "n" in adapted and "num_images" in props and "num_images" not in adapted:
                 adapted["num_images"] = adapted["n"]
 
-        # Strip selector-only keys that downstream tools don't understand
         adapted.pop("preferred_provider", None)
         adapted.pop("allowed_providers", None)
         adapted.pop("preferred_tool", None)
         adapted.pop("hosting_provider", None)
+        adapted.pop("auto_fallback", None)
+        adapted.pop("manual_mode", None)
 
-        # Pass through generation params only to tools that accept them.
         if hasattr(tool, "input_schema"):
             props = tool.input_schema.get("properties", {})
             stripped = []
@@ -354,23 +503,7 @@ class ImageSelector(BaseTool):
                     tool.name,
                     ", ".join(stripped),
                 )
-
-        result = tool.execute(adapted)
-        if result.success:
-            result.data.setdefault("selected_tool", tool.name)
-            result.data["selected_provider"] = tool.provider
-            result.data["selection_reason"] = (
-                score.explain() if score else f"Selected {tool.provider} ({tool.name})"
-            )
-            if score:
-                result.data["provider_score"] = score.to_dict()
-            result.data.update(self._tool_context_payload(tool))
-            result.data["alternatives_considered"] = [
-                t.name
-                for t in candidates
-                if t.name != tool.name and t.get_status().value == "available"
-            ]
-        return result
+        return adapted
 
     def _select_best_tool(
         self,
