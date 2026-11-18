@@ -1,0 +1,222 @@
+{
+  "descriptors": [
+    {
+      "id": "scene_1",
+      "scene_id": "scene_1",
+      "image": "ramayana-manthara-chakranta/scene_1.jpg",
+      "action": "Ayodhya illuminated with golden diyas as midnight shadows creep",
+      "mood": "festive_yet_ominous",
+      "duration_seconds": 8.5,
+      "motion_type": "2.5d_parallax_pulse",
+      "depth_layers": {
+        "background_scale_speed": 1.05,
+        "subject_scale_speed": 1.15,
+        "foreground_speed": 1.35
+      },
+      "character_dynamics": {
+        "breathing": true,
+        "breathing_cycle_sec": 3.2,
+        "eye_glint_flicker": true,
+        "weapon_glow_pulse": false
+      },
+      "particle_fx": {
+        "type": "golden_embers",
+        "density": 45,
+        "turbulence": 1.4
+      },
+      "camera_dynamics": {
+        "rate": 1.1,
+        "shake_intensity": 0.0,
+        "rack_focus_frames": 10,
+        "whip_pan": false
+      }
+    },
+    {
+      "id": "scene_2",
+      "scene_id": "scene_2",
+      "image": "ramayana-manthara-chakranta/scene_2.jpg",
+      "action": "Manthara whispering poisonous malice into Kaikeyi's ear",
+      "mood": "conspiratorial_dark",
+      "duration_seconds": 8.0,
+      "motion_type": "2.5d_parallax_pulse",
+      "depth_layers": {
+        "background_scale_speed": 1.08,
+        "subject_scale_speed": 1.2,
+        "foreground_speed": 1.4
+      },
+      "character_dynamics": {
+        "breathing": true,
+        "breathing_cycle_sec": 2.8,
+        "eye_glint_flicker": true,
+        "weapon_glow_pulse": false
+      },
+      "particle_fx": {
+        "type": "dark_palace_shadows",
+        "density": 40,
+        "turbulence": 1.8
+      },
+      "camera_dynamics": {
+        "rate": 1.2,
+        "shake_intensity": 0.05,
+        "rack_focus_frames": 15,
+        "whip_pan": false
+      }
+    },
+    {
+      "id": "scene_3",
+      "scene_id": "scene_3",
+      "image": "ramayana-manthara-chakranta/scene_3.jpg",
+      "action": "Kaikeyi furiously casting off royal ornaments and entering Kopabhavan",
+      "mood": "furious_vengeful",
+      "duration_seconds": 8.5,
+      "motion_type": "2.5d_parallax_pulse",
+      "depth_layers": {
+        "background_scale_speed": 1.1,
+        "subject_scale_speed": 1.25,
+        "foreground_speed": 1.45
+      },
+      "character_dynamics": {
+        "breathing": true,
+        "breathing_cycle_sec": 2.4,
+        "eye_glint_flicker": true,
+        "weapon_glow_pulse": false
+      },
+      "particle_fx": {
+        "type": "storm_dust",
+        "density": 50,
+        "turbulence": 2.0
+      },
+      "camera_dynamics": {
+        "rate": 1.3,
+        "shake_intensity": 0.1,
+        "rack_focus_frames": 12,
+        "whip_pan": true
+      }
+    },
+    {
+      "id": "scene_4",
+      "scene_id": "scene_4",
+      "image": "ramayana-manthara-chakranta/scene_4.jpg",
+      "action": "Elderly Emperor Dasharatha entering Kopabhavan chamber holding golden lamp in grief",
+      "mood": "heartbreaking_agony",
+      "duration_seconds": 9.0,
+      "motion_type": "2.5d_parallax_pulse",
+      "depth_layers": {
+        "background_scale_speed": 1.05,
+        "subject_scale_speed": 1.15,
+        "foreground_speed": 1.3
+      },
+      "character_dynamics": {
+        "breathing": true,
+        "breathing_cycle_sec": 3.5,
+        "eye_glint_flicker": true,
+        "weapon_glow_pulse": false
+      },
+      "particle_fx": {
+        "type": "candle_flicker",
+        "density": 30,
+        "turbulence": 1.1
+      },
+      "camera_dynamics": {
+        "rate": 1.05,
+        "shake_intensity": 0.02,
+        "rack_focus_frames": 12,
+        "whip_pan": false
+      }
+    },
+    {
+      "id": "scene_5",
+      "scene_id": "scene_5",
+      "image": "ramayana-manthara-chakranta/scene_5.jpg",
+      "action": "Queen Kaikeyi demanding two fatal boons: Bharata's coronation and Rama's 14-year exile",
+      "mood": "cruel_demand",
+      "duration_seconds": 8.5,
+      "motion_type": "2.5d_parallax_pulse",
+      "depth_layers": {
+        "background_scale_speed": 1.1,
+        "subject_scale_speed": 1.22,
+        "foreground_speed": 1.4
+      },
+      "character_dynamics": {
+        "breathing": true,
+        "breathing_cycle_sec": 3.0,
+        "eye_glint_flicker": true,
+        "weapon_glow_pulse": true
+      },
+      "particle_fx": {
+        "type": "dark_palace_shadows",
+        "density": 45,
+        "turbulence": 1.6
+      },
+      "camera_dynamics": {
+        "rate": 1.25,
+        "shake_intensity": 0.08,
+        "rack_focus_frames": 14,
+        "whip_pan": false
+      }
+    },
+    {
+      "id": "scene_6",
+      "scene_id": "scene_6",
+      "image": "ramayana-manthara-chakranta/scene_6.jpg",
+      "action": "Emperor Dasharatha collapsing onto palace floor in unbearable grief pleading for Rama",
+      "mood": "tragic_collapse",
+      "duration_seconds": 8.5,
+      "motion_type": "2.5d_parallax_pulse",
+      "depth_layers": {
+        "background_scale_speed": 1.12,
+        "subject_scale_speed": 1.3,
+        "foreground_speed": 1.5
+      },
+      "character_dynamics": {
+        "breathing": true,
+        "breathing_cycle_sec": 2.0,
+        "eye_glint_flicker": true,
+        "weapon_glow_pulse": false
+      },
+      "particle_fx": {
+        "type": "shockwave_dust",
+        "density": 60,
+        "turbulence": 2.2
+      },
+      "camera_dynamics": {
+        "rate": 1.4,
+        "shake_intensity": 0.25,
+        "rack_focus_frames": 18,
+        "whip_pan": true
+      }
+    },
+    {
+      "id": "scene_7",
+      "scene_id": "scene_7",
+      "image": "ramayana-manthara-chakranta/scene_7.jpg",
+      "action": "Dark midnight over ancient Ayodhya under blood-red moon as Dasharatha lies unconscious",
+      "mood": "epic_cliffhanger",
+      "duration_seconds": 7.5,
+      "motion_type": "2.5d_parallax_pulse",
+      "depth_layers": {
+        "background_scale_speed": 1.06,
+        "subject_scale_speed": 1.18,
+        "foreground_speed": 1.35
+      },
+      "character_dynamics": {
+        "breathing": true,
+        "breathing_cycle_sec": 3.2,
+        "eye_glint_flicker": true,
+        "weapon_glow_pulse": true
+      },
+      "particle_fx": {
+        "type": "golden_embers",
+        "density": 50,
+        "turbulence": 1.5
+      },
+      "camera_dynamics": {
+        "rate": 1.15,
+        "shake_intensity": 0.03,
+        "rack_focus_frames": 12,
+        "whip_pan": false
+      }
+    }
+  ],
+  "count": 7
+}

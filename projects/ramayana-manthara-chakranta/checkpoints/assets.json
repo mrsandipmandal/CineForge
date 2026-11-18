@@ -1,0 +1,71 @@
+{
+  "version": "1.0",
+  "project_id": "ramayana-manthara-chakranta",
+  "pipeline_type": "mythological_shorts",
+  "stage": "assets",
+  "status": "completed",
+  "timestamp": "2026-11-18T19:22:31.639707+00:00",
+  "checkpoint_policy": "guided",
+  "human_approval_required": false,
+  "human_approved": true,
+  "artifacts": {
+    "asset_manifest": {
+      "version": "1.0",
+      "project_id": "ramayana-manthara-chakranta",
+      "assets": [
+        {
+          "id": "img_scene_1",
+          "type": "image",
+          "scene_id": "scene_1",
+          "path": "images/scene_1.jpg"
+        },
+        {
+          "id": "img_scene_2",
+          "type": "image",
+          "scene_id": "scene_2",
+          "path": "images/scene_2.jpg"
+        },
+        {
+          "id": "img_scene_3",
+          "type": "image",
+          "scene_id": "scene_3",
+          "path": "images/scene_3.jpg"
+        },
+        {
+          "id": "img_scene_4",
+          "type": "image",
+          "scene_id": "scene_4",
+          "path": "images/scene_4.jpg"
+        },
+        {
+          "id": "img_scene_5",
+          "type": "image",
+          "scene_id": "scene_5",
+          "path": "images/scene_5.jpg"
+        },
+        {
+          "id": "img_scene_6",
+          "type": "image",
+          "scene_id": "scene_6",
+          "path": "images/scene_6.jpg"
+        },
+        {
+          "id": "img_scene_7",
+          "type": "image",
+          "scene_id": "scene_7",
+          "path": "images/scene_7.jpg"
+        },
+        {
+          "id": "audio_master_wav",
+          "type": "audio",
+          "path": "audio/audio_mix.wav"
+        },
+        {
+          "id": "audio_master_mp3",
+          "type": "audio",
+          "path": "audio/audio_mix.mp3"
+        }
+      ]
+    }
+  }
+}
