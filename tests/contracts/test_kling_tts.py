@@ -150,14 +150,16 @@ def test_execute_accepts_synchronous_create_response(monkeypatch, tmp_path):
     assert result.data["audio_duration_seconds"] == 2.5
 
 
-def test_tts_selector_prefers_kling_official(monkeypatch, isolated_tool_registry):
+def test_tts_selector_prefers_kling_official(monkeypatch, isolated_tool_registry, tmp_path):
     monkeypatch.setenv("KLING_API_KEY", "test-key")
     isolated_tool_registry.discover("tools")
+    out_file = tmp_path / "out.mp3"
+    out_file.write_bytes(b"ID3\x03\x00\x00\x00\x00\x00\x00" + b"\x00" * 200)
 
     def fake_execute(self, inputs):
         from tools.base_tool import ToolResult
 
-        return ToolResult(success=True, data={"output_path": "out.mp3"}, artifacts=["out.mp3"])
+        return ToolResult(success=True, data={"output_path": str(out_file)}, artifacts=[str(out_file)])
 
     monkeypatch.setattr(KlingTTS, "execute", fake_execute)
     result = isolated_tool_registry.get("tts_selector").execute(

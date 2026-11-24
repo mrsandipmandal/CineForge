@@ -466,7 +466,7 @@ class TestVeoVideo:
     def test_backend_auto_detect(self):
         tool = VeoVideo()
 
-        with patch.dict(os.environ, {"GEMINI_API_KEY": "test_key", "FAL_KEY": ""}):
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "", "GOOGLE_API_KEY": "", "FAL_KEY": ""}):
             if "FAL_KEY" in os.environ:
                 del os.environ["FAL_KEY"]
             if "FAL_AI_API_KEY" in os.environ:
@@ -474,6 +474,12 @@ class TestVeoVideo:
             assert tool._get_google_credentials_status() is False
             assert not tool._get_fal_api_key()
             assert tool.get_status() == ToolStatus.UNAVAILABLE
+
+        with patch.dict(
+            os.environ,
+            {"GEMINI_API_KEY": "test_key", "GOOGLE_API_KEY": "", "FAL_KEY": ""},
+        ):
+            assert tool.get_status() == ToolStatus.AVAILABLE
 
         with patch.dict(
             os.environ,
@@ -730,6 +736,10 @@ class TestCapabilityMetadata:
             "indic_speak",
             "mms",
             "voxcpm2",
+            "dheeyantra",
+            "kokoro",
+            "openaifm",
+            "openrouter",
         }
 
 
