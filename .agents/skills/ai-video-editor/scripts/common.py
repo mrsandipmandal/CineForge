@@ -134,8 +134,12 @@ class _Handler(SimpleHTTPRequestHandler):
             if path.startswith(prefix + "/"):
                 rel = path[len(prefix) + 1:]
                 from urllib.parse import unquote
-                full = os.path.normpath(os.path.join(root, unquote(rel)))
-                if os.path.commonpath([full, root]) == root:
+                clean_rel = os.path.normpath(unquote(rel)).lstrip("/\\")
+                if ".." in clean_rel.split(os.sep) or ".." in clean_rel.split("/"):
+                    continue
+                safe_root = os.path.realpath(root)
+                full = os.path.realpath(os.path.join(safe_root, clean_rel))
+                if full == safe_root or full.startswith(safe_root + os.sep):
                     return full
         return os.path.join(self.roots.get("/work", "."), "__nope__")
 

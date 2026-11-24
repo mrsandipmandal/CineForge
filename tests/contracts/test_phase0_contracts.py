@@ -166,6 +166,7 @@ def sample_artifact(name: str) -> dict:
                     "path": "assets/clip.mp4",
                     "source_tool": "ffmpeg",
                     "scene_id": "scene-1",
+                    "duration_seconds": 0,
                 }
             ],
         }

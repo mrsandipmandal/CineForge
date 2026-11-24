@@ -381,14 +381,19 @@ def create_app() -> FastAPI:
 
     @app.get("/api/tts/preview-audio")
     async def tts_preview_audio(path: str) -> FileResponse:
-        p = Path(path).resolve()
-        if not p.is_file():
-            raise HTTPException(status_code=404, detail="Audio file not found")
-        try:
-            p.relative_to(REPO_ROOT.resolve())
-        except ValueError:
+        if not path or ".." in path.replace("\\", "/").split("/"):
             raise HTTPException(status_code=403, detail="Path outside repository")
-        return FileResponse(p)
+        base = os.path.realpath(str(REPO_ROOT))
+        clean_path = os.path.normpath(path).lstrip("/\\")
+        if ".." in clean_path.split(os.sep) or ".." in clean_path.split("/"):
+            raise HTTPException(status_code=403, detail="Path outside repository")
+        target = os.path.realpath(os.path.join(base, clean_path))
+        if not (target == base or target.startswith(base + os.sep)):
+            raise HTTPException(status_code=403, detail="Path outside repository")
+        target_path = Path(target)
+        if not target_path.is_file():
+            raise HTTPException(status_code=404, detail="Audio file not found")
+        return FileResponse(target_path)
 
     # ---- Thumbnails (downscaled, cached on disk) ------------------------
 
