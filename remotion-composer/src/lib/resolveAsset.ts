@@ -10,6 +10,9 @@ const isWindowsAbsolutePath = (src: string): boolean =>
 
 /** Resolve public assets and absolute filesystem paths consistently. */
 export function resolveAsset(src: string): string {
+  if (!src) {
+    return "";
+  }
   if (isRemoteAsset(src)) {
     return src;
   }

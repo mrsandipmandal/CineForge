@@ -280,6 +280,121 @@ def create_app() -> FastAPI:
         registry.ensure_discovered()
         return await asyncio.to_thread(registry.provider_menu_summary)
 
+    # ---- TTS Provider Priority & Fallback API --------------------------
+
+    @app.get("/api/tts/status")
+    async def tts_status() -> dict:
+        from lib.tts_config import get_tts_status_summary
+        return await asyncio.to_thread(get_tts_status_summary)
+
+    @app.get("/api/tts/config")
+    async def tts_config() -> dict:
+        from lib.tts_config import load_tts_config
+        return await asyncio.to_thread(load_tts_config)
+
+    @app.post("/api/tts/config")
+    async def update_tts_config(request: Request) -> dict:
+        from lib.tts_config import get_tts_status_summary, save_tts_config
+        try:
+            body = await request.json()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON body")
+        if not isinstance(body, dict):
+            raise HTTPException(status_code=400, detail="Expected a JSON object")
+        await asyncio.to_thread(save_tts_config, body)
+        return await asyncio.to_thread(get_tts_status_summary)
+
+    # ---- Image Provider Priority & Fallback API --------------------------
+
+    @app.get("/api/settings/image")
+    @app.get("/api/image/config")
+    @app.get("/api/image/status")
+    async def image_status() -> dict:
+        from lib.image_config import get_image_status_summary
+        return await asyncio.to_thread(get_image_status_summary)
+
+    @app.post("/api/settings/image")
+    @app.post("/api/image/config")
+    async def update_image_config(request: Request) -> dict:
+        from lib.image_config import get_image_status_summary, save_image_config
+        try:
+            body = await request.json()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON body")
+        if not isinstance(body, dict):
+            raise HTTPException(status_code=400, detail="Expected a JSON object")
+
+        # Strict validation
+        if "provider_priority" in body:
+            pp = body["provider_priority"]
+            if not isinstance(pp, list) or not all(isinstance(p, str) and p.strip() for p in pp):
+                raise HTTPException(status_code=422, detail="Invalid provider_priority")
+        
+        if "enabled_providers" in body:
+            ep = body["enabled_providers"]
+            if not isinstance(ep, dict) or not all(isinstance(k, str) and isinstance(v, bool) for k, v in ep.items()):
+                raise HTTPException(status_code=422, detail="Invalid enabled_providers")
+
+        if "auto_fallback" in body and not isinstance(body["auto_fallback"], bool):
+            raise HTTPException(status_code=422, detail="Invalid auto_fallback")
+        
+        if "manual_mode" in body and not isinstance(body["manual_mode"], bool):
+            raise HTTPException(status_code=422, detail="Invalid manual_mode")
+            
+        if "primary_provider" in body and not isinstance(body["primary_provider"], str):
+            raise HTTPException(status_code=422, detail="Invalid primary_provider")
+
+        await asyncio.to_thread(save_image_config, body)
+        return await asyncio.to_thread(get_image_status_summary)
+
+    @app.post("/api/image/generate")
+    async def image_generate(request: Request) -> dict:
+        from tools.graphics.image_selector import ImageSelector
+        try:
+            body = await request.json()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON body")
+        selector = ImageSelector()
+        result = await asyncio.to_thread(selector.execute, body)
+        return {
+            "success": result.success,
+            "error": result.error,
+            "data": result.data,
+            "artifacts": result.artifacts,
+        }
+
+    @app.post("/api/tts/synthesize")
+    async def tts_synthesize(request: Request) -> dict:
+        from tools.audio.tts_selector import TTSSelector
+        try:
+            body = await request.json()
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON body")
+        selector = TTSSelector()
+        result = await asyncio.to_thread(selector.execute, body)
+        return {
+            "success": result.success,
+            "error": result.error,
+            "data": result.data,
+            "artifacts": result.artifacts,
+        }
+
+    @app.get("/api/tts/preview-audio")
+    async def tts_preview_audio(path: str) -> FileResponse:
+        if not path or ".." in path.replace("\\", "/").split("/"):
+            raise HTTPException(status_code=403, detail="Path outside repository")
+        base = os.path.realpath(str(REPO_ROOT))
+        clean_path = os.path.normpath(path).lstrip("/\\")
+        if ".." in clean_path.split(os.sep) or ".." in clean_path.split("/"):
+            raise HTTPException(status_code=403, detail="Path outside repository")
+        target = os.path.realpath(os.path.join(base, clean_path))
+        if not (target == base or target.startswith(base + os.sep)):
+            raise HTTPException(status_code=403, detail="Path outside repository")
+        target_path = Path(target)
+        if not target_path.is_file():
+            raise HTTPException(status_code=404, detail="Audio file not found")
+        return FileResponse(target_path)
+
     # ---- Thumbnails (downscaled, cached on disk) ------------------------
 
     @app.get("/thumb/{project_id}/{file_path:path}")

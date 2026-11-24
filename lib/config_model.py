@@ -29,7 +29,12 @@ class LLMConfig(BaseModel):
     provider: str = "anthropic"
     model: Optional[str] = None
     temperature: float = 0.7
-    max_tokens: int = 4096
+    max_tokens: int = 8192
+    stage_temperature_overrides: dict = Field(default_factory=dict)
+
+    def temperature_for_stage(self, stage: str) -> float:
+        """Return stage-specific temperature, falling back to global default."""
+        return float(self.stage_temperature_overrides.get(stage, self.temperature))
 
 
 class BudgetConfig(BaseModel):

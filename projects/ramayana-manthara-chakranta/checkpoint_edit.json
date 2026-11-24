@@ -1,0 +1,12 @@
+{
+  "version": "1.0",
+  "project_id": "ramayana-manthara-chakranta",
+  "pipeline_type": "mythological_shorts",
+  "stage": "edit",
+  "status": "completed",
+  "timestamp": "2026-11-18T19:22:31.639707+00:00",
+  "checkpoint_policy": "guided",
+  "human_approval_required": false,
+  "human_approved": true,
+  "artifacts": {}
+}

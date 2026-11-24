@@ -63,6 +63,9 @@ PRESETS = {
             "loudnorm=I=-24:LRA=7:TP=-2"
         ),
     },
+
+
+
     "voice_clarity": {
         "description": "Boost vocal presence with EQ and light compression",
         "af": (
@@ -72,6 +75,31 @@ PRESETS = {
             "equalizer=f=5000:t=q:w=1.5:g=2,"
             "acompressor=threshold=-20dB:ratio=2.5:attack=10:release=100,"
             "loudnorm=I=-16:LRA=11:TP=-1.5"
+        ),
+    },
+    "voice_clarity_no_norm": {
+        "description": (
+            "Vocal EQ + compression WITHOUT loudnorm. "
+            "Use this when audio will be processed by audio_mixer's full_mix "
+            "loudnorm pass — applying loudnorm twice causes audible gain-riding "
+            "(pumping) at sentence boundaries."
+        ),
+        "af": (
+            "highpass=f=80,"
+            "equalizer=f=200:t=q:w=1.5:g=-3,"
+            "equalizer=f=3000:t=q:w=1.0:g=3,"
+            "equalizer=f=5000:t=q:w=1.5:g=2,"
+            "acompressor=threshold=-20dB:ratio=2.5:attack=10:release=100"
+        ),
+    },
+    "noise_reduce_no_norm": {
+        "description": (
+            "Noise reduction WITHOUT loudnorm. "
+            "Safe for pre-mix use when downstream mixer will normalize."
+        ),
+        "af": (
+            "afftdn=nf=-25:nt=w,"
+            "highpass=f=100"
         ),
     },
 }

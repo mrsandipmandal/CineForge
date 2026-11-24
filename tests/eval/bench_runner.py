@@ -17,6 +17,11 @@ import sys
 from dataclasses import dataclass, field
 from typing import Any
 
+VALID_SCENE_TYPES = {
+    "talking_head", "broll", "animation", "character_scene", "diagram",
+    "text_card", "transition", "generated", "screen_recording",
+}
+
 
 # ---------------------------------------------------------------------------
 # Scenario definitions — synthetic plans that exercise validators
@@ -53,7 +58,7 @@ class BenchResult:
 
 def _scene(
     desc: str,
-    scene_type: str = "visual",
+    scene_type: str = "generated",
     shot_size: str | None = None,
     movement: str = "static",
     lighting: str | None = None,
@@ -134,19 +139,19 @@ def build_scenarios() -> list[BenchScenario]:
         renderer_family="explainer-data",
         scenes=[
             _scene("Animated bar chart showing revenue growth 2020-2025",
-                   scene_type="bar_chart", shot_size="medium",
+                   scene_type="diagram", shot_size="medium",
                    intent="Anchor the narrative in hard numbers", info_role="key statistic"),
             _scene("Split screen: before/after product redesign",
-                   scene_type="comparison", shot_size="medium",
+                   scene_type="diagram", shot_size="medium",
                    intent="Visual proof of transformation", info_role="comparison"),
             _scene("Infographic showing 3-step process flow",
-                   scene_type="callout", shot_size="wide",
+                   scene_type="text_card", shot_size="wide",
                    intent="Simplify complex process into digestible steps", info_role="process explanation"),
             _scene("Customer testimonial overlay on product usage footage",
                    shot_size="medium-close-up", movement="static", lighting="studio",
                    intent="Social proof to support data claims", narrative_role="evidence"),
             _scene("KPI dashboard showing live metrics",
-                   scene_type="kpi_grid", shot_size="wide",
+                   scene_type="text_card", shot_size="wide",
                    intent="Real-time impact visualization", info_role="key statistic"),
         ],
         expected_slideshow_verdict="strong",
@@ -180,11 +185,11 @@ def build_scenarios() -> list[BenchScenario]:
         scenes=[
             _scene("Title card: Welcome to Our Company", scene_type="text_card"),
             _scene("Bullet points: Our 5 core values", scene_type="text_card"),
-            _scene("Statistics: 500 employees, 30 countries", scene_type="stat_card"),
+            _scene("Statistics: 500 employees, 30 countries", scene_type="text_card"),
             _scene("Quote: CEO inspirational message", scene_type="text_card"),
-            _scene("KPI grid: Q4 results", scene_type="kpi_grid"),
+            _scene("KPI grid: Q4 results", scene_type="text_card"),
             _scene("More bullet points: Our differentiators", scene_type="text_card"),
-            _scene("Final stat card: Year over year growth", scene_type="stat_card"),
+            _scene("Final stat card: Year over year growth", scene_type="text_card"),
         ],
         expected_slideshow_verdict="revise",
     ))
@@ -329,12 +334,12 @@ def build_scenarios() -> list[BenchScenario]:
             _scene("Diagram showing system architecture",
                    shot_size="wide", intent="Explain the big picture", info_role="process explanation"),
             _scene("Screen recording of feature demo",
-                   shot_size="medium", movement="static",
+                   scene_type="screen_recording", shot_size="medium", movement="static",
                    intent="Show the product in action"),
             _scene("Before/after comparison of results",
-                   scene_type="comparison", intent="Prove the value"),
+                   scene_type="diagram", intent="Prove the value"),
             _scene("Summary stats and call to action",
-                   scene_type="stat_card", intent="Drive conversion"),
+                   scene_type="text_card", intent="Drive conversion"),
         ],
         expected_slideshow_verdict="acceptable",
     ))
@@ -357,6 +362,13 @@ def _verdict_matches(expected: str, actual: str) -> bool:
 
 
 def run_bench(scenarios: list[BenchScenario], verbose: bool = False) -> list[BenchResult]:
+    # Validate all scene types before running
+    for sc in scenarios:
+        for s in sc.scenes:
+            assert s.get("type", "") in VALID_SCENE_TYPES, (
+                f"Invalid scene type '{s.get('type')}' in scenario '{sc.name}'"
+            )
+
     results: list[BenchResult] = []
 
     for sc in scenarios:

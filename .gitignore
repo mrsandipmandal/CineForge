@@ -43,6 +43,7 @@ music_library/
 .env.local
 *.env
 .youtube-token.json
+.kaggle*
 # Google service-account / Vertex AI keys — never commit
 gcp-*.json
 *-service-account.json
@@ -51,12 +52,16 @@ service_account*.json
 
 # Stray media downloads (test/scratch clips left in repo root)
 pexels_video_*.mp4
+pixabay_video_*.mp4
+temp_voice_samples/
+*.part
 
 # Scratch/debug scripts
 scratch/
 
 # Internal docs (strategy, handoffs, playbooks — not shipped)
 internal/
+SUPERPOWERS_INSTALL_PLAN.md
 
 # Local agent config (user-specific)
 .claude/memory/
@@ -81,6 +86,9 @@ node_modules/
 
 # Remotion build output and copied project assets (regenerable at render time)
 remotion-composer/out/
+remotion-composer/*.png
+.remotion/
+.cache/
 # Project-local bespoke ("atelier") compositions — hand-authored per video,
 # throwaway and regenerable. Keeps the shared src/ free of one-off scenes.
 remotion-composer/projects/
@@ -97,6 +105,11 @@ venv/
 
 # Backlot local cache (thumbnails)
 .backlot/
+
+# Git Worktrees
+.worktrees/
+worktrees/
+.agents/teamwork/
 
 # Workspace-local third-party runtimes (for example the portable Blender LTS
 # used by blender_world). These are checksum-verified but never committed.

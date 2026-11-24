@@ -1,0 +1,297 @@
+name: mythological_shorts
+version: "1.0"
+description: >
+  Dedicated 9:16 vertical pipeline for Indian mythological and Hindu epic shorts
+  (Ramayana, Mahabharata, Puranas, Vedic deities, ancient kings).
+  Enforces strict scriptural authenticity, proper male Vedic royal attire (dhoti, angavastram, mukut),
+  sacred Sanskrit Devanagari inscriptions on divine weapons, and broadcast-grade Sanjay baritone narration.
+category: cinematic
+stability: production
+default_checkpoint_policy: guided
+
+reference_input:
+  supported: true
+  analysis_depth: standard
+  analysis_tools:
+    - video_analyzer
+    - transcript_fetcher
+    - scene_detect
+    - frame_sampler
+
+orchestration:
+  mode: executive-producer
+  skill: pipelines/cinematic/executive-producer
+  budget_default_usd: 2.00
+  max_revisions_per_stage: 3
+  max_send_backs: 3
+  max_wall_time_minutes: 15
+
+extensions:
+  custom_scripts: true
+  custom_playbooks: true
+  custom_skills: true
+  custom_tools: false
+
+required_skills:
+  - mythological-video-production
+  - meta/reviewer
+  - meta/checkpoint-protocol
+  - meta/voice-performance-director
+  - remotion-best-practices
+
+compatible_playbooks:
+  recommended:
+    - flat-motion-graphics
+  also_works:
+    - clean-professional
+  custom_allowed: true
+
+production_modes:
+  - name: remotion-vertical-mythological
+    description: "9:16 vertical Remotion composition with Ken Burns motion, Devanagari typography, and particle overlays"
+    scene_type: remotion-vertical
+    agent_skills:
+      - mythological-video-production
+    required_tools:
+      - image_selector
+      - tts_selector
+      - audio_mixer
+    optional_tools:
+      - local_diffusion
+      - remotion_episode_builder
+      - fish_audio_tts
+    best_for:
+      - "YouTube Shorts and Instagram Reels"
+      - "Vedic epics, puranic lore, temple histories, divine battle scenes"
+
+metadata:
+  authenticity_contract:
+    wardrobe:
+      male_royal_attire:
+        strictly_forbidden:
+          - "Gowns, sarees, Victorian capes, Greek tunics, or unisex dresses on male monarchs"
+        mandatory_specifications:
+          lower_body: "Pristine pleated silk Dhoti (धोती) or Pancha with intricate Zari golden brocade border (कशीदाकारी)"
+          upper_body: "Regal pleated Uttariya or Angavastram (अंगवस्त्रम्) draped across shoulders, revealing Kavach armor or Yajnopavita sacred thread"
+          headwear: "Vedic golden crown (Mukut / मुकुट) with sunburst or lotus crest"
+          jewelry: "Golden armlets (Keyura), wristlets (Kankana), pearl necklaces (Haar), Kundala ear ornaments"
+      female_divine_attire:
+        mandatory_specifications:
+          body: "Traditional royal Vedic Sari/Antariya in vermilion red (Sindoor), crimson, or deep gold"
+          ornaments: "Jaimala garland, sheer silk Ghoonghat/Chunari, Maang Tikka, Nath, Bajuband"
+    weaponry_and_mantras:
+      strictly_forbidden:
+        - "Chinese, Japanese, Korean, Arabic, or generic fantasy runes on divine astras"
+      mandatory_specifications:
+        shiva_astras: "Sacred Devanagari Sanskrit mantras 'ॐ ॐ नमः शिवाय ॐ', Trishul, and Damru engravings"
+        vishnu_astras: "Sacred Devanagari Sanskrit mantras 'ॐ नमो नारायणाय', Shankha, and Chakra motifs"
+        divine_aura: "Radiant blue and golden divine aura (Divya Prabha), lightning sparks crackling on bowstring"
+    audio_narration:
+      voice_archetype: "Sanjay Deep Authoritative Storyteller baritone"
+      primary_provider: "Fish Audio s2-pro (28dcd01c14684153842b6d0b4713af80) or OpenAI.fm Fable voice"
+      delivery_style: "Deep, slow, suspenseful, epic mythological delivery with dramatic pauses between sentences"
+      mastering_chain:
+        high_pass_hz: 75
+        parametric_eq_boost: "+2.5 dB at 120 Hz, Q=1.2 (rich chest resonance)"
+        presence_boost: "+1.8 dB at 3.5 kHz (Devanagari clarity)"
+        compression: "Opto 3:1 ratio, 25ms attack, 120ms release"
+        integrated_loudness_target_lufs: -14.0
+    visual_composition:
+      aspect_ratio: "9:16"
+      resolution: "1080x1920"
+      camera_motion: "Continuous Ken Burns slow push-in (zoom 1.0 -> 1.08) or subtle vertical pan"
+      particle_layers:
+        - "Golden divine dust / embers (spark_layer)"
+        - "Blue lightning flashes (lightning_burst)"
+        - "Petal shower (Pushp Vrishti)"
+      subtitles:
+        font_family: "Classical Devanagari / Serif font (Rozha One, Cinzel, Noto Sans Devanagari)"
+        styling: "Golden gradient fill, dark translucent pill backdrop with 1px golden border, soft black drop shadow"
+
+stages:
+  - name: research
+    skill: pipelines/cinematic/research-director
+    produces:
+      - research_brief
+    tools_available:
+      - web_search
+    checkpoint_required: false
+    human_approval_default: false
+    review_focus:
+      - Scriptural accuracy verified against primary Valmiki Ramayana, Vyasa Mahabharata, or Puranic sources
+      - Authentic Sanskrit mantras and names identified with correct IAST/Devanagari transliteration
+      - Iconography and visual reference art anchored in classical Indian fine art (Raja Ravi Varma style)
+    success_criteria:
+      - Schema-valid research_brief artifact
+      - At least 3 authentic scriptural source references cited
+
+  - name: proposal
+    skill: pipelines/cinematic/proposal-director
+    required_artifacts_in:
+      - research_brief
+    produces:
+      - proposal_packet
+      - decision_log
+    tools_available: []
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Narrative arc delivers dramatic mythological tension, sacred awe, and epic climax
+      - Format strictly targets 9:16 vertical shorts (under 60 seconds duration)
+      - Delivery promise commits to Vedic wardrobe authenticity and Sanjay baritone narration
+      - Budget and tool fallback plans account for cloud quota and low-VRAM offline diffusion guards
+    success_criteria:
+      - Schema-valid proposal_packet artifact
+      - At least 3 concept options with distinct narrative hooks and emotional arcs
+      - Itemized cost and tool plan approved before proceeding
+
+  - name: script
+    skill: pipelines/cinematic/script-director
+    required_artifacts_in:
+      - proposal_packet
+    optional_artifacts_in:
+      - research_brief
+    produces:
+      - script
+    tools_available: []
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Script contains sacred Sanskrit mantras in Devanagari calligraphy
+      - Narration pacing designed for Sanjay baritone delivery with deliberate pauses between sentences
+      - Dialogue and narration maintain sacred Vedic solemnity and majestic tone
+      - Total word count strictly calibrated for 30-55 seconds duration target
+    success_criteria:
+      - Schema-valid script artifact
+      - Sanskrit mantras formatted with authentic Devanagari text
+      - Pacing cues indicate pauses for deep baritone resonance
+
+  - name: scene_plan
+    skill: pipelines/cinematic/scene-director
+    required_artifacts_in:
+      - script
+    optional_artifacts_in:
+      - proposal_packet
+    produces:
+      - scene_plan
+    tools_available: []
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus:
+      - Every scene specifies 9:16 vertical framing (1080x1920)
+      - Prompts include mandatory negative prompt shield against male gowns/sarees and Asian glyphs
+      - Scene transitions choreographed for continuous Ken Burns slow push-in motion
+      - Particle overlay cues (sparks, lightning, flower petals) matched to dramatic beats
+    success_criteria:
+      - Schema-valid scene_plan covering full script duration
+      - Every visual scene includes authentic wardrobe and mantra specifications
+
+  - name: assets
+    skill: pipelines/cinematic/asset-director
+    required_artifacts_in:
+      - scene_plan
+      - script
+    optional_artifacts_in:
+      - proposal_packet
+    produces:
+      - asset_manifest
+    required_tools:
+      - image_selector
+      - tts_selector
+    optional_tools:
+      - local_diffusion
+      - fish_audio_tts
+      - google_imagen
+      - fal_flux
+      - audio_mixer
+    tools_available:
+      - image_selector
+      - tts_selector
+      - local_diffusion
+      - fish_audio_tts
+      - google_imagen
+      - fal_flux
+      - audio_mixer
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Male royal characters wear traditional pleated Dhoti/Pancha, Angavastram, and Mukut crown — strictly NO sarees/gowns
+      - Divine astras display sacred Devanagari mantras (e.g. 'ॐ ॐ नमः शिवाय ॐ') — strictly NO East Asian or fantasy runes
+      - Image generation executed with negative prompt shield and positive authentication block
+      - Narration audio produced with Sanjay deep baritone storyteller voice, 75 Hz high-pass, 120 Hz chest boost, and -14 LUFS loudness
+      - Low-VRAM offline diffusion guard active if cloud providers fail or if running on RTX 3050 hardware
+    success_criteria:
+      - Schema-valid asset_manifest with all image and audio files existing on disk
+      - Visual assets adhere to Vedic royal wardrobe and Sanskrit mantra standards
+      - Narration audio matches Sanjay baritone mastering specifications
+
+  - name: edit
+    skill: pipelines/cinematic/edit-director
+    required_artifacts_in:
+      - scene_plan
+      - asset_manifest
+    optional_artifacts_in:
+      - script
+    produces:
+      - edit_decisions
+    tools_available: []
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus:
+      - 9:16 vertical composition timestamps aligned with narration speech boundaries
+      - Ken Burns scale parameters (zoom 1.0 -> 1.08) configured across cuts
+      - Classical Devanagari golden gradient subtitles styled with pill backdrop
+      - Dramatic audio ducking configured for epic background music under baritone voiceover
+    success_criteria:
+      - Schema-valid edit_decisions artifact
+      - Subtitle timing precisely matches whisper transcript timestamps
+
+  - name: compose
+    skill: pipelines/cinematic/compose-director
+    required_artifacts_in:
+      - edit_decisions
+      - asset_manifest
+    optional_artifacts_in:
+      - scene_plan
+    produces:
+      - render_report
+      - final_review
+    required_tools:
+      - video_compose
+      - audio_mixer
+    optional_tools:
+      - remotion_episode_builder
+    tools_available:
+      - video_compose
+      - remotion_episode_builder
+      - audio_mixer
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus:
+      - Rendered 9:16 video output exists and passes ffprobe verification
+      - Visual motion is fluid with no jitter in Ken Burns transforms
+      - Devanagari Sanskrit subtitles render with crisp golden gradient typography
+      - Audio balance maintains Sanjay baritone intelligibility over epic orchestral/percussion score
+    success_criteria:
+      - Schema-valid render_report with valid video output path
+      - Video passes 1080x1920 vertical resolution and audio loudness checks
+
+  - name: publish
+    skill: pipelines/cinematic/publish-director
+    required_artifacts_in:
+      - render_report
+    optional_artifacts_in:
+      - final_review
+      - proposal_packet
+    produces:
+      - publish_log
+    tools_available: []
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - YouTube Shorts and Instagram Reels metadata include sacred Sanskrit hashtags and titles
+      - High-impact vertical thumbnail concept features Vedic monarch or divine astra
+      - Complete project export bundle packaged
+    success_criteria:
+      - Schema-valid publish_log artifact
+      - Ready-to-upload package structured in output directory

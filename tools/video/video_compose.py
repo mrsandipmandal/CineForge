@@ -410,17 +410,35 @@ class VideoCompose(BaseTool):
             return False
 
     def _mux_external_audio(self, video_path: Path, audio_path: str | Path) -> ToolResult:
-        """Atomically replace a rendered video's audio with the approved mix."""
+        """Atomically replace a rendered video's audio with the approved mix.
 
+        Uses the probed video duration as the authoritative trim point.
+        The shortest-stream flag truncates whichever stream ends first and
+        silently drops the final seconds of either video or audio when they
+        differ by >0; probing and passing -t avoids that.
+        """
         audio = Path(audio_path).resolve()
         if not audio.is_file():
             return ToolResult(success=False, error=f"Mixed audio not found: {audio}")
+
+        # Probe actual video duration — use this as authoritative -t value
+        # so neither stream truncates the other.
+        video_duration: float | None = None
+        try:
+            probe_out = subprocess.check_output(
+                ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                 "-of", "csv=p=0", str(video_path)],
+                stderr=subprocess.STDOUT, text=True,
+            )
+            video_duration = float(probe_out.strip().split("\n")[0])
+        except Exception:
+            pass  # fall through — will mux without -t
 
         temp_output = video_path.with_name(
             f".{video_path.stem}.audio-mux-{time.time_ns()}{video_path.suffix}"
         )
         try:
-            self.run_command([
+            cmd = [
                 "ffmpeg", "-y",
                 "-i", str(video_path),
                 "-i", str(audio),
@@ -429,11 +447,13 @@ class VideoCompose(BaseTool):
                 "-c:v", "copy",
                 "-c:a", "aac",
                 "-b:a", "192k",
-                "-af", "apad",
-                "-shortest",
                 "-movflags", "+faststart",
-                str(temp_output),
-            ])
+            ]
+            if video_duration is not None:
+                cmd.extend(["-t", str(video_duration)])
+            cmd.append(str(temp_output))
+
+            self.run_command(cmd)
             if not temp_output.is_file():
                 return ToolResult(
                     success=False,
@@ -448,7 +468,11 @@ class VideoCompose(BaseTool):
 
         return ToolResult(
             success=True,
-            data={"output": str(video_path), "has_mixed_audio": True},
+            data={
+                "output": str(video_path),
+                "has_mixed_audio": True,
+                "probed_video_duration": video_duration,
+            },
             artifacts=[str(video_path)],
         )
 
@@ -468,8 +492,14 @@ class VideoCompose(BaseTool):
         audio_path = inputs.get("audio_path")
         subtitle_path = inputs.get("subtitle_path")
         codec = inputs.get("codec", "libx264")
-        crf = inputs.get("crf", 23)
-        preset = inputs.get("preset", "medium")
+        # Use separate CRF values for intermediate segments vs final delivery.
+        # CRF 23 on intermediates causes multi-generation quality loss when subtitle
+        # burn and enhancement add further encode passes. CRF 16 on intermediates
+        # is visually lossless and costs ~30% more disk space temporarily.
+        intermediate_crf = inputs.get("intermediate_crf", 16)
+        delivery_crf = inputs.get("delivery_crf", inputs.get("crf", 23))
+        crf = intermediate_crf  # used in the segment loop below
+        preset = inputs.get("preset", "fast")  # "medium" is too slow for temp files
         profile_name = inputs.get("profile")
 
         # Resolve target resolution + fit mode. Priority: explicit `profile`
@@ -701,7 +731,7 @@ class VideoCompose(BaseTool):
             if needs_reencode:
                 if vfilters:
                     cmd.extend(["-vf", ",".join(vfilters)])
-                cmd.extend(["-c:v", codec, "-crf", str(crf), "-preset", preset])
+                cmd.extend(["-c:v", codec, "-crf", str(delivery_crf), "-preset", preset])
                 cmd.extend(profile_flags)
             else:
                 cmd.extend(["-c:v", "copy"])
@@ -1070,6 +1100,8 @@ class VideoCompose(BaseTool):
             cmd.append(f"--crf={bespoke['crf']}")
         if bespoke.get("concurrency"):
             cmd.append(f"--concurrency={bespoke['concurrency']}")
+        timeout_ms = inputs.get("remotion_timeout_ms") or bespoke.get("timeout_ms") or 120000
+        cmd.append(f"--timeout={timeout_ms}")
 
         try:
             # Run from inside the composer dir so npx resolves the local
@@ -2912,8 +2944,14 @@ class VideoCompose(BaseTool):
         input_path = Path(inputs["input_path"])
         output_path = Path(inputs.get("output_path", str(input_path.with_stem(f"{input_path.stem}_encoded"))))
         codec = inputs.get("codec", "libx264")
-        crf = inputs.get("crf", 23)
-        preset = inputs.get("preset", "medium")
+        # Use separate CRF values for intermediate segments vs final delivery.
+        # CRF 23 on intermediates causes multi-generation quality loss when subtitle
+        # burn and enhancement add further encode passes. CRF 16 on intermediates
+        # is visually lossless and costs ~30% more disk space temporarily.
+        intermediate_crf = inputs.get("intermediate_crf", 16)
+        delivery_crf = inputs.get("delivery_crf", inputs.get("crf", 23))
+        crf = intermediate_crf  # used in the segment loop below
+        preset = inputs.get("preset", "fast")  # "medium" is too slow for temp files
         profile_name = inputs.get("profile")
 
         if not input_path.exists():

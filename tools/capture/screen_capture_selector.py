@@ -138,7 +138,7 @@ class ScreenCaptureSelector(BaseTool):
 
     @property
     def fallback_tools(self) -> list[str]:
-        return list(self._providers().keys())
+        return [t.name for t in self._providers().values()]
 
     def get_status(self) -> ToolStatus:
         providers = self._providers()
@@ -293,15 +293,17 @@ class ScreenCaptureSelector(BaseTool):
         if preferred == "ffmpeg" or preferred == "auto":
             tool = providers.get("ffmpeg")
             if tool and tool.get_status() == ToolStatus.AVAILABLE:
-                return tool.execute({
+                res = tool.execute({
                     "output_path": inputs.get("output_path", "recording.mp4"),
                     "duration_seconds": inputs.get("duration_seconds", 60),
                     "fps": inputs.get("fps", 30),
                     "capture_audio": inputs.get("capture_audio", True),
                     "region": inputs.get("region"),
                 })
+                if res.success or preferred == "ffmpeg":
+                    return res
 
-            # FFmpeg not available — try Cap
+            # FFmpeg not available or failed — try Cap
             cap_tool = providers.get("cap")
             if cap_tool:
                 cap_detect = cap_tool.execute({"operation": "detect"})

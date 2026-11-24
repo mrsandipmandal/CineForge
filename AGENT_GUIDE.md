@@ -44,6 +44,9 @@ This is a first-class workflow in CineForge.
 - **Reference-driven request:** "make me something like this" -> use `video-reference-analyst.md`
 - **Source-footage request:** "edit this footage" / "cut this into clips" -> use `source_media_review` and the appropriate footage-led pipeline
 - **Science / Mystery Short request:** "make a science video", "বিজ্ঞান ভিডিও বানাও", "/science-explainer" -> read `.agents/skills/bengali-science-explainer/SKILL.md` (see `docs/SCIENCE_EXPLAINER.md` for architecture). Follow the dynamic language selection, silent web research, top-6 topic proposal, and single-gate approval flow.
+- **Game stream clipping request:** "clip this stream", "make clips of <game>", "GTA 6 funny clips", "find best moments" -> read `.agents/skills/stream-clips/SKILL.md`. Automatically extracts high-energy moments from streams/VODs with 9:16 facecam/gameplay stack and word-by-word subtitles.
+- **Faceless 3D/2D vertical shorts request:** "make a faceless short", "Zack D. Films style", "what happens if", "survival stick story" -> read `.agents/skills/faceless-shorts/SKILL.md`. 100% code-driven vertical shorts at $0 API cost.
+- **AI talking-head editor request:** "edit this talking head", "cut mistakes and silences", "add Nafay 3D motion graphics" -> read `.agents/skills/ai-video-editor/SKILL.md`. Free local cutter with code-drawn graphics.
 
 If a model misses this distinction, it will often fall back to plain search + guesswork. That is incorrect for CineForge.
 

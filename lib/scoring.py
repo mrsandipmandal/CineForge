@@ -136,13 +136,19 @@ def _keyword_overlap(set_a: set[str], set_b: set[str]) -> float:
 
 # Semantic synonym clusters: when intent says "cinematic" and tool says
 # "film" or "movie", that's a match even without literal keyword overlap.
+#
+# NOTE: "character" is intentionally NOT grouped with visual animation style
+# terms (pixar, storybook). In a TTS or voice context, "character" means
+# identity/persona — merging it with "pixar" and "storybook" would spuriously
+# boost visual animation tools when routing voice providers.
 _SYNONYM_CLUSTERS: list[set[str]] = [
     {"cinematic", "film", "movie", "trailer", "dramatic", "epic"},
     {"explainer", "educational", "tutorial", "teaching", "lesson"},
     {"corporate", "business", "professional", "enterprise"},
     {"social", "tiktok", "instagram", "reels", "shorts", "viral"},
     {"animation", "animated", "motion-graphics", "motion", "kinetic"},
-    {"pixar", "animation", "animated", "stylized", "storybook", "character"},
+    {"pixar", "animation", "animated", "stylized", "storybook"},        # visual animation style
+    {"character", "persona", "voice-character", "character-voice"},      # character identity
     {"realistic", "photorealistic", "lifelike", "natural"},
     {"stock", "footage", "b-roll", "library"},
     {"avatar", "presenter", "talking-head", "spokesperson"},
@@ -469,7 +475,7 @@ def score_provider(tool, task_context: dict[str, Any]) -> ProviderScore:
     else:
         stability = info.get("stability", "experimental")
         tier = info.get("tier", "")
-        quality_map = {"production": 0.9, "beta": 0.7, "experimental": 0.4}
+        quality_map = {"production": 0.90, "beta": 0.75, "experimental": 0.55}
         output_quality = quality_map.get(stability, 0.5)
         # Tier bonus: generate-tier tools that are production-stable get a nudge
         if tier == "generate" and stability == "production":

@@ -356,12 +356,46 @@ research  →  proposal  →  script  →  scene_plan  →  assets  →  edit  �
 | :--- | :--- | :--- |
 | **`animated_explainer`** | 16:9 / 9:16 | Educational explainers, tech breakdowns, diagrams, voiceover |
 | **`character_animation`** | 16:9 / 9:16 | 2D/3D character rigs, pose libraries, GSAP timelines, SVG acting |
-| **`cinematic`** | 16:9 / 21:9 | Cinematic trailers, high-concept teasers, sci-fi/fantasy mood pieces |
+| **`cinematic`** | 16:9 / 9:16 / 21:9 | Mythological epics, cinematic trailers, high-concept teasers, sci-fi/fantasy mood pieces |
 | **`documentary_montage`** | 16:9 | Archival documentaries, historical essays (Archive.org, NASA, Wikimedia) |
 | **`youtube_shorts`** | 9:16 | Fast-paced short-form content, kinetic subtitles, hook optimization |
 | **`talking_head`** | 9:16 / 16:9 | Presenter videos, SadTalker/Wav2Lip avatar sync, interviews |
 | **`clip_factory`** | 9:16 | Batch repurposing long-form footage into ranked social clips |
 | **`screen_demo`** | 16:9 | Polished software walkthroughs, cursor smoothing, terminal demos |
+
+---
+
+## 🌟 Key Features & New Updates
+
+### 🎙️ 1. Multi-Tier TTS Priority & Intelligent Fallback Engine
+- **Universal Provider Cascade**: Intelligently cascades across **Kokoro-82M** (ultra-fast offline neural), **OpenAI.fm**, **Piper TTS** (zero-key local), **Fish Audio** (S2-Pro expressive voices), **ElevenLabs**, and **Sarvam AI** (native Indic languages).
+- **Automated Audio Byte Validator**: Every generated clip is verified before use: checking valid MP3/WAV headers, audio file size threshold, speech duration against script, and EBU R128 (-14 LUFS) broadcast loudness mastering.
+- **Auto-Fallback Recovery**: If a cloud provider hits rate limits or network issues, the selector automatically routes down to the next priority tier without human intervention.
+
+### 🎛️ 2. Backlot Living Storyboard & Control Room (`http://127.0.0.1:4750`)
+- **Live SSE Storyboard Feed**: Pipeline stages light up in real time as AI agents research, script, generate assets, and composite renders.
+- **TTS Priority & Voice Lab**: A dedicated studio view inside Backlot allowing live voice auditioning, manual vs. automatic priority ranking, and real-time test synthesis.
+- **Defensive Multi-Format Poster Resolution**: Automatically surfaces thumbnails from `images/`, `thumbnails/`, and video keyframes directly to the Studio Control Room.
+
+### 📐 3. Remotion 9:16 Vertical Video Composition Engine
+- **Ken Burns Cinematic Motion**: Programmatic camera zooms, subtle panning, and smooth crossfades tuned to narrative beats.
+- **Procedural VFX Canvas**: Custom React/Canvas layers including divine sunbeams, blazing fire embers, celestial lightning shockwaves, and falling lotus showers.
+- **Glassmorphism Devanagari Typography**: Synchronized high-contrast bilingual subtitle cards with gold border accents and shadow drop for maximum mobile retention.
+
+---
+
+## 💡 Production Use Cases & Playbooks
+
+1. **Epic Historical & Mythological Series (YouTube Shorts / Reels / TikTok 9:16)**
+   - *Example*: **Ramayana Episodic Series** (5+ completed episodes, from Lord Rama's birth to Sita Swayamvar & Parashurama's Wrath).
+   - Combines 8K bespoke mythological paintings, pure Sanskrit Devanagari mantras ("ॐ नमः शिवाय", "ॐ नमो नारायणाय"), and deep authoritative studio storytelling voiceover.
+2. **Science & Mystery Explainer Documentaries**
+   - Autonomous multi-language production (Bilingual Bengali/English).
+   - Silent web research, AI-curated trending topic proposals, and single-gate user approval.
+3. **Automated Social Clip Factory & Repurposing**
+   - Transcribes long-form audio/video using local Whisper, detects high-hook moments, and crops into polished 9:16 shorts.
+4. **Developer Walkthroughs & Synthetic Terminal Demos**
+   - Smooth cursor animations, typed terminal sessions, and technical architectural walkthroughs.
 
 ---
 

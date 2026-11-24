@@ -1,0 +1,82 @@
+{
+  "version": "1.0",
+  "project_id": "ramayana-manthara-chakranta",
+  "pipeline_type": "mythological_shorts",
+  "stage": "scene_plan",
+  "status": "completed",
+  "timestamp": "2026-11-18T19:22:31.639707+00:00",
+  "checkpoint_policy": "guided",
+  "human_approval_required": false,
+  "human_approved": true,
+  "artifacts": {
+    "scene_plan": {
+      "version": "1.0",
+      "project_id": "ramayana-manthara-chakranta",
+      "scenes": [
+        {
+          "id": "scene_1",
+          "scene_number": 1,
+          "heading": "Scene 1: অযোধ্যায় আনন্দের জোয়ার ও আসন্ন অভিষেক",
+          "duration_seconds": 8.5,
+          "visual_prompt": "Masterpiece oil painting in the style of Raja Ravi Varma and divine cinematic Indian epic art, ancient Vedic Ayodhya palace illuminated with thousands of golden clay diyas, festive decorations, joyful citizens celebrating in royal courtyards, while dark ominous midnight shadows creep along ornate marble corridors, 8K resolution, volumetric golden lighting, cinematic vertical composition 9:16.",
+          "narration": "অযোধ্যায় আনন্দের মহোৎসব! প্রভাত হলেই রঘুকুলতিলক শ্রীরামের রাজ্যাভিষেক। চারদিকে জয়ধ্বনি আর আলোকমালা, কিন্তু রাজপ্রাসাদের গভীর অন্ধকারে ঘনাচ্ছে এক মারাত্মক চক্রান্ত।",
+          "mood": "festive_yet_ominous"
+        },
+        {
+          "id": "scene_2",
+          "scene_number": 2,
+          "heading": "Scene 2: কুটিল মন্থরার বিষাক্ত চক্রান্ত",
+          "duration_seconds": 8.0,
+          "visual_prompt": "Masterpiece oil painting in the style of Raja Ravi Varma, sinister hunchbacked maidservant Manthara whispering malice into Queen Kaikeyi's ear in the royal chamber, flickering oil lamp casting sinister distorted shadows on the ancient stone wall, Kaikeyi dressed in regal Vedic silk saree looking conflicted, 8K resolution, dramatic chiaroscuro lighting, emotional tension, vertical 9:16.",
+          "narration": "কুটিলদাসী মন্থরা ছুটে গেল রানী কৈকেয়ীর মহলে। বিষাক্ত ফিসফিসানিতে সে উস্কে দিল হিংসার আগুন—'শ্রীরাম রাজা হলে তোমার পুত্র ভরত হবে চিরদাস, ধ্বংস হবে তোমার রাজমহিষীর মর্যাদা!'",
+          "mood": "conspiratorial_dark"
+        },
+        {
+          "id": "scene_3",
+          "scene_number": 3,
+          "heading": "Scene 3: কৈকেয়ীর ক্রোধ ও অন্ধকার কোপভবন",
+          "duration_seconds": 8.5,
+          "visual_prompt": "Masterpiece oil painting in the style of Raja Ravi Varma, Queen Kaikeyi furiously discarding her precious Navaratna pearl necklace and royal golden ornaments onto the floor of the Kopabhavan anger chamber, untied dark hair, disheveled dark crimson attire, lying on bare cold stone floor, dim ominous torchlight, cinematic Indian mythology, vertical 9:16.",
+          "narration": "মন্থরার কুটিল চক্রান্তে অন্ধ হয়ে রানী কৈকেয়ী ছিঁড়ে ফেললেন রাজকীয় রত্নহার। রাজবেশ ত্যাগ করে তিনি প্রবেশ করলেন অন্ধকার কোপভবনে—ধূলিশয্যায় জ্বলতে লাগল প্রলয়ঙ্করী প্রতিহিংসা।",
+          "mood": "furious_vengeful"
+        },
+        {
+          "id": "scene_4",
+          "scene_number": 4,
+          "heading": "Scene 4: মহারাজা দশরথের নিশীথ আগমন",
+          "duration_seconds": 9.0,
+          "visual_prompt": "Masterpiece oil painting in the style of Raja Ravi Varma, elderly Emperor Dasharatha wearing royal golden mukut crown, pleated silk dhoti with intricate zari border and regal angavastram across shoulders, entering dark Kopabhavan chamber holding ornate golden lamp, reaching out with tears in his eyes towards weeping Kaikeyi, 8K resolution, dramatic emotional lighting, vertical 9:16.",
+          "narration": "গভীর রাতে আনন্দচিত্তে কোপভবনে এলেন বৃদ্ধ মহারাজা দশরথ। কিন্তু প্রিয়তমা রানীকে মাটিতে ধূসর বেশে ক্রন্দনরত দেখে শিউরে উঠলেন মহারাজ—'দেবী, কীসের এই নিদারুণ শোক? কী চাও তুমি?'",
+          "mood": "heartbreaking_agony"
+        },
+        {
+          "id": "scene_5",
+          "scene_number": 5,
+          "heading": "Scene 5: কৈকেয়ীর নিষ্ঠুর দুই বর",
+          "duration_seconds": 8.5,
+          "visual_prompt": "Masterpiece oil painting in the style of Raja Ravi Varma, Queen Kaikeyi rising like a vengeful empress in dim royal chamber, pointing two fingers demanding two fatal boons from broken King Dasharatha, stone-cold stern expression, ancient Vedic architecture, ominous shadows, high drama, vertical 9:16.",
+          "narration": "কুটিল হাস্যে কৈকেয়ী চাইলেন সেই প্রতিশ্রুত দুই বর—'প্রথম বরে আমার পুত্র ভরতের হোক অযোধ্যার রাজ্যাভিষেক, আর দ্বিতীয় বরে শ্রীরামের জন্য চোদ্দ বছরের কঠোর বনবাস!'",
+          "mood": "cruel_demand"
+        },
+        {
+          "id": "scene_6",
+          "scene_number": 6,
+          "heading": "Scene 6: মহারাজা দশরথের মর্মান্তিক পতন",
+          "duration_seconds": 8.5,
+          "visual_prompt": "Masterpiece oil painting in the style of Raja Ravi Varma, Emperor Dasharatha collapsing onto palace marble floor in unbearable grief, golden mukut slipping, hands clasped pleading in agony, heart-wrenching tragedy, royal Vedic palace interior, dramatic volumetric spotlight on fallen monarch, 8K resolution, vertical 9:16.",
+          "narration": "বজ্রাঘাতের মতো স্তব্ধ হলো মহারাজা দশরথের বক্ষ! ধূলিতলে লুটিয়ে পড়ে হাহাকার করে উঠলেন মহারাজ—'কৈকেয়ী, আমার সর্বস্ব নাও, আমার প্রাণ নাও, কিন্তু আমার নয়নের মণি শ্রীরামকে কেড়ে নিও না!'",
+          "mood": "tragic_collapse"
+        },
+        {
+          "id": "scene_7",
+          "scene_number": 7,
+          "heading": "Scene 7: অযোধ্যার কালরাত্রি ও ভাগ্যনির্ধারণ",
+          "duration_seconds": 7.5,
+          "visual_prompt": "Masterpiece oil painting in the style of Raja Ravi Varma, dark silent midnight over ancient Ayodhya palace under a blood-red moon, Emperor Dasharatha lying unconscious attended by grieving shadows while Queen Kaikeyi stands unyielding like stone, cinematic cliffhanger, epic mythological Sanskrit aura, vertical 9:16.",
+          "narration": "নিষ্ঠুর কৈকেয়ী রইলেন অনড়, সংজ্ঞাহীন দশরথের বুক চিরে নামল কালরাত্রি! সূর্যবংশের ভবিতব্যে কী করবেন শ্রীরাম? কমেন্টে লিখুন 'জয় শ্রীরাম', সাবস্ক্রাইব করুন পরের পর্বের জন্য!",
+          "mood": "epic_cliffhanger"
+        }
+      ]
+    }
+  }
+}

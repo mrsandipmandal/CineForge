@@ -1,190 +1,205 @@
-"""Capability-level text-to-speech selector that chooses among provider tools.
+"""Capability-level text-to-speech selector that enforces strict provider priority and fallbacks.
 
-Provider discovery is automatic — any BaseTool with capability="tts"
-is picked up from the registry.  Adding a new TTS provider requires only creating
-the tool file in tools/audio/; no changes to this selector are needed.
+Default Provider Priority:
+  1. OpenAI.fm — Primary default for all TTS requests (high quality, Fable voice, instructions)
+  2. Kokoro TTS — First fallback (local 82M open-source model)
+  3. VoxCPM2 — Second fallback (flow-matching voice cloning / CUDA / Kaggle)
+  4. Other configured free/open-source TTS providers (Piper, Indic, MMS, F5)
+  5. Official OpenAI TTS API — Last resort, optional and disabled unless explicitly enabled by user.
+
+Enforces automatic detection of connection failures, timeouts, HTTP errors,
+and invalid audio responses, seamlessly trying the next eligible provider.
+Paid providers are strictly protected and never called silently.
 """
 
 from __future__ import annotations
 
-from typing import Any
+import logging
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
+from lib.audio_validator import validate_audio_file
+from lib.tts_config import (
+    DEFAULT_PRIORITY,
+    get_effective_priority,
+    is_paid_provider,
+    load_tts_config,
+    save_tts_config,
+)
 from tools.base_tool import (
     BaseTool,
     ToolResult,
     ToolRuntime,
     ToolStability,
-    ToolTier,
     ToolStatus,
+    ToolTier,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class TTSSelector(BaseTool):
     name = "tts_selector"
-    version = "0.2.0"
+    version = "1.0.0"
     tier = ToolTier.VOICE
     capability = "tts"
     provider = "selector"
-    stability = ToolStability.BETA
+    stability = ToolStability.PRODUCTION
     runtime = ToolRuntime.HYBRID
     agent_skills = ["text-to-speech", "elevenlabs"]
 
     capabilities = [
         "text_to_speech",
         "provider_selection",
+        "strict_fallback_priority",
+        "paid_provider_protection",
+        "audio_validation",
     ]
     supports = {
         "user_preference_routing": True,
         "offline_fallback": True,
         "multilingual": True,
+        "automatic_fallback": True,
+        "paid_provider_gating": True,
     }
     best_for = [
         "preflight tool selection",
         "user-facing recommendation flows",
+        "fault-tolerant speech generation with strict OpenAI.fm -> Kokoro -> VoxCPM2 priority",
     ]
 
     input_schema = {
         "type": "object",
         "required": ["text"],
         "properties": {
-            "preferred_tool": {
+            "text": {"type": "string", "description": "Text to convert to speech"},
+            "instructions": {
                 "type": "string",
-                "description": "Exact tool name; never falls back.",
+                "description": "Custom narration instructions or emotion/style cues (supported by OpenAI.fm).",
             },
-            "voice_profile_id": {
+            "prompt": {
                 "type": "string",
-                "description": "Voice identity profile ID from sample-files/voices/.",
-            },
-            "require_cloning": {
-                "type": "boolean",
-                "default": False,
-                "description": "Whether voice cloning using the profile's reference samples is required.",
-            },
-            "hosting_provider": {
-                "type": "string",
-                "description": "Required API host, e.g. fal.ai, atlascloud, replicate.",
-            },
-            "text": {"type": "string"},
-            "voice_id": {
-                "type": "string",
-                "description": "Provider-specific voice ID. Passed through to the selected TTS provider.",
+                "description": "Alias for instructions or style directive.",
             },
             "voice": {
                 "type": "string",
-                "description": "Provider-specific voice name or ID. fal.ai ElevenLabs accepts names such as Rachel.",
+                "description": "Voice name or ID. OpenAI.fm supports fable, alloy, ash, coral, etc. Default: fable.",
             },
-            "voice_language": {
+            "voice_id": {
                 "type": "string",
-                "enum": ["zh", "en"],
-                "description": "Kling official voice language. Passed through when selected provider supports it.",
+                "description": "Alias for voice.",
             },
-            "voice_speed": {
-                "type": "number",
-                "minimum": 0.5,
-                "maximum": 2.0,
-                "description": "Kling official voice speed. Use speed for OpenAI/ElevenLabs-style controls.",
-            },
-            "model_id": {
+            "voice_profile_id": {
                 "type": "string",
-                "description": "TTS model to use (e.g. eleven-v3 or eleven_multilingual_v2). Passed through to provider.",
+                "description": "Voice profile identifier for voice consistency.",
             },
-            "stability": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1,
-                "description": "Voice stability (ElevenLabs). Lower = more expressive.",
-            },
-            "similarity_boost": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1,
-                "description": "Voice similarity boost (ElevenLabs).",
-            },
-            "style": {
-                "type": ["number", "string"],
-                "description": "Style exaggeration (ElevenLabs). Higher = more expressive.",
-            },
-            "instructions": {
+            "language_code": {
                 "type": "string",
-                "description": "Provider-level delivery instructions for expressive narration when supported.",
-            },
-            "speaking_rate": {
-                "type": "number",
-                "minimum": 0.25,
-                "maximum": 2.0,
-                "description": "Google-style speakingRate control. Use speed for OpenAI/ElevenLabs-style controls.",
+                "description": "Language code (e.g. en, hi, bn).",
             },
             "speed": {
                 "type": "number",
                 "minimum": 0.25,
                 "maximum": 4.0,
-                "description": "Alias for speaking speed used by some providers.",
+                "default": 1.0,
+                "description": "Speaking rate multiplier.",
+            },
+            "speaking_rate": {
+                "type": "number",
+                "description": "Alias for speed.",
             },
             "pitch": {
                 "type": "number",
-                "minimum": -50,
-                "maximum": 50,
-                "description": "Provider-specific pitch control. Google TTS accepts -20..20; HeyGen-style providers may accept wider ranges.",
-            },
-            "input_type": {
-                "type": "string",
-                "enum": ["text", "ssml"],
-                "default": "text",
-                "description": "Use 'ssml' only when the selected provider supports tags such as <break>.",
-            },
-            "language_code": {
-                "type": "string",
-                "description": "Provider-specific language code, such as en-US for Google or en for fal.ai ElevenLabs.",
+                "description": "Pitch adjustment.",
             },
             "timestamps": {
                 "type": "boolean",
                 "default": False,
                 "description": "Request word timestamps when the selected provider supports them.",
             },
-            "apply_text_normalization": {
-                "type": "string",
-                "enum": ["auto", "on", "off"],
-                "description": "Text normalization mode for providers that support it.",
-            },
-            "seed": {
-                "type": "integer",
-                "description": "Optional generation seed for providers that support reproducible speech.",
-            },
-            "voice_performance": {
-                "type": "object",
-                "description": "Structured voice-performance plan or section delivery cues from the script artifact.",
-            },
-            "sample_mode": {
-                "type": "boolean",
-                "default": False,
-                "description": "True when generating an approval sample before batch narration.",
-            },
-            "output_format": {
-                "type": ["string", "object"],
-                "description": "Audio output format (e.g. mp3_44100_128). Passed through to provider.",
-            },
             "preferred_provider": {
                 "type": "string",
-                "description": "Provider name or 'auto'. Valid values are discovered at runtime from the registry.",
+                "description": "Provider name or 'auto'. Default: 'openaifm'.",
                 "default": "auto",
+            },
+            "preferred_tool": {
+                "type": "string",
+                "description": "Exact tool name (e.g. openaifm_tts). If specified, runs in manual mode without fallback.",
             },
             "preferred_model": {
                 "type": "string",
-                "description": "Exact tool name (e.g. 'indicf5_tts'). If available, it is selected first before scoring.",
+                "description": "Exact tool name to attempt first.",
             },
             "allowed_providers": {
                 "type": "array",
                 "items": {"type": "string"},
+                "description": "Restrict execution to a subset of provider names.",
+            },
+            "allow_paid": {
+                "type": "boolean",
+                "default": False,
+                "description": "Whether paid providers (e.g. official OpenAI API, ElevenLabs) are permitted. Default: False.",
+            },
+            "enable_paid_providers": {
+                "type": "boolean",
+                "description": "Alias for allow_paid.",
+            },
+            "auto_fallback": {
+                "type": "boolean",
+                "default": True,
+                "description": "Whether to automatically fall back to the next provider on failure. Default: True.",
+            },
+            "manual_mode": {
+                "type": "boolean",
+                "default": False,
+                "description": "If True, runs only the primary/selected provider without fallback.",
+            },
+            "timeout_seconds": {
+                "type": "integer",
+                "default": 20,
+                "description": "Timeout per provider attempt in seconds.",
+            },
+            "output_path": {
+                "type": "string",
+                "description": "Output audio file path.",
             },
             "operation": {
                 "type": "string",
-                "enum": ["generate", "rank"],
+                "enum": ["generate", "rank", "get_config", "set_config"],
                 "default": "generate",
-                "description": "Operation mode. 'rank' returns scored provider rankings without generating.",
+                "description": "Operation mode. 'generate', 'rank', 'get_config', or 'set_config'.",
             },
-            "output_path": {"type": "string"},
+            "config_updates": {
+                "type": "object",
+                "description": "Dictionary of configuration updates for set_config operation.",
+            },
         },
     }
+
+    def _prepare_task_context(self, inputs: dict[str, Any]) -> dict[str, Any]:
+        """Normalize task context from inputs, mapping language codes to style/intent keywords."""
+        from lib.scoring import normalize_task_context
+
+        task_ctx = dict(inputs.get("task_context") or {})
+        lang = str(inputs.get("language_code") or "").lower()
+        LANG_SIGNAL_MAP = {
+            "bn": ["bengali", "multilingual", "indic", "narration"],
+            "hi": ["hindi", "multilingual", "indic", "narration"],
+            "zh": ["chinese", "mandarin", "multilingual", "narration"],
+        }
+        for code, signals in LANG_SIGNAL_MAP.items():
+            if code in lang:
+                existing = list(task_ctx.get("style_keywords") or [])
+                task_ctx["style_keywords"] = list(set(existing) | set(signals))
+                if not task_ctx.get("intent"):
+                    task_ctx["intent"] = " ".join(signals)
+                break
+        return normalize_task_context(
+            task_ctx,
+            prompt=inputs.get("text", ""),
+            capability=self.capability,
+            operation=inputs.get("operation", "generate"),
+        )
 
     def _providers(self) -> list[BaseTool]:
         """Auto-discover TTS providers from the registry."""
@@ -195,12 +210,11 @@ class TTSSelector(BaseTool):
 
     @property
     def fallback_tools(self) -> list[str]:
-        """Dynamically built from discovered providers."""
+        """Dynamically built list of available provider tools."""
         return [t.name for t in self._providers()]
 
     @property
     def provider_matrix(self) -> dict[str, dict[str, str]]:
-        """Built at runtime from each provider's best_for field."""
         matrix = {}
         for tool in self._providers():
             strength = ", ".join(tool.best_for) if tool.best_for else tool.name
@@ -213,237 +227,333 @@ class TTSSelector(BaseTool):
         return ToolStatus.UNAVAILABLE
 
     def estimate_cost(self, inputs: dict[str, Any]) -> float:
-        candidates = self._providers()
-        if not candidates:
+        # Default policy prioritizes free OpenAI.fm / Kokoro / VoxCPM2 -> 0.0
+        allow_paid = inputs.get("allow_paid", False) or inputs.get("enable_paid_providers", False)
+        if not allow_paid:
             return 0.0
-        tool, _ = self._select_best_tool(
-            inputs, candidates, self._prepare_task_context(inputs)
-        )
-        return tool.estimate_cost(inputs) if tool else 0.0
+        preferred = inputs.get("preferred_provider", "auto")
+        if preferred == "openai":
+            tool = next((t for t in self._providers() if t.provider == "openai"), None)
+            return tool.estimate_cost(inputs) if tool else 0.0
+        return 0.0
 
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
-        inputs_copy = dict(inputs)
-        voice_profile_id = inputs_copy.get("voice_profile_id")
-        if voice_profile_id:
-            try:
-                from lib.identity_library import IdentityLibrary
-                lib = IdentityLibrary()
-                profile = lib.get_voice_profile(voice_profile_id)
-                if profile:
-                    if not inputs_copy.get("language_code") and profile.primary_language:
-                        inputs_copy["language_code"] = profile.primary_language
-                    if "pitch" not in inputs_copy and profile.pitch_semitones:
-                        inputs_copy["pitch"] = profile.pitch_semitones
-                    if "speed" not in inputs_copy and "speaking_rate" not in inputs_copy and profile.default_speaking_rate:
-                        inputs_copy["speed"] = profile.default_speaking_rate
-                    if inputs_copy.get("require_cloning") and profile.samples and profile.consent_verified:
-                        best_sample = max(profile.samples, key=lambda s: s.duration_seconds)
-                        inputs_copy["reference_audio"] = str((lib.root_dir / best_sample.relative_path).resolve())
-            except Exception:
-                pass
-        inputs = inputs_copy
+        operation = inputs.get("operation", "generate")
 
-        from lib.scoring import rank_providers
+        # Config operations
+        if operation == "get_config":
+            cfg = load_tts_config()
+            cfg["discovered_providers"] = [
+                {
+                    "provider": t.provider,
+                    "name": t.name,
+                    "status": t.get_status().value,
+                    "is_paid": is_paid_provider(t.provider),
+                }
+                for t in self._providers()
+            ]
+            return ToolResult(success=True, data=cfg)
 
-        task_context = self._prepare_task_context(inputs)
-        from tools.provider_routing import filter_explicit_route
+        if operation == "set_config":
+            updates = inputs.get("config_updates") or {}
+            saved = save_tts_config(updates)
+            return ToolResult(success=True, data=saved)
 
-        candidates = filter_explicit_route(inputs, self._providers())
-
-        # Rank mode — return scored provider rankings without generating
-        if inputs.get("operation") == "rank":
-            rankings = rank_providers(candidates, task_context)
+        # Rank mode
+        if operation == "rank":
+            effective_priority = get_effective_priority(inputs)
+            tools_by_provider = {t.provider: t for t in self._providers()}
+            rankings = []
+            for idx, p in enumerate(effective_priority, 1):
+                t = tools_by_provider.get(p)
+                rankings.append({
+                    "priority": idx,
+                    "provider": p,
+                    "tool": t.name if t else None,
+                    "status": t.get_status().value if t else "not_installed",
+                    "is_paid": is_paid_provider(p),
+                    "is_primary": (idx == 1 and p == "openaifm"),
+                })
             return ToolResult(
                 success=True,
                 data={
-                    "rankings": self._serialize_rankings(candidates, rankings),
-                    "explanation": "\n".join(r.explain() for r in rankings[:5]),
-                    "normalized_task_context": task_context,
+                    "primary_provider": "openaifm",
+                    "rankings": rankings,
+                    "priority_rankings": rankings,
+                    "allow_paid": inputs.get("allow_paid", False),
                 },
             )
 
-        # Normal generation — use scored selection
-        # First honor explicit preferred_model if available
-        preferred_model = inputs.get("preferred_model")
-        if preferred_model:
-            for tool in candidates:
-                if (
-                    tool.name == preferred_model
-                    and tool.get_status() == ToolStatus.AVAILABLE
-                ):
-                    try:
-                        adapted = self._adapt_inputs(tool, inputs)
-                    except (ValueError, TypeError) as exc:
-                        return ToolResult(success=False, error=str(exc))
-                    result = tool.execute(adapted)
-                    if result.success:
-                        result.data.setdefault("selected_tool", tool.name)
-                        result.data["selected_provider"] = tool.provider
-                        result.data["selection_reason"] = (
-                            f"Preferred model '{preferred_model}' selected"
-                        )
-                        result.data.update(self._tool_context_payload(tool))
-                        result.data["alternatives_considered"] = [
-                            t.name
-                            for t in candidates
-                            if t.name != tool.name and t.get_status().value == "available"
-                        ]
-                        return result
-                    # If preferred model fails, fall through to scored selection
+        # Standard Speech Generation with Strict Priority & Fallback Loop
+        return self._generate_with_fallback(inputs)
 
-        tool, score = self._select_best_tool(inputs, candidates, task_context)
-        if tool is None:
-            return ToolResult(success=False, error="No TTS provider available.")
+    def _generate_with_fallback(self, inputs: dict[str, Any]) -> ToolResult:
+        cfg = load_tts_config()
+        text = str(inputs.get("text") or "").strip()
+        if not text:
+            return ToolResult(success=False, error="Text parameter is required for TTS generation.")
 
-        try:
-            adapted = self._adapt_inputs(tool, inputs)
-        except (ValueError, TypeError) as exc:
-            return ToolResult(success=False, error=str(exc))
-        result = tool.execute(adapted)
-        if result.success:
-            result.data.setdefault("selected_tool", tool.name)
-            result.data["selected_provider"] = tool.provider
-            result.data["selection_reason"] = (
-                score.explain() if score else f"Selected {tool.provider} ({tool.name})"
+        allow_paid = bool(
+            inputs.get("allow_paid")
+            or inputs.get("enable_paid_providers")
+            or cfg.get("allow_paid_providers", False)
+        )
+        auto_fallback = bool(
+            inputs.get("auto_fallback", cfg.get("auto_fallback", True))
+            and not inputs.get("manual_mode", cfg.get("manual_mode", False))
+        )
+        preferred_tool_name = inputs.get("preferred_tool")
+
+        # Discover all TTS tools
+        discovered = self._providers()
+        tool_by_name = {t.name: t for t in discovered}
+        tools_by_provider: dict[str, list[BaseTool]] = {}
+        for t in discovered:
+            tools_by_provider.setdefault(t.provider, []).append(t)
+
+        # Handle exact preferred_tool request (manual single tool mode)
+        if preferred_tool_name:
+            target_tool = tool_by_name.get(preferred_tool_name)
+            if not target_tool:
+                return ToolResult(
+                    success=False,
+                    error=f"Requested preferred_tool '{preferred_tool_name}' not found in registry.",
+                )
+            if is_paid_provider(target_tool.provider) and not allow_paid:
+                return ToolResult(
+                    success=False,
+                    error=(
+                        f"Tool '{preferred_tool_name}' is backed by paid provider '{target_tool.provider}'. "
+                        "Paid providers are disabled. Pass allow_paid=True to enable."
+                    ),
+                )
+            if target_tool.get_status() != ToolStatus.AVAILABLE:
+                return ToolResult(
+                    success=False,
+                    error=f"Requested tool '{preferred_tool_name}' is UNAVAILABLE.",
+                )
+            adapted = self._adapt_inputs(target_tool, inputs)
+            res = target_tool.execute(adapted)
+            if res.success:
+                if res.data is None:
+                    res.data = {}
+                res.data.setdefault("selected_provider", target_tool.provider)
+                res.data.setdefault("selected_tool", target_tool.name)
+                res.data["fallback_occurred"] = False
+            return res
+
+        # Assemble prioritized candidates
+        priority_providers = get_effective_priority(inputs, allow_paid_override=allow_paid)
+        candidate_tools: list[BaseTool] = []
+
+        for prov in priority_providers:
+            plist = tools_by_provider.get(prov, [])
+            for t in plist:
+                if t.get_status() == ToolStatus.AVAILABLE:
+                    candidate_tools.append(t)
+
+        # If user explicitly preferred a model, ensure it is tried first
+        pref_model = inputs.get("preferred_model")
+        if pref_model and pref_model in tool_by_name:
+            p_tool = tool_by_name[pref_model]
+            if p_tool in candidate_tools:
+                candidate_tools.remove(p_tool)
+            if p_tool.get_status() == ToolStatus.AVAILABLE:
+                if not (is_paid_provider(p_tool.provider) and not allow_paid):
+                    candidate_tools.insert(0, p_tool)
+
+        if not candidate_tools:
+            # Check why none are available
+            if not allow_paid and any(is_paid_provider(t.provider) for t in discovered if t.get_status() == ToolStatus.AVAILABLE):
+                return ToolResult(
+                    success=False,
+                    error=(
+                        "All free TTS providers are currently unavailable or not configured. "
+                        "Paid providers (e.g. Official OpenAI TTS) exist but are disabled by policy. "
+                        "Pass allow_paid=True to enable paid fallback or configure OpenAI.fm / Kokoro / VoxCPM2."
+                    ),
+                )
+            return ToolResult(
+                success=False,
+                error="No eligible TTS providers are currently installed, configured, or available.",
             )
-            if score:
-                result.data["provider_score"] = score.to_dict()
-            result.data.update(self._tool_context_payload(tool))
-            result.data["alternatives_considered"] = [
-                t.name
-                for t in candidates
-                if t.name != tool.name and t.get_status().value == "available"
-            ]
-        return result
+
+        fallback_history: list[dict[str, Any]] = []
+
+        # Execute in priority order with automatic fallback
+        for idx, tool in enumerate(candidate_tools):
+            prov = tool.provider
+            is_primary = (idx == 0 and prov == "openaifm")
+
+            # Double-check paid protection
+            if is_paid_provider(prov) and not allow_paid:
+                continue
+
+            logger.info(
+                "Attempting TTS synthesis with [%s] (%s) — priority rank #%d",
+                prov, tool.name, idx + 1
+            )
+
+            try:
+                adapted = self._adapt_inputs(tool, inputs)
+            except Exception as exc:
+                err_msg = f"Input adaptation error for {tool.name}: {exc}"
+                fallback_history.append({"provider": prov, "tool": tool.name, "reason": err_msg, "status": "failed"})
+                if not auto_fallback:
+                    return ToolResult(success=False, error=err_msg, data={"fallback_history": fallback_history})
+                continue
+
+            try:
+                result = tool.execute(adapted)
+            except Exception as exc:
+                err_msg = f"Execution exception in {tool.name}: {exc}"
+                fallback_history.append({"provider": prov, "tool": tool.name, "reason": err_msg, "status": "failed"})
+                if not auto_fallback:
+                    return ToolResult(success=False, error=err_msg, data={"fallback_history": fallback_history})
+                continue
+
+            if not result.success:
+                err_msg = result.error or f"{tool.name} returned success=False"
+                fallback_history.append({"provider": prov, "tool": tool.name, "reason": err_msg, "status": "failed"})
+                logger.warning("TTS provider %s failed (%s). Moving to next fallback.", prov, err_msg)
+                if not auto_fallback:
+                    if result.data is None:
+                        result.data = {}
+                    result.data["fallback_history"] = fallback_history
+                    return result
+                continue
+
+            # Validate generated audio on disk
+            out_file = result.data.get("output_path") if result.data else None
+            if not out_file and result.artifacts:
+                out_file = result.artifacts[0]
+            if out_file:
+                is_valid, fmt, val_reason = validate_audio_file(out_file, min_bytes=100)
+                if not is_valid:
+                    err_msg = f"Invalid audio output from {tool.name}: {val_reason}"
+                    fallback_history.append({"provider": prov, "tool": tool.name, "reason": err_msg, "status": "failed"})
+                    logger.warning("Audio validation failed for %s (%s). Falling back.", prov, val_reason)
+                    if not auto_fallback:
+                        return ToolResult(success=False, error=err_msg, data={"fallback_history": fallback_history})
+                    continue
+
+            # SUCCESS! Enrich result with provider and fallback audit trail
+            if result.data is None:
+                result.data = {}
+            result.data["selected_provider"] = prov
+            result.data["selected_tool"] = tool.name
+            result.data["is_primary_provider"] = is_primary
+            result.data["fallback_occurred"] = len(fallback_history) > 0
+            result.data["fallback_history"] = fallback_history
+            result.data["priority_rank_used"] = idx + 1
+            result.data["configured_priority"] = priority_providers
+
+            if fallback_history:
+                first_failed = fallback_history[0]
+                result.data["fallback_reason"] = (
+                    f"Primary provider '{first_failed['provider']}' failed: {first_failed['reason']}. "
+                    f"Successfully generated via fallback provider '{prov}'."
+                )
+                try:
+                    from lib.tts_config import record_fallback_event
+                    record_fallback_event(first_failed['provider'], str(first_failed['reason']), prov)
+                except Exception:
+                    pass
+            else:
+                result.data["fallback_reason"] = None
+
+            logger.info("TTS generation successful using [%s] (%s)", prov, tool.name)
+            return result
+
+        # All eligible candidates failed
+        failed_summary = "; ".join(f"{h['provider']}: {h['reason']}" for h in fallback_history)
+        if not allow_paid:
+            return ToolResult(
+                success=False,
+                error=(
+                    f"All attempted free TTS providers failed ({failed_summary}). "
+                    "Paid providers are disabled. Pass allow_paid=True to allow official OpenAI API fallback."
+                ),
+                data={"fallback_history": fallback_history},
+            )
+
+        return ToolResult(
+            success=False,
+            error=f"All eligible TTS providers failed: {failed_summary}",
+            data={"fallback_history": fallback_history},
+        )
 
     @staticmethod
     def _adapt_inputs(tool: BaseTool, inputs: dict[str, Any]) -> dict[str, Any]:
         """Translate capability-level controls to provider-native inputs."""
         adapted = dict(inputs)
         props = tool.input_schema.get("properties", {})
-        if inputs.get("model") and "model_id" in props and "model" not in props:
-            if inputs.get("model_id") and inputs["model_id"] != inputs["model"]:
-                raise ValueError("model and model_id disagree")
-            adapted["model_id"] = inputs["model"]
-            adapted.pop("model", None)
 
+        # Map instructions / prompt
+        instructions = inputs.get("instructions") or inputs.get("prompt")
+        if instructions:
+            if "instructions" in props:
+                adapted["instructions"] = instructions
+            elif "prompt" in props:
+                adapted["prompt"] = instructions
+
+        # Map speed / rate
+        speed = inputs.get("speed") or inputs.get("speaking_rate")
+        if speed is not None:
+            if "speed" in props:
+                adapted["speed"] = float(speed)
+            elif "speaking_rate" in props:
+                adapted["speaking_rate"] = float(speed)
+
+        # Map voice / voice_id
+        voice = inputs.get("voice") or inputs.get("voice_id")
+        if voice:
+            if "voice" in props:
+                adapted["voice"] = voice
+            if "voice_id" in props:
+                adapted["voice_id"] = voice
+
+        # Map timestamps -> with_timestamps
+        if "timestamps" in inputs and "with_timestamps" in props:
+            adapted["with_timestamps"] = bool(inputs["timestamps"])
+
+        # Language adaptation
         lang = str(inputs.get("language_code") or "").lower()
-        if "bn" in lang:
-            if tool.name == "elevenlabs_tts":
+
+        # Provider specific nuances
+        if tool.name == "openaifm_tts":
+            # Default to Fable voice for OpenAI.fm if not explicitly set
+            if not inputs.get("voice") and not inputs.get("voice_id"):
+                adapted["voice"] = "fable"
+
+        elif tool.name == "kokoro_tts":
+            if not inputs.get("voice") and not inputs.get("voice_id"):
+                adapted["voice"] = "af_heart"
+
+        elif tool.name == "voxcpm2_tts":
+            adapted.setdefault("operation", "synthesize")
+
+        elif tool.name == "piper_tts":
+            if not adapted.get("model"):
+                if "bn" in lang:
+                    adapted["model"] = "bn_IN-biswas-medium"
+                elif "hi" in lang:
+                    adapted["model"] = "hi_IN-priyamvada-medium"
+                else:
+                    adapted["model"] = "en_US-lessac-medium"
+
+        elif tool.name == "elevenlabs_tts":
+            if "bn" in lang:
                 adapted.setdefault("model_id", "eleven_multilingual_v2")
-            elif tool.name == "azure_tts" and "voice" not in adapted:
-                adapted["voice"] = "bn-IN-BashkarNeural"
-            elif tool.name == "google_tts" and "voice_id" not in adapted:
-                adapted["voice_id"] = "bn-IN-Standard-A"
-        elif "hi" in lang:
-            if tool.name == "elevenlabs_tts":
+            elif "hi" in lang:
                 adapted.setdefault("model_id", "eleven_multilingual_v2")
-            elif tool.name == "azure_tts" and "voice" not in adapted:
-                adapted["voice"] = "hi-IN-MadhurNeural"
-            elif tool.name == "google_tts" and "voice_id" not in adapted:
-                adapted["voice_id"] = "hi-IN-Neural2-A"
 
-        if tool.name not in {"azure_tts", "mai_tts"}:
-            return adapted
+        # Strip selector-only control parameters that providers don't recognize
+        for k in (
+            "preferred_provider", "allowed_providers", "preferred_tool",
+            "allow_paid", "enable_paid_providers", "auto_fallback", "manual_mode",
+            "operation", "config_updates",
+        ):
+            adapted.pop(k, None)
 
-        if inputs.get("voice_id") and not inputs.get("voice"):
-            adapted["voice"] = inputs["voice_id"]
-
-        speed = inputs.get("speaking_rate", inputs.get("speed"))
-        if speed is not None and "rate" not in inputs:
-            percent = round((float(speed) - 1.0) * 100)
-            adapted["rate"] = f"{percent:+d}%" if percent else "0%"
-
-        pitch = inputs.get("pitch")
-        if isinstance(pitch, (int, float)):
-            adapted["pitch"] = f"{pitch:+g}st" if pitch else "0%"
-
-        # The selector's numeric style is ElevenLabs-specific. Azure's style
-        # is a named express-as value such as "calm" or "newscast".
-        if not isinstance(inputs.get("style"), str):
-            adapted.pop("style", None)
-
-        output_format = str(inputs.get("output_format", ""))
-        if output_format.startswith("mp3"):
-            adapted["output_format"] = "mp3"
-        elif output_format.startswith(("wav", "riff", "pcm")):
-            adapted["output_format"] = "wav"
         return adapted
-
-    def _select_best_tool(
-        self,
-        inputs: dict[str, Any],
-        candidates: list[BaseTool],
-        task_context: dict[str, Any],
-    ) -> tuple[BaseTool | None, object]:
-        """Select the best TTS provider using scored ranking."""
-        from lib.scoring import rank_providers
-
-        from tools.provider_routing import filter_explicit_route
-
-        candidates = filter_explicit_route(inputs, candidates)
-        preferred = inputs.get("preferred_provider", "auto")
-        allowed = set(inputs.get("allowed_providers") or [])
-        if allowed:
-            candidates = [tool for tool in candidates if tool.provider in allowed]
-
-        rankings = rank_providers(candidates, task_context)
-
-        tool_by_name: dict[str, BaseTool] = {}
-        for tool in candidates:
-            if (
-                tool.name not in tool_by_name
-                and tool.get_status() == ToolStatus.AVAILABLE
-            ):
-                tool_by_name[tool.name] = tool
-
-        if preferred != "auto":
-            for score_item in rankings:
-                if (
-                    score_item.provider == preferred
-                    and score_item.tool_name in tool_by_name
-                ):
-                    return tool_by_name[score_item.tool_name], score_item
-
-        for score_item in rankings:
-            if score_item.tool_name in tool_by_name:
-                return tool_by_name[score_item.tool_name], score_item
-
-        return None, None
-
-    def _prepare_task_context(self, inputs: dict[str, Any]) -> dict[str, Any]:
-        from lib.scoring import normalize_task_context
-
-        return normalize_task_context(
-            inputs.get("task_context", {}),
-            prompt=inputs.get("text", ""),
-            capability=self.capability,
-            operation=inputs.get("operation", "generate"),
-        )
-
-    @staticmethod
-    def _tool_context_payload(tool: BaseTool) -> dict[str, Any]:
-        info = tool.get_info()
-        return {
-            "selected_tool_agent_skills": info.get("agent_skills", []),
-            "required_agent_skills": info.get("agent_skills", []),
-            "selected_tool_usage_location": info.get("usage_location"),
-            "selected_tool_best_for": info.get("best_for", []),
-        }
-
-    def _serialize_rankings(
-        self, candidates: list[BaseTool], rankings: list[object]
-    ) -> list[dict[str, Any]]:
-        tool_by_name = {tool.name: tool for tool in candidates}
-        serialized: list[dict[str, Any]] = []
-        for score in rankings:
-            item = score.to_dict()
-            tool = tool_by_name.get(score.tool_name)
-            if tool:
-                info = tool.get_info()
-                item["agent_skills"] = info.get("agent_skills", [])
-                item["usage_location"] = info.get("usage_location")
-                item["best_for"] = info.get("best_for", [])
-                item["status"] = str(tool.get_status())
-            serialized.append(item)
-        return serialized

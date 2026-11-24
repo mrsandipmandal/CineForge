@@ -546,7 +546,7 @@ def _find_poster(project_dir: Path, state: dict) -> Optional[str]:
     for snap in (state.get("media") or {}).get("snapshots", []):
         return snap["path"]
     # Common image homes, in order of how representative they usually are.
-    for rel_dir in ("assets/images", "assets/frames", "exports", "assets", "."):
+    for rel_dir in ("thumbnails", "images", "assets/images", "assets/frames", "exports", "assets", "."):
         d = (project_dir / rel_dir) if rel_dir != "." else project_dir
         if not d.is_dir():
             continue
@@ -597,7 +597,7 @@ def load_board_state(project_dir: Path) -> dict[str, Any]:
     checkpoints = _collect_checkpoints(project_dir)
     history = _collect_history(project_dir)
 
-    pipeline_type = marker.get("pipeline_type")
+    pipeline_type = marker.get("pipeline_type") or marker.get("type") or marker.get("pipeline")
     if not pipeline_type:
         for cp in checkpoints.values():
             pt = cp.get("pipeline_type")

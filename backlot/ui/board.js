@@ -1195,6 +1195,8 @@ function renderMatrixNav() {
     { id: "storyboard", label: "STORYBOARD" },
     { id: "voice_lab", label: "VOICE LAB" },
     { id: "face_lab", label: "FACE LAB" },
+    { id: "tts_priority", label: "TTS PRIORITY" },
+    { id: "image_priority", label: "IMAGE PRIORITY" },
     { id: "assets", label: "ASSETS" },
     { id: "decisions", label: "DECISIONS" },
     { id: "providers", label: "PROVIDERS" },
@@ -1289,6 +1291,517 @@ function renderVoiceLab(s) {
     grid.innerHTML = `<div class="identity-card" style="color:var(--matrix-error)">Error loading voices: ${err}</div>`;
   });
 
+  return container;
+}
+
+// ---------------------------------------------------------------------------
+// TTS Priority & Fallback Studio View
+// ---------------------------------------------------------------------------
+
+async function postJSON(url, body) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`${res.status}: ${text || res.statusText}`);
+  }
+  return res.json();
+}
+
+function renderTTSPriorityView() {
+  const container = el("div", { class: "lab-container" });
+  const head = el("div", { class: "lab-head" },
+    el("div", {},
+      el("h2", {}, "TTS PROVIDER PRIORITY & FALLBACK ENGINE"),
+      el("span", { style: "font-family:var(--mono);font-size:12px;color:var(--matrix-muted);" },
+        "Strict Priority: OpenAI.fm [PRIMARY] ➔ Kokoro TTS ➔ VoxCPM2 ➔ Free OSS ➔ OpenAI Official [PAID]"
+      ),
+    ),
+    el("div", { id: "tts-top-badges", style: "display:flex;gap:8px;align-items:center;" })
+  );
+  container.append(head);
+
+  const mainGrid = el("div", { style: "display:flex;flex-direction:column;gap:16px;margin-top:16px;" });
+  container.append(mainGrid);
+
+  function loadAndRenderStatus() {
+    mainGrid.innerHTML = `<div class="identity-card" style="color:var(--matrix-muted)">Loading TTS provider configuration & status...</div>`;
+
+    getJSON("/api/tts/status").then((status) => {
+      mainGrid.innerHTML = "";
+
+      // Top badges in header
+      const topBadges = document.getElementById("tts-top-badges");
+      if (topBadges) {
+        topBadges.innerHTML = "";
+        const activeName = status.current_active_provider ? status.current_active_provider.label : "NONE";
+        const isPrimary = status.current_active_provider && status.current_active_provider.key === "openaifm";
+        topBadges.append(
+          el("span", { class: `consent-badge ${isPrimary ? "verified" : "unverified"}`, style: "font-size:11px;" },
+            `ACTIVE: ${activeName.toUpperCase()} ${isPrimary ? "★ [PRIMARY]" : "⇲ [FALLBACK]"}`
+          ),
+          el("span", { class: "chip", style: "font-family:var(--mono);font-size:11px;" },
+            `STATUS: ${status.fallback_status.toUpperCase()}`
+          )
+        );
+      }
+
+      // 1. Controls bar
+      const controlsBar = el("div", {
+        style: "display:flex;gap:12px;align-items:center;background:var(--matrix-surface);border:1px solid var(--matrix-border);border-radius:6px;padding:12px 16px;flex-wrap:wrap;"
+      });
+
+      // Auto-fallback toggle
+      const autoFallbackBtn = el("button", {
+        type: "button",
+        class: "matrix-tab",
+        style: `font-size:11px;padding:6px 12px;border:1px solid ${status.auto_fallback ? "var(--matrix-green)" : "var(--matrix-border)"};color:${status.auto_fallback ? "var(--matrix-green)" : "var(--matrix-muted)"};`,
+        onclick: async () => {
+          await postJSON("/api/tts/config", { auto_fallback: !status.auto_fallback });
+          loadAndRenderStatus();
+        },
+      }, `AUTO-FALLBACK: ${status.auto_fallback ? "ENABLED ✓" : "DISABLED ✗"}`);
+      controlsBar.append(autoFallbackBtn);
+
+      // Manual mode toggle
+      const manualModeBtn = el("button", {
+        type: "button",
+        class: "matrix-tab",
+        style: `font-size:11px;padding:6px 12px;border:1px solid ${status.manual_mode ? "var(--matrix-warning)" : "var(--matrix-border)"};color:${status.manual_mode ? "var(--matrix-warning)" : "var(--matrix-muted)"};`,
+        onclick: async () => {
+          await postJSON("/api/tts/config", { manual_mode: !status.manual_mode });
+          loadAndRenderStatus();
+        },
+      }, `MANUAL MODE: ${status.manual_mode ? "ACTIVE ⚠ (NO FALLBACK)" : "INACTIVE (PRIORITY FLOW)"}`);
+      controlsBar.append(manualModeBtn);
+
+      // Paid providers protection toggle
+      const paidBtn = el("button", {
+        type: "button",
+        class: "matrix-tab",
+        style: `font-size:11px;padding:6px 12px;border:1px solid ${status.allow_paid_providers ? "var(--matrix-error)" : "var(--matrix-border-bright)"};color:${status.allow_paid_providers ? "var(--matrix-error)" : "var(--matrix-green-soft)"};`,
+        onclick: async () => {
+          const next = !status.allow_paid_providers;
+          if (next && !confirm("Warning: Enabling paid providers permits OpenAI API to incur billing charges if free providers fail. Proceed?")) {
+            return;
+          }
+          await postJSON("/api/tts/config", { allow_paid_providers: next });
+          loadAndRenderStatus();
+        },
+      }, `PAID PROVIDERS: ${status.allow_paid_providers ? "ALLOWED ⚠ (PAID FALLBACK ON)" : "DISABLED 🛡 (NO SILENT CHARGES)"}`);
+      controlsBar.append(paidBtn);
+
+      // Reset to default priority button
+      const resetBtn = el("button", {
+        type: "button",
+        class: "matrix-tab",
+        style: "font-size:11px;padding:6px 12px;margin-left:auto;",
+        onclick: async () => {
+          await postJSON("/api/tts/config", {
+            provider_priority: ["openaifm", "kokoro", "voxcpm2", "piper", "indic", "mms", "f5", "openai"],
+          });
+          loadAndRenderStatus();
+        },
+      }, "↺ RESTORE STRICT PRIORITY");
+      controlsBar.append(resetBtn);
+
+      mainGrid.append(controlsBar);
+
+      // 2. Recent Fallback Event Banner (if any)
+      if (status.last_fallback_event) {
+        const ev = status.last_fallback_event;
+        const banner = el("div", {
+          style: "background:rgba(255,181,71,0.08);border:1px solid var(--matrix-warning);border-radius:6px;padding:12px 16px;display:flex;flex-direction:column;gap:4px;"
+        },
+          el("div", { style: "display:flex;gap:8px;align-items:center;" },
+            el("span", { style: "color:var(--matrix-warning);font-weight:700;font-size:12px;" }, "⚠ RECENT FALLBACK EVENT LOGGED"),
+            el("span", { style: "color:var(--matrix-muted);font-family:var(--mono);font-size:10px;" }, fmtAgo(ev.timestamp))
+          ),
+          el("div", { style: "font-family:var(--mono);font-size:11px;color:var(--matrix-text);" },
+            el("span", { style: "color:var(--matrix-error);" }, `Failed Provider: ${ev.failed_provider}`),
+            el("span", { style: "color:var(--matrix-muted);" }, ` ➔ `),
+            el("span", { style: "color:var(--matrix-green);" }, `Fallback Provider Used: ${ev.used_provider}`)
+          ),
+          el("div", { style: "font-family:var(--mono);font-size:11px;color:var(--matrix-muted);" },
+            `Reason: ${ev.reason}`
+          )
+        );
+        mainGrid.append(banner);
+      }
+
+      // 3. Provider Priority Table / Cards
+      const tableCard = el("div", { class: "identity-card", style: "padding:0;overflow:hidden;" });
+      const tableHead = el("div", {
+        style: "display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--matrix-border);background:var(--matrix-panel);"
+      },
+        el("h3", { style: "margin:0;font-size:13px;letter-spacing:1px;" }, "PROVIDER PRIORITY ORDER & ELIGIBILITY"),
+        el("span", { style: "font-family:var(--mono);font-size:11px;color:var(--matrix-muted);" },
+          "Items attempted top-to-bottom on failure"
+        )
+      );
+      tableCard.append(tableHead);
+
+      const listContainer = el("div", { style: "display:flex;flex-direction:column;" });
+      const providers = status.providers || [];
+
+      providers.forEach((p, idx) => {
+        const isCurrentActive = status.current_active_provider && status.current_active_provider.key === p.key;
+        const row = el("div", {
+          style: `display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--matrix-border);background:${isCurrentActive ? "rgba(0,255,102,0.03)" : "transparent"};flex-wrap:wrap;`
+        });
+
+        // Priority index badge
+        const rankPill = el("span", {
+          class: "chip",
+          style: `font-family:var(--mono);font-size:11px;font-weight:700;color:${p.is_primary ? "var(--matrix-green)" : "var(--matrix-text)"};`
+        }, `#${idx + 1}`);
+        row.append(rankPill);
+
+        // Name & Type
+        const infoCol = el("div", { style: "flex:1;min-width:200px;" },
+          el("div", { style: "display:flex;gap:8px;align-items:center;" },
+            el("span", { style: "font-weight:600;font-size:13px;color:var(--matrix-text);" }, p.label),
+            p.is_primary ? el("span", { class: "lang-badge", style: "background:rgba(0,255,102,0.15);color:var(--matrix-green);" }, "PRIMARY") : null,
+            p.is_paid ? el("span", { class: "lang-badge", style: "background:rgba(255,69,69,0.15);color:var(--matrix-error);" }, "PAID API") : el("span", { class: "lang-badge" }, "FREE / OSS"),
+            isCurrentActive ? el("span", { class: "lang-badge", style: "background:var(--matrix-green);color:#050805;font-weight:700;" }, "ACTIVE NOW") : null
+          ),
+          el("div", { style: "font-family:var(--mono);font-size:10px;color:var(--matrix-muted);margin-top:2px;" },
+            p.description || p.tool_name
+          )
+        );
+        row.append(infoCol);
+
+        // Availability badge
+        const availBadge = el("span", {
+          class: `provider-pill ${p.available ? "ok" : "miss"}`,
+          style: "font-size:10px;padding:3px 8px;"
+        }, p.available ? `✓ READY (${p.status})` : `✗ ${p.status.toUpperCase()}`);
+        row.append(availBadge);
+
+        // Up / Down reorder buttons
+        const orderBtns = el("div", { style: "display:flex;gap:4px;" },
+          el("button", {
+            type: "button",
+            class: "matrix-tab",
+            style: "padding:2px 8px;font-size:11px;",
+            disabled: idx === 0,
+            title: "Move up in priority",
+            onclick: async () => {
+              if (idx === 0) return;
+              const newP = [...status.provider_priority];
+              const temp = newP[idx - 1];
+              newP[idx - 1] = newP[idx];
+              newP[idx] = temp;
+              await postJSON("/api/tts/config", { provider_priority: newP });
+              loadAndRenderStatus();
+            }
+          }, "▲"),
+          el("button", {
+            type: "button",
+            class: "matrix-tab",
+            style: "padding:2px 8px;font-size:11px;",
+            disabled: idx === providers.length - 1,
+            title: "Move down in priority",
+            onclick: async () => {
+              if (idx === providers.length - 1) return;
+              const newP = [...status.provider_priority];
+              const temp = newP[idx + 1];
+              newP[idx + 1] = newP[idx];
+              newP[idx] = temp;
+              await postJSON("/api/tts/config", { provider_priority: newP });
+              loadAndRenderStatus();
+            }
+          }, "▼")
+        );
+        row.append(orderBtns);
+
+        // Enable / Disable toggle
+        const toggleBtn = el("button", {
+          type: "button",
+          class: "matrix-tab",
+          style: `font-size:10px;padding:4px 10px;border:1px solid ${p.is_enabled ? "var(--matrix-green)" : "var(--matrix-border)"};color:${p.is_enabled ? "var(--matrix-green)" : "var(--matrix-muted)"};`,
+          onclick: async () => {
+            const enabledMap = {};
+            providers.forEach(item => { enabledMap[item.key] = item.is_enabled; });
+            enabledMap[p.key] = !p.is_enabled;
+            await postJSON("/api/tts/config", { enabled_providers: enabledMap });
+            loadAndRenderStatus();
+          }
+        }, p.is_enabled ? "ENABLED" : "DISABLED");
+        row.append(toggleBtn);
+
+        listContainer.append(row);
+      });
+
+      tableCard.append(listContainer);
+      mainGrid.append(tableCard);
+
+      // 4. Live Synthesis & Fallback Verification Console
+      const testCard = el("div", { class: "identity-card" });
+      testCard.append(
+        el("div", { class: "identity-card-head" },
+          el("h3", {}, "LIVE AUDIO SYNTHESIS & REAL VALIDATION CONSOLE"),
+          el("span", { class: "lang-badge" }, "Audio Byte Header Verification")
+        )
+      );
+
+      const form = el("div", { style: "display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;" });
+
+      // Text input
+      const textGroup = el("div", { style: "grid-column:1 / -1;display:flex;flex-direction:column;gap:4px;" },
+        el("label", { style: "font-family:var(--mono);font-size:11px;color:var(--matrix-muted);" }, "Narration Text (English / Hindi / Bengali):"),
+        el("textarea", {
+          id: "tts-test-text",
+          rows: "2",
+          style: "background:var(--matrix-surface);border:1px solid var(--matrix-border);color:var(--matrix-text);padding:8px;font-family:var(--mono);font-size:12px;border-radius:4px;",
+        }, "CineForge voice synthesis with primary OpenAI.fm and automatic multi-tier fallback.")
+      );
+      form.append(textGroup);
+
+      // Voice selection
+      const voiceGroup = el("div", { style: "display:flex;flex-direction:column;gap:4px;" },
+        el("label", { style: "font-family:var(--mono);font-size:11px;color:var(--matrix-muted);" }, "Voice (fable, alloy, ash, coral, echo, onyx, shimmer):"),
+        el("input", {
+          id: "tts-test-voice",
+          type: "text",
+          value: "fable",
+          style: "background:var(--matrix-surface);border:1px solid var(--matrix-border);color:var(--matrix-text);padding:6px 8px;font-family:var(--mono);font-size:12px;border-radius:4px;",
+        })
+      );
+      form.append(voiceGroup);
+
+      // Instructions
+      const instGroup = el("div", { style: "display:flex;flex-direction:column;gap:4px;" },
+        el("label", { style: "font-family:var(--mono);font-size:11px;color:var(--matrix-muted);" }, "Narration Instructions (Emotion / Style):"),
+        el("input", {
+          id: "tts-test-instructions",
+          type: "text",
+          value: "Speak with clear authority and cinematic pacing.",
+          style: "background:var(--matrix-surface);border:1px solid var(--matrix-border);color:var(--matrix-text);padding:6px 8px;font-family:var(--mono);font-size:12px;border-radius:4px;",
+        })
+      );
+      form.append(instGroup);
+
+      testCard.append(form);
+
+      // Action row & result box
+      const actionRow = el("div", { style: "display:flex;gap:12px;align-items:center;margin-top:16px;" });
+      const resultBox = el("div", {
+        id: "tts-test-result",
+        style: "display:none;margin-top:16px;background:var(--matrix-surface);border:1px solid var(--matrix-border);border-radius:6px;padding:12px 16px;flex-direction:column;gap:8px;"
+      });
+
+      const synthBtn = el("button", {
+        type: "button",
+        class: "matrix-tab",
+        style: "padding:8px 20px;font-size:12px;font-weight:700;border:1px solid var(--matrix-green);color:var(--matrix-green);",
+        onclick: async () => {
+          const txt = document.getElementById("tts-test-text").value.trim();
+          const vc = document.getElementById("tts-test-voice").value.trim() || "fable";
+          const inst = document.getElementById("tts-test-instructions").value.trim();
+
+          if (!txt) {
+            alert("Please provide text to synthesize.");
+            return;
+          }
+
+          synthBtn.disabled = true;
+          synthBtn.textContent = "SYNTHESIZING & VALIDATING...";
+          resultBox.style.display = "flex";
+          resultBox.innerHTML = `<span style="font-family:var(--mono);font-size:11px;color:var(--matrix-muted);">Executing TTS priority fallback loop and validating audio bytes...</span>`;
+
+          try {
+            const resp = await postJSON("/api/tts/synthesize", {
+              text: txt,
+              voice: vc,
+              instructions: inst,
+              allow_paid: status.allow_paid_providers,
+              auto_fallback: status.auto_fallback,
+              manual_mode: status.manual_mode,
+            });
+
+            if (!resp.success) {
+              resultBox.innerHTML = `
+                <div style="color:var(--matrix-error);font-weight:700;font-size:12px;">SYNTHESIS FAILED</div>
+                <div style="font-family:var(--mono);font-size:11px;color:var(--matrix-muted);">${resp.error || "Unknown error"}</div>
+              `;
+            } else {
+              const d = resp.data || {};
+              const audioPath = d.output_path || (resp.artifacts && resp.artifacts[0]);
+              const audioSrc = audioPath ? `/api/tts/preview-audio?path=${encodeURIComponent(audioPath)}` : null;
+
+              resultBox.innerHTML = "";
+              const resHeader = el("div", { style: "display:flex;gap:8px;align-items:center;" },
+                el("span", { class: "consent-badge verified", style: "font-size:11px;" }, "REAL AUDIO VALIDATED ✓"),
+                el("span", { class: "chip" }, `PROVIDER: ${d.selected_provider || "unknown"}`),
+                el("span", { class: "chip" }, `TOOL: ${d.selected_tool || "unknown"}`),
+                d.fallback_occurred ? el("span", { class: "lang-badge", style: "background:rgba(255,181,71,0.15);color:var(--matrix-warning);" }, "FALLBACK USED") : null
+              );
+              resultBox.append(resHeader);
+
+              if (d.fallback_reason) {
+                resultBox.append(el("div", {
+                  style: "font-family:var(--mono);font-size:11px;color:var(--matrix-warning);background:rgba(255,181,71,0.06);padding:6px 10px;border-radius:4px;"
+                }, `Fallback Reason: ${d.fallback_reason}`));
+              }
+
+              if (audioSrc) {
+                const aud = el("audio", {
+                  controls: "true",
+                  autoplay: "true",
+                  src: audioSrc,
+                  style: "width:100%;margin-top:6px;"
+                });
+                resultBox.append(aud);
+              }
+
+              const metaGrid = el("div", {
+                style: "display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:8px;font-family:var(--mono);font-size:11px;color:var(--matrix-muted);margin-top:6px;"
+              },
+                el("div", {}, `Primary: ${d.is_primary_provider ? "YES" : "NO"}`),
+                el("div", {}, `Priority Rank: #${d.priority_rank_used || 1}`),
+                el("div", {}, `Duration: ${d.duration_seconds ? d.duration_seconds + "s" : "N/A"}`),
+                el("div", {}, `File Size: ${d.file_size_bytes ? (d.file_size_bytes / 1024).toFixed(1) + " KB" : "Valid"}`)
+              );
+              resultBox.append(metaGrid);
+            }
+          } catch (err) {
+            resultBox.innerHTML = `
+              <div style="color:var(--matrix-error);font-weight:700;font-size:12px;">SYNTHESIS ERROR</div>
+              <div style="font-family:var(--mono);font-size:11px;color:var(--matrix-muted);">${err}</div>
+            `;
+          } finally {
+            synthBtn.disabled = false;
+            synthBtn.textContent = "SYNTHESIZE & VERIFY";
+            loadAndRenderStatus();
+          }
+        }
+      }, "SYNTHESIZE & VERIFY");
+
+      actionRow.append(synthBtn);
+      testCard.append(actionRow);
+      testCard.append(resultBox);
+
+      mainGrid.append(testCard);
+
+    }).catch((err) => {
+      mainGrid.innerHTML = `<div class="identity-card" style="color:var(--matrix-error)">Error loading TTS status: ${err}</div>`;
+    });
+  }
+
+  loadAndRenderStatus();
+  return container;
+}
+
+function renderImagePriorityView() {
+  const container = el("div", { class: "lab-container" });
+  const head = el("div", { class: "lab-head" },
+    el("div", {},
+      el("h2", {}, "IMAGE PROVIDER PRIORITY & FALLBACK ENGINE"),
+      el("span", { style: "font-family:var(--mono);font-size:12px;color:var(--matrix-muted);" },
+        "Configure image generation order and toggle provider availability."
+      ),
+    ),
+    el("div", { id: "image-top-badges", style: "display:flex;gap:8px;align-items:center;" })
+  );
+  container.append(head);
+
+  const mainGrid = el("div", { style: "display:flex;flex-direction:column;gap:16px;margin-top:16px;" });
+  container.append(mainGrid);
+
+  function loadAndRenderStatus() {
+    mainGrid.innerHTML = `<div class="identity-card" style="color:var(--matrix-muted)">Loading image provider configuration & status...</div>`;
+
+    getJSON("/api/settings/image").then((status) => {
+      mainGrid.innerHTML = "";
+
+      // Top badges
+      const topBadges = document.getElementById("image-top-badges");
+      if (topBadges) {
+        topBadges.innerHTML = "";
+        topBadges.append(
+          el("span", { class: "chip", style: "font-family:var(--mono);font-size:11px;" },
+            `STATUS: ${status.fallback_status.toUpperCase()}`
+          )
+        );
+      }
+
+      // Fallback event
+      if (status.last_fallback_event) {
+        const e = status.last_fallback_event;
+        const banner = el("div", { class: "identity-card", style: "border:1px solid var(--matrix-error);color:var(--matrix-error);" },
+          `⚠ FALLBACK: ${e.primary_provider} failed (${e.reason}) ➔ Switched to ${e.fallback_provider}`
+        );
+        mainGrid.append(banner);
+      }
+
+      // Controls
+      const controls = el("div", { style: "display:flex;gap:8px;" },
+        el("button", { class: "matrix-btn", onclick: () => postJSON("/api/settings/image", { auto_fallback: !status.auto_fallback }).then(loadAndRenderStatus) },
+          `AUTO-FALLBACK: ${status.auto_fallback ? "ON" : "OFF"}`
+        ),
+        el("button", { class: "matrix-btn", onclick: () => postJSON("/api/settings/image", { manual_mode: !status.manual_mode }).then(loadAndRenderStatus) },
+          `MANUAL MODE: ${status.manual_mode ? "ON" : "OFF"}`
+        )
+      );
+      mainGrid.append(controls);
+
+      // Provider List
+      const list = el("div", { style: "display:flex;flex-direction:column;gap:4px;" });
+      status.providers.forEach((p, index) => {
+        const card = el("div", { class: "identity-card", style: "display:flex;align-items:center;gap:12px;padding:8px;" },
+          el("div", { style: "font-family:var(--mono);font-size:12px;color:var(--matrix-muted);width:30px;" }, `#${index + 1}`),
+          el("div", { style: "flex:1;" }, 
+            el("div", { style: "font-weight:700;" }, p.label),
+            el("div", { style: "font-size:11px;color:var(--matrix-muted);" }, p.description)
+          ),
+          el("div", { style: "display:flex;gap:4px;" },
+            p.is_primary ? el("span", { class: "chip", style: "font-size:10px;" }, "PRIMARY") : "",
+            p.is_paid ? el("span", { class: "chip", style: "font-size:10px;background:var(--matrix-muted);color:var(--matrix-bg);" }, "PAID") : "",
+            el("span", { class: `chip ${p.ready ? "verified" : "unverified"}`, style: "font-size:10px;" }, p.ready ? "✓ READY" : "✗ UNAVAILABLE")
+          ),
+          el("div", { style: "display:flex;gap:4px;" },
+            el("button", { class: "matrix-btn", onclick: () => {
+              const newPriority = [...status.provider_priority];
+              if (index > 0) { [newPriority[index], newPriority[index-1]] = [newPriority[index-1], newPriority[index]]; }
+              postJSON("/api/settings/image", { provider_priority: newPriority }).then(loadAndRenderStatus);
+            } }, "▲"),
+            el("button", { class: "matrix-btn", onclick: () => {
+              const newPriority = [...status.provider_priority];
+              if (index < newPriority.length - 1) { [newPriority[index], newPriority[index+1]] = [newPriority[index+1], newPriority[index]]; }
+              postJSON("/api/settings/image", { provider_priority: newPriority }).then(loadAndRenderStatus);
+            } }, "▼"),
+            el("button", { class: "matrix-btn", onclick: () => {
+              const newEnabled = { ...status.enabled_providers, [p.key]: !p.enabled };
+              postJSON("/api/settings/image", { enabled_providers: newEnabled }).then(loadAndRenderStatus);
+            } }, p.enabled ? "ENABLED" : "DISABLED")
+          )
+        );
+        list.append(card);
+      });
+      mainGrid.append(list);
+
+      // Test Console
+      const testCard = el("div", { class: "identity-card" },
+        el("h3", {}, "LIVE GENERATION TEST"),
+        el("textarea", { id: "image-test-prompt", class: "matrix-input", style: "width:100%;height:60px;", placeholder: "Enter test prompt..." }),
+        el("button", { class: "matrix-btn", style: "margin-top:8px;", onclick: async () => {
+          const prompt = document.getElementById("image-test-prompt").value;
+          const res = await postJSON("/api/image/generate", { prompt: prompt, aspect_ratio: "1:1" });
+          alert(res.success ? "Success!" : "Failed: " + res.error);
+        } }, "GENERATE TEST IMAGE")
+      );
+      mainGrid.append(testCard);
+
+    }).catch((err) => {
+      mainGrid.innerHTML = `<div class="identity-card" style="color:var(--matrix-error)">Error loading image status: ${err}</div>`;
+    });
+  }
+
+  loadAndRenderStatus();
   return container;
 }
 
@@ -1529,6 +2042,14 @@ function render() {
   }
   if (currentView === "face_lab") {
     app.append(renderFaceLab(s));
+    return;
+  }
+  if (currentView === "tts_priority") {
+    app.append(renderTTSPriorityView());
+    return;
+  }
+  if (currentView === "image_priority") {
+    app.append(renderImagePriorityView());
     return;
   }
   if (currentView === "providers") {

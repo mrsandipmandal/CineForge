@@ -252,14 +252,16 @@ def test_execute_image_omni_series_records_references_callback_and_artifacts(mon
     assert Path(result.artifacts[1]).name == "series_2.png"
 
 
-def test_image_selector_prefers_official_provider(monkeypatch, isolated_tool_registry):
+def test_image_selector_prefers_official_provider(monkeypatch, isolated_tool_registry, tmp_path):
     monkeypatch.setenv("KLING_API_KEY", "test-key")
     isolated_tool_registry.discover("tools")
+    out_file = tmp_path / "out.png"
+    out_file.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 200)
 
     def fake_execute(self, inputs):
         from tools.base_tool import ToolResult
 
-        return ToolResult(success=True, data={"output_path": "out.png"}, artifacts=["out.png"])
+        return ToolResult(success=True, data={"output_path": str(out_file)}, artifacts=[str(out_file)])
 
     monkeypatch.setattr(KlingOfficialImage, "execute", fake_execute)
     result = isolated_tool_registry.get("image_selector").execute(
