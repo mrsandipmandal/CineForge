@@ -88,3 +88,17 @@ For YouTube Shorts and Instagram Reels (1080x1920 vertical format):
    - Font: Classical Devanagari / Serif font (e.g. Rozha One, Cinzel, Noto Sans Devanagari).
    - Styling: Golden gradient fill (`linear-gradient(180deg, #FFF6D1 0%, #E5A93C 100%)`), dark translucent pill backdrop with 1px golden border, and soft black drop shadow.
    - Pacing: Synchronized precisely with whisper/speech timestamps.
+   - **TOP BADGE / HEADER BOX FORBIDDEN:** Do NOT render the top header badge box (e.g. `🏹 रामायण • भाग १४ • ...`). Keep the upper screen completely clean and unobstructed. Only render bottom subtitles/dialogue cards.
+
+---
+
+## 5. Mandatory Production Rules (User Presets)
+
+1. **Mandatory Script Outro (Call to Action):**
+   Every single mythological short script MUST end with this exact Hindi CTA line:
+   `"अगला भाग देखने के लिए सब्सक्राइब करें, लाइक करें और कमेंट में 'जय श्री राम' ज़रूर लिखें!"`
+   (Adjust slightly for timing if needed, but the core CTA must be present in every episode).
+
+2. **Clean Top Composition:**
+   Never add top header badges, series titles, or top pill boxes in 9:16 Shorts renders. All visual focus must remain on the sacred characters and cinematic background.
+

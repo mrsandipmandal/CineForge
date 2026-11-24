@@ -1100,6 +1100,8 @@ class VideoCompose(BaseTool):
             cmd.append(f"--crf={bespoke['crf']}")
         if bespoke.get("concurrency"):
             cmd.append(f"--concurrency={bespoke['concurrency']}")
+        timeout_ms = inputs.get("remotion_timeout_ms") or bespoke.get("timeout_ms") or 120000
+        cmd.append(f"--timeout={timeout_ms}")
 
         try:
             # Run from inside the composer dir so npx resolves the local
