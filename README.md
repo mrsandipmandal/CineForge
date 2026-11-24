@@ -13,6 +13,7 @@
 <p align="center"><em>Turn your AI assistant into an end-to-end film studio: research, scripting, character consistency, voice cloning, motion editing, and final composition.</em></p>
 
 <p align="center">
+  <a href="#-whats-new-in-v020">🚀 What's New in v0.2.0</a> &nbsp;·&nbsp;
   <a href="#-quick-start--installation">⚡ Quick Start</a> &nbsp;·&nbsp;
   <a href="#-shortcuts--quick-commands-reference">⌨️ Shortcuts Cheat Sheet</a> &nbsp;·&nbsp;
   <a href="#-complete-documentation-index">📚 Documentation Index</a> &nbsp;·&nbsp;
@@ -133,6 +134,45 @@ nano .env # or code .env / notepad .env
 # Start Backlot Matrix Studio server and launch browser at http://127.0.0.1:4750
 python -m backlot open
 ```
+
+---
+
+<a id="-whats-new-in-v020"></a>
+## 🚀 What's New in v0.2.0
+
+CineForge **v0.2.0** introduces cinematic 2.5D animation, a non-destructive pre-export enhancement suite, Google Veo 2 video integration, high-fidelity neural voice cloning with VoxCPM2, and autonomous creator skills.
+
+### 🎬 1. 2.5D Multi-Frame Cinematic Motion Engine
+- **Multi-Plane Camera Choreography** (`tools/video/cinematic_motion_animator.py`): Transforms static AI image plates into living cinematic shots with programmatic 3D parallax depth, camera zooms, subtle panning, dynamic camera shakes, and depth-of-field blur.
+- **Atmospheric Particle Shaders**: Generates procedural ambient lighting, floating dust motes, blazing embers, and divine rays calibrated to narrative emotional beats.
+- **Render Timeout Governance**: Added `remotion_timeout_ms` (120s default with graceful fallback) to ensure complex 4K compositions never abort prematurely.
+
+### ✨ 2. Pre-Export Enhancement Suite & Backlot Split-Screen Inspection
+- **Video Quality Enhancer** (`tools/enhancement/video_quality_enhancer.py`): Non-destructive post-compose pipeline running FFmpeg Lanczos / RealESRGAN upscaling, `hqdn3d` temporal denoising, unsharp contrast sharpening, and automatic aspect ratio preservation.
+- **AI Human Enhancer** (`tools/enhancement/ai_human_enhancer.py`): Identity-preserving face restoration and lighting correction with automated `FaceTracker` (bypasses landscapes and diagrams to save compute without hallucinations).
+- **Backlot Dual-Player (`⇄ Compare Before / After`)**: Side-by-side synchronized video inspection inside Backlot Matrix Studio to inspect quality improvements prior to publishing approval.
+
+### 🎙️ 3. Next-Gen Voice Synthesis & Voice Cloning Fleet
+- **VoxCPM2 44.1kHz Zero-Shot Voice Cloning** (`tools/audio/voxcpm2.py`): Cloud GPU (Kaggle/remote) worker integration enabling voice cloning from reference audio with zero local VRAM overhead.
+- **Expanded Neural TTS Fleet**:
+  - **Kokoro-82M TTS** (`tools/audio/kokoro_tts.py`): Lightning-fast local neural voice synthesis.
+  - **OpenAI.fm TTS** (`tools/audio/openaifm_tts.py`): High-expressivity multi-accent speech.
+  - **OpenRouter Free Audio Gateway** (`tools/audio/openrouter_tts.py`): Multi-model zero-cost audio inference.
+  - **Dhee IndicF5 TTS** (`tools/audio/dhee_indicf5_tts.py`): High-fidelity regional Indian voice cloning.
+- **Sandip Studio Audio Master** (`tools/audio/sandip_audio_master.py`): Broadcast-standard EBU R128 (-14 LUFS) mastering chain with 3-band parametric EQ, gentle dynamic compression, and gating.
+
+### 🎥 4. Google Veo 2 Integration
+- **Direct Gemini API & Vertex AI Routing** (`tools/video/veo_video.py`): Native auto-detection of `GEMINI_API_KEY` / `GOOGLE_API_KEY` for Google DeepMind's flagship Veo 2 generative video model, with seamless fallback to fal.ai and Kling.
+
+### 🤖 5. Autonomous Creator Skills Fleet
+- **`ai-video-editor`**: Autonomous talking-head video editing with local Whisper silence/mistake trimming and code-drawn Nafay 3D motion graphics in 7 visual styles.
+- **`stream-clips`**: High-energy game stream & VOD clipper with 9:16 stacked facecam/gameplay layout and synced word-by-word subtitles.
+- **`faceless-shorts`**: 100% code-driven vertical viral shorts at $0 compute cost.
+- **Mythological Video Authenticity Engine**: Guidelines for Sanskrit Devanagari mantra verification, Vedic attire, and sacred iconography.
+
+### 🛡️ 6. Security Hardening & CI/CD
+- **Zero Path Traversal Vulnerabilities**: Hardened API route sanitization in Backlot server and skill preview endpoints; passed GitHub CodeQL security analysis.
+- **Strict Media Integrity Validators**: Automated binary magic-byte checks (`validate_image_file` and `validate_audio_file`) preventing corrupted or empty payload leaks.
 
 ---
 
