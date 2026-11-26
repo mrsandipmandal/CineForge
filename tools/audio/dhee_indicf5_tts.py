@@ -296,9 +296,6 @@ class DheeIndicF5TTS(BaseTool):
             )
 
         try:
-            # Check if model dependencies and weights are available
-            import torch  # type: ignore
-
             result = self._infer(
                 text=text,
                 ref_audio=ref_audio,

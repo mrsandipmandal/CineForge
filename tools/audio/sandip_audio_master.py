@@ -115,8 +115,13 @@ class SandipAudioMaster(BaseTool):
             str(raw_p),
             "-af",
             SANDIP_MASTERING_FILTER,
-            str(out_p),
         ]
+        # FFmpeg's loudnorm filter produces floating-point samples, causing WAV muxers
+        # on newer FFmpeg builds to emit WAVE_FORMAT_EXTENSIBLE (0xFFFE), which Python's
+        # stdlib wave module cannot read; force standard 16-bit PCM for .wav outputs.
+        if out_p.suffix.lower() == ".wav":
+            cmd.extend(["-c:a", "pcm_s16le"])
+        cmd.append(str(out_p))
 
         try:
             self.run_command(cmd)
