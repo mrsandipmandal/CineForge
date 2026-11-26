@@ -101,7 +101,7 @@ cineforge doctor --json
 
 # 3. Inspect available production pipelines and tools
 cineforge pipelines list
-cineforge pipelines show animated_explainer
+cineforge pipelines show animated-explainer
 cineforge tools list
 cineforge tools info openaifm_tts
 
@@ -110,7 +110,7 @@ cineforge tools run tts_selector --input '{"text":"Hello from CineForge","output
 
 # 5. List and render zero-key showcase demos
 cineforge demo --list
-cineforge demo
+cineforge demo code-to-screen
 
 # 6. Launch Backlot Control Room in your browser (http://127.0.0.1:4750)
 cineforge studio
@@ -328,6 +328,141 @@ cineforge studio
 
 ---
 
+## 🛠️ Concrete Examples by Method
+
+Below are real copy-pasteable workflows for every way CineForge can be run:
+
+### 1. CLI Example (`cineforge`)
+Check your environment, render a zero-key demo video, run free neural TTS directly, and inspect your board:
+
+```bash
+# 1. Verify FFmpeg, Node.js, Remotion, HyperFrames, and free providers
+cineforge doctor
+
+# 2. Render one of the bundled zero-key Remotion showcase demos
+cineforge demo --list
+cineforge demo world-in-numbers
+
+# 3. Preview cost/status before execution (--dry-run), then synthesize speech audio
+cineforge tools run tts_selector \
+  --input '{"text":"Welcome to CineForge Studio.","output_path":"intro.wav"}' \
+  --dry-run
+
+cineforge tools run tts_selector \
+  --input '{"text":"Welcome to CineForge Studio.","output_path":"intro.wav"}'
+
+# 4. Inspect a pipeline specification as JSON
+cineforge pipelines show animated-explainer
+
+# 5. Open Backlot Studio UI in your browser (http://127.0.0.1:4750)
+cineforge studio
+```
+
+### 2. MCP Server Example (`cineforge-mcp`)
+Configure your AI editor automatically, or paste the generated JSON into your client's MCP config:
+
+```bash
+# Auto-install MCP config into Claude Desktop, Cursor, Antigravity, or VS Code
+cineforge mcp install --client claude
+cineforge mcp install --client cursor --uvx
+```
+
+Generated client config (`cineforge mcp config --client claude --uvx`):
+```json
+{
+  "mcpServers": {
+    "cineforge": {
+      "command": "uvx",
+      "args": ["--from", "cineforge", "cineforge-mcp"],
+      "env": {
+        "CINEFORGE_HOME": "~/.cineforge"
+      }
+    }
+  }
+}
+```
+
+Then ask your AI assistant in chat:
+> *"Run CineForge preflight, initialize a project named `space-telescope` using `animated-explainer`, generate narration audio and 16:9 visuals, and compose a 45-second video."*
+
+Behind the scenes, the assistant calls these curated MCP tools:
+1. `cineforge_preflight()` — checks available runtimes (`ffmpeg`, `remotion`, `hyperframes`) and free/paid providers
+2. `cineforge_init_project(project_id="space-telescope", title="Space Telescope", pipeline_type="animated-explainer", open_board=True)`
+3. `cineforge_get_stage_guide(pipeline="animated-explainer", stage="script")`
+4. `cineforge_generate_tts(text="...", output_path="projects/space-telescope/assets/narration.wav")`
+5. `cineforge_generate_image(prompt="...", output_path="projects/space-telescope/assets/scene1.png", aspect_ratio="16:9")`
+6. `cineforge_compose_video(edit_decisions={...}, asset_manifest={...}, output_path="projects/space-telescope/final.mp4", render_runtime="remotion")`
+7. `cineforge_open_backlot(project_id="space-telescope")`
+
+### 3. Portable Agent Skill & Claude Code Plugin Example
+Install the `cineforge` skill into any standalone project folder (even outside this repository):
+
+```bash
+mkdir ~/my-video-workspace && cd ~/my-video-workspace
+
+# Install via skills.sh or cineforge CLI
+npx skills add mrsandipmandal/CineForge --skill cineforge
+# Or install all IDE skill formats + Claude slash commands locally:
+cineforge skills install --target all --project-dir .
+```
+
+Now open `~/my-video-workspace` in **Antigravity**, **Claude Code**, **Cursor**, or **Codex**, and prompt:
+```text
+Make a 60-second YouTube Short explaining how black holes evaporate using CineForge.
+```
+Or run installed slash commands such as `/backlot`, `/animated-drawing`, or `/ink-art`.
+
+### 4. Docker Studio & Remote Streamable-HTTP MCP Example
+Run everything (Python 3.12, FFmpeg, Node 22, Remotion, HyperFrames) inside containers with persistent host storage:
+
+```bash
+git clone https://github.com/mrsandipmandal/CineForge.git && cd CineForge
+docker compose up -d
+
+# Check container studio readiness
+docker compose exec studio cineforge doctor
+
+# Inspect generated or mounted workspace files on the host under ./workspace
+ls -la ./workspace
+```
+
+- **Studio UI:** `http://127.0.0.1:4750`
+- **Remote/Local HTTP MCP Endpoint:** `http://127.0.0.1:8766/mcp` (started automatically by the `mcp` service in `docker-compose.yml`).
+- **Standalone HTTP MCP CLI (without Docker):**
+  ```bash
+  cineforge-mcp --transport streamable-http --host 127.0.0.1 --port 8766
+  ```
+
+### 5. Python API Example (Programmatic Usage / Contributors)
+Use CineForge's checkpoint and tool registry modules directly from Python (inside your `venv` or repo `.venv`):
+
+```python
+from lib.checkpoint import init_project
+from tools.tool_registry import ToolRegistry
+
+# 1. Initialize a tracked workspace project under projects/
+init_project(
+    "solar-eclipse-short",
+    title="Solar Eclipse Explained",
+    pipeline_type="animated-explainer",
+)
+
+# 2. Discover tools and inspect free provider readiness
+registry = ToolRegistry()
+registry.discover()
+print(registry.provider_menu_summary()["capabilities"])
+
+# 3. Execute speech synthesis via TTSSelector (uses free/offline cascade by default)
+tts = registry.get("tts_selector")
+res = tts.execute({
+    "text": "Today we explore why total solar eclipses happen.",
+    "output_path": "projects/solar-eclipse-short/narration.wav",
+})
+print(res.success, res.artifacts)
+```
+
+---
+
 <a id="-whats-new-in-v020"></a>
 ## 🚀 What's New in v0.2.0
 
@@ -404,9 +539,9 @@ Copy and paste these directly into **Google Antigravity**, **Claude Code**, **Cu
 | `"বিজ্ঞান ভিডিও বানাও"` | 9:16 Bengali Science Short | Native Bengali voiceover (`bn-IN`), deep-sea/physics CGI, Nirmala UI subtitles |
 | `"/science-explainer"` | Multi-Language Explainer | Launches interactive Science Explainer Shorts skill (`bengali-science-explainer`) |
 | `"Here is a YouTube Short: <URL>. Make something like this about <Topic>"` | Reference-Led Short | Runs `video_analyzer` transcript & pacing extraction → Proposes 3 distinct treatments |
-| `"Make a 60-second animated explainer about <Topic>"` | 1080p Animated Explainer | `animated_explainer` pipeline with Remotion kinetic cards and diagrams |
-| `"Repurpose this podcast file <audio.mp3> into 5 viral shorts"` | Social Clip Pack | `clip_factory` pipeline with WhisperX transcription and TikTok-style word highlights |
-| `"Make a historical documentary about <Event> with zero API cost"` | Archival Documentary | `documentary_montage` searching NASA, Archive.org, and Wikimedia Commons |
+| `"Make a 60-second animated explainer about <Topic>"` | 1080p Animated Explainer | `animated-explainer` pipeline with Remotion kinetic cards and diagrams |
+| `"Repurpose this podcast file <audio.mp3> into 5 viral shorts"` | Social Clip Pack | `clip-factory` pipeline with WhisperX transcription and TikTok-style word highlights |
+| `"Make a historical documentary about <Event> with zero API cost"` | Archival Documentary | `documentary-montage` searching NASA, Archive.org, and Wikimedia Commons |
 
 ---
 
@@ -593,14 +728,14 @@ research  →  proposal  →  script  →  scene_plan  →  assets  →  edit  �
 
 | Pipeline | Target Format | Primary Use Case |
 | :--- | :--- | :--- |
-| **`animated_explainer`** | 16:9 / 9:16 | Educational explainers, tech breakdowns, diagrams, voiceover |
-| **`character_animation`** | 16:9 / 9:16 | 2D/3D character rigs, pose libraries, GSAP timelines, SVG acting |
+| **`animated-explainer`** | 16:9 / 9:16 | Educational explainers, tech breakdowns, diagrams, voiceover |
+| **`character-animation`** | 16:9 / 9:16 | 2D/3D character rigs, pose libraries, GSAP timelines, SVG acting |
 | **`cinematic`** | 16:9 / 9:16 / 21:9 | Mythological epics, cinematic trailers, high-concept teasers, sci-fi/fantasy mood pieces |
-| **`documentary_montage`** | 16:9 | Archival documentaries, historical essays (Archive.org, NASA, Wikimedia) |
-| **`youtube_shorts`** | 9:16 | Fast-paced short-form content, kinetic subtitles, hook optimization |
-| **`talking_head`** | 9:16 / 16:9 | Presenter videos, SadTalker/Wav2Lip avatar sync, interviews |
-| **`clip_factory`** | 9:16 | Batch repurposing long-form footage into ranked social clips |
-| **`screen_demo`** | 16:9 | Polished software walkthroughs, cursor smoothing, terminal demos |
+| **`documentary-montage`** | 16:9 | Archival documentaries, historical essays (Archive.org, NASA, Wikimedia) |
+| **`mythological_shorts`** | 9:16 | Fast-paced mythological & devotional shorts, kinetic Devanagari subtitles |
+| **`talking-head`** | 9:16 / 16:9 | Presenter videos, SadTalker/Wav2Lip avatar sync, interviews |
+| **`clip-factory`** | 9:16 | Batch repurposing long-form footage into ranked social clips |
+| **`screen-demo`** | 16:9 | Polished software walkthroughs, cursor smoothing, terminal demos |
 
 ---
 
