@@ -22,9 +22,10 @@ from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from backlot.state import PROJECTS_DIR, REPO_ROOT, list_projects, load_board_state, summarize_project
+from lib.paths import get_backlot_state_dir, get_workspace_root
 
 UI_DIR = Path(__file__).resolve().parent / "ui"
-THUMB_CACHE_DIR = REPO_ROOT / ".backlot" / "thumbs"
+THUMB_CACHE_DIR = get_backlot_state_dir() / "thumbs"
 THUMB_WIDTHS = (320, 640, 960)
 
 # Paths inside a project whose changes are pure noise for the board.
@@ -280,6 +281,11 @@ def create_app() -> FastAPI:
         registry.ensure_discovered()
         return await asyncio.to_thread(registry.provider_menu_summary)
 
+    @app.get("/api/doctor")
+    async def doctor_status() -> dict:
+        from cineforge_cli.core import build_doctor_report
+        return await asyncio.to_thread(build_doctor_report)
+
     # ---- TTS Provider Priority & Fallback API --------------------------
 
     @app.get("/api/tts/status")
@@ -383,15 +389,30 @@ def create_app() -> FastAPI:
     async def tts_preview_audio(path: str) -> FileResponse:
         if not path or ".." in path.replace("\\", "/").split("/"):
             raise HTTPException(status_code=403, detail="Path outside repository")
-        base = os.path.realpath(str(REPO_ROOT))
         clean_path = os.path.normpath(path).lstrip("/\\")
         if ".." in clean_path.split(os.sep) or ".." in clean_path.split("/"):
             raise HTTPException(status_code=403, detail="Path outside repository")
-        target = os.path.realpath(os.path.join(base, clean_path))
-        if not (target == base or target.startswith(base + os.sep)):
-            raise HTTPException(status_code=403, detail="Path outside repository")
-        target_path = Path(target)
-        if not target_path.is_file():
+        allowed_roots = [
+            os.path.realpath(str(get_workspace_root())),
+            os.path.realpath(str(REPO_ROOT)),
+        ]
+        target_path: Optional[Path] = None
+        for base in allowed_roots:
+            target = os.path.realpath(os.path.join(base, clean_path))
+            if not (target == base or target.startswith(base + os.sep)):
+                continue
+            cand = Path(target)
+            if cand.is_file():
+                target_path = cand
+                break
+        if target_path is None:
+            # Verify the path would stay inside at least one root even if missing.
+            if not any(
+                (t := os.path.realpath(os.path.join(base, clean_path))) == base
+                or t.startswith(base + os.sep)
+                for base in allowed_roots
+            ):
+                raise HTTPException(status_code=403, detail="Path outside repository")
             raise HTTPException(status_code=404, detail="Audio file not found")
         return FileResponse(target_path)
 
@@ -453,8 +474,12 @@ def create_app() -> FastAPI:
         return response
 
     # Loopback binding alone does not prevent browser DNS-rebinding requests.
+    allowed_hosts = ["127.0.0.1", "localhost"]
+    extra_hosts = os.environ.get("BACKLOT_ALLOWED_HOSTS", "")
+    if extra_hosts:
+        allowed_hosts.extend(h.strip() for h in extra_hosts.split(",") if h.strip())
     app.add_middleware(
-        TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost"], www_redirect=False,
+        TrustedHostMiddleware, allowed_hosts=allowed_hosts, www_redirect=False,
     )
     return app
 
