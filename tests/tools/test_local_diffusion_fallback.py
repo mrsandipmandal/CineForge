@@ -2,36 +2,44 @@ import sys
 import unittest
 from unittest.mock import MagicMock, patch
 
-try:
-    import torch
-except ImportError:
-    torch = MagicMock()
-    sys.modules["torch"] = torch
-    sys.modules["torch.cuda"] = torch.cuda
-
-import os
-from pathlib import Path
+import tools.graphics.local_diffusion as local_diffusion_mod
 from tools.graphics.local_diffusion import generate_local_diffusion_fallback, detect_hardware_guard
 from lib.image_config import delegate_to_local_diffusion
 
-class TestLocalDiffusionFallback(unittest.TestCase):
 
-    @patch("torch.cuda.is_available")
-    @patch("torch.cuda.get_device_name")
-    @patch("torch.cuda.get_device_properties")
-    def test_detect_hardware_guard_cuda_and_low_vram(self, mock_props, mock_name, mock_cuda):
-        mock_cuda.return_value = True
-        mock_name.return_value = "NVIDIA GeForce RTX 3050 Laptop GPU"
-        mock_props.return_value.total_memory = 4096 * 1024 * 1024
-        
-        hardware = detect_hardware_guard()
+class TestLocalDiffusionFallback(unittest.TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        try:
+            import torch as real_torch
+            torch_mod = real_torch
+        except ImportError:
+            torch_mod = MagicMock()
+            sys_patch = patch.dict(
+                sys.modules,
+                {"torch": torch_mod, "torch.cuda": torch_mod.cuda},
+            )
+            sys_patch.start()
+            self.addCleanup(sys_patch.stop)
+
+        mod_patch = patch.object(local_diffusion_mod, "torch", torch_mod)
+        mod_patch.start()
+        self.addCleanup(mod_patch.stop)
+        self.torch_mod = torch_mod
+
+    def test_detect_hardware_guard_cuda_and_low_vram(self):
+        with (
+            patch.object(self.torch_mod.cuda, "is_available", return_value=True),
+            patch.object(self.torch_mod.cuda, "get_device_name", return_value="NVIDIA GeForce RTX 3050 Laptop GPU"),
+            patch.object(self.torch_mod.cuda, "get_device_properties") as mock_props,
+        ):
+            mock_props.return_value.total_memory = 4096 * 1024 * 1024
+            hardware = detect_hardware_guard()
         self.assertTrue(hardware["is_low_vram"])
 
-    @patch("torch.cuda.is_available")
-    def test_detect_hardware_guard_cpu_fallback(self, mock_cuda):
-        mock_cuda.return_value = False
-        
-        hardware = detect_hardware_guard()
+    def test_detect_hardware_guard_cpu_fallback(self):
+        with patch.object(self.torch_mod.cuda, "is_available", return_value=False):
+            hardware = detect_hardware_guard()
         self.assertFalse(hardware["is_cuda"])
 
     @patch("tools.graphics.local_diffusion.StableDiffusionPipeline")
