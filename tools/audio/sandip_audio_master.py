@@ -116,11 +116,11 @@ class SandipAudioMaster(BaseTool):
             "-af",
             SANDIP_MASTERING_FILTER,
         ]
-        # FFmpeg's loudnorm filter produces floating-point samples, causing WAV muxers
-        # on newer FFmpeg builds to emit WAVE_FORMAT_EXTENSIBLE (0xFFFE), which Python's
-        # stdlib wave module cannot read; force standard 16-bit PCM for .wav outputs.
+        # FFmpeg's loudnorm filter upsamples internally to 192 kHz / float, causing
+        # WAV muxers (especially FFmpeg 6.x on Python 3.10/3.11 wave.py) to emit
+        # WAVE_FORMAT_EXTENSIBLE (0xFFFE); force broadcast 48 kHz 16-bit PCM WAV.
         if out_p.suffix.lower() == ".wav":
-            cmd.extend(["-c:a", "pcm_s16le"])
+            cmd.extend(["-ar", "48000", "-c:a", "pcm_s16le"])
         cmd.append(str(out_p))
 
         try:
