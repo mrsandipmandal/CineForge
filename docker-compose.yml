@@ -1,0 +1,28 @@
+services:
+  studio:
+    build: .
+    image: cineforge:latest
+    container_name: cineforge-studio
+    ports:
+      - "4750:4750"
+    volumes:
+      - ./workspace:/workspace
+    environment:
+      - CINEFORGE_HOME=/workspace
+      - BACKLOT_HOST=0.0.0.0
+      - BACKLOT_PORT=4750
+    command: ["cineforge", "studio", "--foreground", "--host", "0.0.0.0", "--port", "4750"]
+    restart: unless-stopped
+
+  mcp:
+    build: .
+    image: cineforge:latest
+    container_name: cineforge-mcp
+    ports:
+      - "8766:8766"
+    volumes:
+      - ./workspace:/workspace
+    environment:
+      - CINEFORGE_HOME=/workspace
+    command: ["cineforge-mcp", "--transport", "streamable-http", "--host", "0.0.0.0", "--port", "8766"]
+    restart: unless-stopped
