@@ -132,7 +132,8 @@ class TestSelectorRouting:
         from tools.audio.tts_selector import TTSSelector
 
         out = tmp_path / "selector.mp3"
-        with patch("requests.post", return_value=_FakeResponse(b"SELECTED")) as mock_post:
+        fake_mp3 = b"\xff\xfb\x90\x00" + b"\x00" * 124
+        with patch("requests.post", return_value=_FakeResponse(fake_mp3)) as mock_post:
             result = TTSSelector().execute(
                 {
                     "text": "routed through the selector",
@@ -146,7 +147,7 @@ class TestSelectorRouting:
         assert result.success is True
         assert result.data["selected_provider"] == "fish_audio"
         assert result.data["model"] == "s1"
-        assert out.read_bytes() == b"SELECTED"
+        assert out.read_bytes() == fake_mp3
         _, kwargs = mock_post.call_args
         assert kwargs["headers"]["model"] == "s1"
         assert kwargs["json"]["reference_id"] == "voice-xyz"

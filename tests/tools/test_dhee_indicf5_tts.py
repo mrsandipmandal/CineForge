@@ -25,12 +25,21 @@ def test_dhee_indicf5_tool_registration():
     assert tool.supports.get("multilingual") is True
 
 
-def test_dhee_indicf5_sandip_profile_resolution():
+def test_dhee_indicf5_sandip_profile_resolution(tmp_path: Path, monkeypatch):
     from tools.audio.dhee_indicf5_tts import DheeIndicF5TTS
+
+    sample_dir = tmp_path / "voices" / "sandip" / "samples"
+    sample_dir.mkdir(parents=True)
+    sample_file = sample_dir / "Bng_sample.mp3"
+    sample_file.write_bytes(b"ID3" + b"\x00" * 128)
+    monkeypatch.setenv("CINEFORGE_HOME", str(tmp_path / "home"))
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("lib.paths.get_sample_files_dir", lambda: tmp_path)
 
     tool = DheeIndicF5TTS()
     ref_audio, ref_text = tool.resolve_sandip_reference()
     assert Path(ref_audio).exists()
+    assert Path(ref_audio) == sample_file.resolve()
     assert "নমস্কার আমি সন্দীপ" in ref_text
     assert "অডিওতে বলা কথাটি লিখলে ক্লোনিং নিখুঁত হয়" in ref_text
 

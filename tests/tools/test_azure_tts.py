@@ -19,7 +19,7 @@ from tools.tool_registry import ToolRegistry
 from tools.audio.azure_tts import AzureTTS
 
 
-FAKE_MP3 = b"\xff\xfb\x90\x00" + b"\x00" * 64
+FAKE_MP3 = b"\xff\xfb\x90\x00" + b"\x00" * 124
 
 
 class _FakeResponse:

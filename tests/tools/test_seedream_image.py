@@ -74,7 +74,8 @@ def mock_requests(monkeypatch):
 
 
 def _setup_mock_execution(mock_post, mock_get, num_images: int = 1, status: str = "COMPLETED",
-                          error: str | None = None, extra_gets: list = None):
+                          error: str | None = None, extra_gets: list = None,
+                          image_bytes: bytes | None = None):
     """Helper to setup common mock execution flow."""
     mock_post.return_value = _build_submit_response()
 
@@ -82,7 +83,10 @@ def _setup_mock_execution(mock_post, mock_get, num_images: int = 1, status: str 
     if status == "COMPLETED":
         urls = [f"http://img.url/{i}" for i in range(num_images)]
         side_effects.append(_build_result_response(urls))
-        side_effects.extend([_FakeResponse(content=_build_image_content(i)) for i in range(num_images)])
+        side_effects.extend([
+            _FakeResponse(content=image_bytes if image_bytes is not None else _build_image_content(i))
+            for i in range(num_images)
+        ])
     elif extra_gets:
         side_effects.extend(extra_gets)
 
@@ -277,7 +281,12 @@ class TestMetadata:
         from tools.graphics.image_selector import ImageSelector
 
         mock_post, mock_get = mock_requests
-        _setup_mock_execution(mock_post, mock_get, num_images=2)
+        _setup_mock_execution(
+            mock_post,
+            mock_get,
+            num_images=2,
+            image_bytes=b"\x89PNG\r\n\x1a\n" + b"\x00" * 120,
+        )
         selector = ImageSelector()
         monkeypatch.setattr(selector, "_providers", lambda: [seedream_tool])
 
