@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/cineforge-dark.svg">
-    <img src="assets/cineforge-light.svg" alt="CineForge mascot" width="220">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/mrsandipmandal/CineForge/main/assets/cineforge-dark.svg">
+    <img src="https://raw.githubusercontent.com/mrsandipmandal/CineForge/main/assets/cineforge-light.svg" alt="CineForge mascot" width="220">
   </picture>
 </p>
 
@@ -57,61 +57,153 @@ Get your studio up and running in **under 60 seconds**. No paid API keys are req
 
 ---
 
-### Option A: One-Line Package & MCP Install (Recommended — No Git Clone Needed)
+### Choose Your Installation & Usage Method
 
-Install CineForge as a global CLI tool and MCP server using [`uv`](https://docs.astral.sh/uv/) or `pip`:
+| Method | Best For | Workspace Location | Key Advantage |
+| :--- | :--- | :--- | :--- |
+| **Option A: PyPI (`uv` / `pip`)** | Everyday creators, CLI & MCP users | `~/.cineforge` | Clean global install; no Git clone needed |
+| **Option B: Agent Skill / Plugin** | Antigravity, Claude Code, Cursor, Codex | Current project folder | Teach any AI assistant in seconds |
+| **Option C: Docker Compose** | Zero-setup isolation, servers & teams | `./workspace` | FFmpeg, Node.js, Remotion & HyperFrames pre-bundled |
+| **Option D: 1-Command Installer** | Fresh Linux / macOS / Windows machines | `~/.cineforge` | Installs `uv`, `cineforge`, workspace & runs diagnostics |
+| **Option E: Git Clone** | Contributors & custom tool development | Cloned repo folder | Editable source, local tests (`make test-contracts`) |
+
+---
+
+### Option A: PyPI Package (`uv` / `pip`) — CLI, Backlot UI & MCP Server (Recommended)
+
+#### 1. Install
+Use [`uv`](https://docs.astral.sh/uv/) (recommended — handles isolation automatically and installs global `cineforge`, `cineforge-mcp`, and `backlot` commands with no manual `venv` activation):
 
 ```bash
-# Install CineForge CLI + MCP Server (using uv or pip)
 uv tool install cineforge
-# or: pip install cineforge
+# With optional local voice / transcription / extra packs:
+# uv tool install "cineforge[tts,whisper]"
+```
 
-# Initialize workspace (~/.cineforge) and run guided setup
+Or install with `pip` inside a virtual environment:
+
+```bash
+python3 -m venv ~/.venvs/cineforge
+source ~/.venvs/cineforge/bin/activate   # Windows: .\.venvs\cineforge\Scripts\Activate.ps1
+pip install cineforge
+```
+
+> **Note for Ubuntu 24.04+ / Debian Linux (PEP 668):** System Python blocks bare `pip install cineforge` outside a virtual environment (`externally-managed-environment`). Use `uv tool install cineforge` (recommended) or activate a `venv` first before running `pip install cineforge`.
+
+#### 2. How to Use (CLI & Backlot Control Room)
+```bash
+# 1. Guided setup (initializes ~/.cineforge, optional API keys, Remotion, Piper TTS, HyperFrames)
 cineforge setup
 
-# Check ready runtimes, FFmpeg, Node.js, and providers
+# 2. Check FFmpeg, Node.js, render runtimes, and ready AI providers
 cineforge doctor
+cineforge doctor --json
 
-# Connect automatically to Claude Desktop, Cursor, Antigravity, Claude Code, or VS Code
-cineforge mcp install --client claude    # or: cursor | antigravity | claude-code | vscode | all
+# 3. Inspect available production pipelines and tools
+cineforge pipelines list
+cineforge pipelines show animated_explainer
+cineforge tools list
+cineforge tools info openaifm_tts
 
-# Launch Backlot Control Room in your browser
+# 4. Run a tool directly (or --dry-run to check cost/status without writing media)
+cineforge tools run tts_selector --input '{"text":"Hello from CineForge","output_path":"hello.wav"}'
+
+# 5. List and render zero-key showcase demos
+cineforge demo --list
+cineforge demo
+
+# 6. Launch Backlot Control Room in your browser (http://127.0.0.1:4750)
 cineforge studio
 ```
 
-> **Zero-Install MCP Launch (`uvx`):** Add `"command": "uvx", "args": ["--from", "cineforge", "cineforge-mcp"]` to your MCP client config (or print any client's JSON with `cineforge mcp config --client claude --uvx`).
+#### 3. How to Use with AI Assistants via MCP (`cineforge-mcp`)
+Connect CineForge as an MCP server so your AI assistant can inspect providers, initialize projects, generate narration/images/video, and render compositions without cloning the repo:
+
+```bash
+# Auto-configure your AI client (creates a backup if a config file already exists)
+cineforge mcp install --client claude       # Also: claude-code | cursor | antigravity | windsurf | vscode | all
+
+# Preview the config path & JSON without writing:
+cineforge mcp install --client cursor --dry-run
+
+# Or print ready-to-paste JSON for zero-install uvx launching:
+cineforge mcp config --client claude --uvx
+```
+
+Manual server run options:
+```bash
+cineforge-mcp                                                       # stdio (default for desktop clients)
+cineforge-mcp --transport streamable-http --host 127.0.0.1 --port 8766
+cineforge-mcp --all-tools                                           # expose every BaseTool individually
+cineforge-mcp --profile tts,image_generation                        # expose specific tool families only
+```
+
+Once connected, prompt your AI assistant naturally (or trigger MCP prompts `onboarding`, `make_video`, `science_explainer`):
+- `"Run CineForge preflight and make a 60-second explainer about black holes."`
+- The MCP server routes calls through `cineforge_preflight`, `cineforge_init_project`, `cineforge_get_stage_guide`, `cineforge_generate_tts`/`_image`/`_video`/`_music`, `cineforge_compose_video`, and `cineforge_open_backlot`.
 
 ---
 
-### Option B: Portable Agent Skill & IDE Plugin (Any Project Folder)
+### Option B: Portable Agent Skill & Claude Code Plugin (Any Project Folder)
 
-Teach your AI coding assistant (Antigravity, Claude Code, Cursor, Codex) to drive CineForge without cloning the repository:
+#### 1. Install
+Add the portable `cineforge` skill into any workspace (Antigravity, Claude Code, Cursor, Codex):
 
 ```bash
-# Install via skills.sh CLI
+# Option B1: Using skills.sh
 npx skills add mrsandipmandal/CineForge --skill cineforge
 
-# Or install skills, rules, and slash commands using the CineForge CLI
-cineforge skills install --target all        # agents, claude, cursor, codex, antigravity
+# Option B2: Using the CineForge CLI (from PyPI or local install)
+cineforge skills list
+cineforge skills install --target all --project-dir .
+# Targets: agents | claude | cursor | codex | antigravity | all
+# Use --global for user-wide installation, or --minimal for the core entry skill only.
 ```
 
-For **Claude Code**, this repository also ships a native plugin manifest (`.claude-plugin/plugin.json`) bundling the CineForge skill, slash commands, and `.mcp.json`.
+For **Claude Code Plugin Marketplace**, use this repository's `.claude-plugin/marketplace.json` and `.claude-plugin/plugin.json`, which bundle `.agents/skills`, slash commands (`/animated-drawing`, `/backlot`, `/ink-art`), and `.mcp.json` (`uvx cineforge-mcp`).
+
+#### 2. How to Use
+1. Open the target project folder in **Antigravity**, **Claude Code**, **Cursor**, or **Codex**.
+2. Ask your AI assistant directly:
+   - `"Make a 60-second YouTube Short about deep sea bioluminescence using CineForge."`
+   - `"বিজ্ঞান ভিডিও বানাও"` (triggers Bengali Science Explainer workflow)
+   - Or invoke a slash command such as `/backlot`, `/animated-drawing`, or `/ink-art`.
+3. The skill automatically detects whether **MCP tools**, **`cineforge` CLI**, or a **local repo checkout** is available, runs `preflight`/`doctor` first, and walks you through proposal, cost approval, and Backlot preview.
 
 ---
 
-### Option C: Zero-Dependency Docker Studio (Python + FFmpeg + Node + Remotion Pre-Bundled)
+### Option C: Zero-Dependency Docker Studio (`studio` + `mcp`)
 
+Pre-bundles Python 3.12, FFmpeg, Node.js 22, Remotion, HyperFrames, and `cineforge[all]`.
+
+#### 1. Start Containers
 ```bash
-# Start Backlot UI (http://127.0.0.1:4750) and Streamable-HTTP MCP Server (http://127.0.0.1:8766/mcp)
+git clone https://github.com/mrsandipmandal/CineForge.git
+cd CineForge
+
+# Optional: add API keys to .env (or pass env vars); $0.00 offline/free providers work without keys
 docker compose up -d
 ```
+
+#### 2. How to Use
+- **Backlot Studio Web UI:** open `http://127.0.0.1:4750` in your browser.
+- **Streamable-HTTP MCP Server:** connect your MCP client to `http://127.0.0.1:8766/mcp`.
+- **Run CLI Commands Inside Container:**
+  ```bash
+  docker compose exec studio cineforge doctor
+  docker compose exec studio cineforge demo --list
+  docker compose exec studio cineforge pipelines list
+  ```
+- **Persistent Files:** generated projects, `.env`, and workspace assets are stored on the host under `./workspace`.
+- **Stop Containers:** `docker compose down`
 
 ---
 
 ### Option D: 1-Command Terminal Installer
 
+#### 1. Install
 ```bash
-# macOS / Linux / WSL
+# Linux / macOS / WSL
 curl -fsSL https://raw.githubusercontent.com/mrsandipmandal/CineForge/main/scripts/install.sh | bash
 ```
 
@@ -120,10 +212,23 @@ curl -fsSL https://raw.githubusercontent.com/mrsandipmandal/CineForge/main/scrip
 irm https://raw.githubusercontent.com/mrsandipmandal/CineForge/main/scripts/install.ps1 | iex
 ```
 
+#### 2. What It Does & How to Use
+The installer automatically installs `uv` (if missing), installs `cineforge` globally, initializes `~/.cineforge` (`projects/`, `.env`, `config.yaml`), and runs `cineforge doctor`. Afterward, run:
+
+```bash
+cineforge setup                         # Configure optional API keys & Remotion/Piper runtimes
+cineforge mcp install --client claude   # Connect Claude Desktop (or cursor/antigravity/vscode/all)
+cineforge skills install --target all   # Install portable AI agent skills into a project
+cineforge studio                        # Launch Backlot Control Room at http://127.0.0.1:4750
+```
+
+*(Need a custom workspace folder? Set `CINEFORGE_HOME=/path/to/workspace` or pass `--workspace /path/to/workspace` to `cineforge`.)*
+
 ---
 
 ### Option E: Clone Repository Setup (Contributors & Local Dev)
 
+#### 1. Install
 ```bash
 # Clone the repository
 git clone https://github.com/mrsandipmandal/CineForge.git
@@ -175,6 +280,24 @@ Copy-Item .env.example .env
 ```
 </details>
 
+#### 2. How to Use from a Local Repo Checkout
+```bash
+# Activate local virtualenv
+source .venv/bin/activate
+
+# Check tools & engines
+cineforge doctor
+
+# Launch Backlot Control Room (http://127.0.0.1:4750)
+python -m backlot open
+
+# Render showcase demos or run automated tests
+make demo
+make test-contracts
+pytest tests/backlot/ tests/cli/ tests/mcp/ tests/packaging/ -q
+```
+Or open the cloned folder directly in **Antigravity**, **Claude Code**, **Cursor**, or **Codex**—[`AGENTS.md`](AGENTS.md) and [`AGENT_GUIDE.md`](AGENT_GUIDE.md) automatically guide the assistant.
+
 ---
 
 ### Step 2: Configure Keys (Optional — $0.00 Mode Works Immediately)
@@ -182,8 +305,9 @@ Copy-Item .env.example .env
 Every paid API key is optional. The studio functions offline with free neural TTS and open media:
 
 ```bash
-# Edit .env to add keys for commercial models you wish to unlock:
-nano .env # or code .env / notepad .env
+# PyPI / 1-command installer workspace: edit ~/.cineforge/.env (or run `cineforge setup`)
+# Local repo checkout: edit .env
+nano ~/.cineforge/.env   # or .env in repo root
 
 # Recommended additions:
 # ELEVENLABS_API_KEY=your_key   # Studio voice cloning & SFX
@@ -197,7 +321,9 @@ nano .env # or code .env / notepad .env
 
 ```bash
 # Start Backlot Matrix Studio server and launch browser at http://127.0.0.1:4750
-python -m backlot open
+cineforge studio
+# Or from a local repo checkout:
+# python -m backlot open
 ```
 
 ---
@@ -348,21 +474,21 @@ Final Broadcast MP4 ◀── Full Pipeline ◀── Single Human Approval ◀�
 Monitors pipeline stages in real time. Shows automated and human approval checkpoints, duration metrics, and complete stage state tracking across research, script, assets, edit, and composition:
 
 <p align="center">
-  <img src="assets/matrix-studio-mars-board.png" alt="CineForge Matrix Studio Live Board - Mars 2099" width="960">
+  <img src="https://raw.githubusercontent.com/mrsandipmandal/CineForge/main/assets/matrix-studio-mars-board.png" alt="CineForge Matrix Studio Live Board - Mars 2099" width="960">
 </p>
 
 ### 2. Visual Storyboard & Shot Planner (`/p/{project_id}#storyboard`)
 Inspect generated visual scene plates, camera motion choreography (push-in, pan, dolly), subtitle timing, and prompt directions:
 
 <p align="center">
-  <img src="assets/matrix-studio-mars-storyboard.png" alt="CineForge Storyboard and Scene Plan" width="960">
+  <img src="https://raw.githubusercontent.com/mrsandipmandal/CineForge/main/assets/matrix-studio-mars-storyboard.png" alt="CineForge Storyboard and Scene Plan" width="960">
 </p>
 
 ### 3. Studio Multi-Project Dashboard (`/`)
 Live bird's-eye view across all projects in the pipeline, tracking generation spend, render count, and stage progress:
 
 <p align="center">
-  <img src="assets/matrix-studio-dashboard.png" alt="CineForge Studio Multi-Project Dashboard" width="960">
+  <img src="https://raw.githubusercontent.com/mrsandipmandal/CineForge/main/assets/matrix-studio-dashboard.png" alt="CineForge Studio Multi-Project Dashboard" width="960">
 </p>
 
 ---
@@ -375,13 +501,13 @@ CineForge is an agent-first production system where plain language instructions 
 Full animated sci-fi production featuring procedural 1080p Martian landscapes, geodesic biodomes, subterranean lava-tube transit, Sarvam AI native West Bengal Bengali (`bn-IN`) voice narration, and cinematic Ken-Burns motion choreography:
 
 <div align="center">
-  <video src="assets/futuristic-mars-colony.mp4" poster="assets/futuristic-mars-colony-poster.png" width="100%" controls autoplay loop muted></video>
+  <video src="https://raw.githubusercontent.com/mrsandipmandal/CineForge/main/assets/futuristic-mars-colony.mp4" poster="https://raw.githubusercontent.com/mrsandipmandal/CineForge/main/assets/futuristic-mars-colony-poster.png" width="100%" controls autoplay loop muted></video>
   <p><sub><em>Rendered with CineForge Animated Explainer pipeline (1080p, 30fps) — Audio mix with Sarvam AI <code>bn-IN</code> TTS and ambient sci-fi synthesizer bed.</em></sub></p>
 </div>
 
 ### 2. Matrix Studio Motion Title & Kinetic Typography
 <div align="center">
-  <video src="assets/cineforge-demo.mp4" poster="assets/cineforge-demo-poster.png" width="100%" controls autoplay loop muted></video>
+  <video src="https://raw.githubusercontent.com/mrsandipmandal/CineForge/main/assets/cineforge-demo.mp4" poster="https://raw.githubusercontent.com/mrsandipmandal/CineForge/main/assets/cineforge-demo-poster.png" width="100%" controls autoplay loop muted></video>
   <p><sub><em>Rendered with CineForge Remotion engine (1080p, 30fps) — typography, layout, timing, and audio muxing generated via pipeline.</em></sub></p>
 </div>
 
