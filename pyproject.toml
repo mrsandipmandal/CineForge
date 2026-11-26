@@ -1,0 +1,127 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cineforge"
+version = "0.2.0"
+description = "Autonomous AI Film & Video Production Platform with CLI, MCP Server, and Backlot Studio"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Sandip Mandal" },
+]
+keywords = [
+    "ai-video",
+    "video-production",
+    "mcp",
+    "model-context-protocol",
+    "remotion",
+    "ffmpeg",
+    "tts",
+    "automation",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Video",
+]
+dependencies = [
+    "pyyaml>=6.0",
+    "pydantic>=2.0",
+    "jsonschema>=4.20",
+    "python-dotenv>=1.0",
+    "Pillow>=10.0",
+    "numpy>=1.24",
+    "requests>=2.31",
+    "google-auth>=2.0",
+    "google-genai>=1.0.0",
+    "openai>=2.44.0",
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "watchfiles>=0.21",
+    "websockets>=14.0",
+    "typer>=0.12",
+    "rich>=13.0",
+    "mcp>=2.0.0",
+]
+
+[project.optional-dependencies]
+mcp = [
+    "mcp>=2.0.0",
+]
+tts-local = [
+    "piper-tts>=1.2.0",
+    "edge-tts>=6.1.0",
+]
+gpu = [
+    "torch>=2.0",
+    "torchaudio>=2.0",
+    "torchvision>=0.15",
+    "diffusers",
+    "transformers",
+    "accelerate",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.24",
+    "build>=1.0",
+    "twine>=5.0",
+]
+all = [
+    "cineforge[mcp,tts-local]",
+]
+
+[project.scripts]
+cineforge = "cineforge_cli.main:main"
+cineforge-mcp = "cineforge_mcp.server:main"
+backlot = "backlot.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/mrsandipmandal/CineForge"
+Repository = "https://github.com/mrsandipmandal/CineForge"
+Issues = "https://github.com/mrsandipmandal/CineForge/issues"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = [
+    "backlot*",
+    "cineforge_cli*",
+    "cineforge_mcp*",
+    "lib*",
+    "schemas*",
+    "styles*",
+    "tools*",
+]
+exclude = [
+    "tests*",
+    "projects*",
+    "output*",
+    "scripts*",
+    "reports*",
+]
+
+[tool.setuptools.package-data]
+backlot = ["ui/*", "README.md"]
+schemas = ["**/*.json"]
+styles = ["*.yaml"]
+tools = [
+    "provider_contracts/*.json",
+    "_comfyui/workflows/*.json",
+    "_comfyui/workflows/**/*.json",
+    "graphics/templates/*",
+    "graphics/templates/**/*",
+    "video/stock_sources/*",
+]

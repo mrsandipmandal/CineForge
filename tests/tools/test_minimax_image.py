@@ -99,7 +99,7 @@ def test_image_selector_can_route_to_minimax(
         lambda *args, **kwargs: FakeResponse(
             json_data={
                 "data": {
-                    "image_base64": [base64.b64encode(b"image").decode("ascii")]
+                    "image_base64": [base64.b64encode(b"\x89PNG\r\n\x1a\n" + b"\x00" * 120).decode("ascii")]
                 },
                 "base_resp": {"status_code": 0},
             }

@@ -16,3 +16,6 @@ uvicorn>=0.29
 watchfiles>=0.21
 
 websockets>=14.0       # Eleven v4 Turbo and realtime audio transports
+typer>=0.12            # CineForge CLI
+rich>=13.0             # Rich terminal output
+mcp>=2.0.0             # Model Context Protocol (MCP) server SDK

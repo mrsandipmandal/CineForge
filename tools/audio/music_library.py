@@ -33,8 +33,9 @@ from tools.base_tool import (
     ToolTier,
 )
 
-# Repository root: tools/audio/music_library.py -> parents[2]
-_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+from lib.paths import get_music_library_dir, get_workspace_root
+
+_PROJECT_ROOT = get_workspace_root()
 
 # Common royalty-free audio container extensions a user might drop in.
 _AUDIO_EXTENSIONS = {
@@ -137,7 +138,7 @@ class MusicLibrary(BaseTool):
         env_dir = os.environ.get("MUSIC_LIBRARY_DIR")
         if env_dir:
             return Path(env_dir).expanduser()
-        return _PROJECT_ROOT / "music_library"
+        return get_music_library_dir()
 
     def _list_tracks(self, library_dir: Path) -> list[Path]:
         if not library_dir.is_dir():

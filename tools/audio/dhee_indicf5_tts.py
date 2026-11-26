@@ -122,9 +122,9 @@ class DheeIndicF5TTS(BaseTool):
         """Resolve Sandip reference audio path and reference transcript."""
         sample_path = Path("sample-files/voices/sandip/samples/Bng_sample.mp3")
         if not sample_path.exists():
-            # Fallback to repo root resolution
-            repo_root = Path(__file__).resolve().parent.parent.parent
-            sample_path = repo_root / "sample-files" / "voices" / "sandip" / "samples" / "Bng_sample.mp3"
+            from lib.paths import get_sample_files_dir
+
+            sample_path = get_sample_files_dir() / "voices" / "sandip" / "samples" / "Bng_sample.mp3"
 
         ref_text = "নমস্কার আমি সন্দীপ অডিওতে বলা কথাটি লিখলে ক্লোনিং নিখুঁত হয়"
         return str(sample_path.resolve()), ref_text
@@ -296,9 +296,6 @@ class DheeIndicF5TTS(BaseTool):
             )
 
         try:
-            # Check if model dependencies and weights are available
-            import torch  # type: ignore
-
             result = self._infer(
                 text=text,
                 ref_audio=ref_audio,

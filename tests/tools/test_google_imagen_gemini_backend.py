@@ -93,9 +93,24 @@ def test_image_selector_maps_model_name_to_google_model(
     imagen_tool, monkeypatch, tmp_path
 ):
     """The governed selector must be able to reach the Gemini backend."""
+    import tools.google_credentials as gc
     from tools.graphics.image_selector import ImageSelector
 
     tool, calls = imagen_tool
+    fake_png = b"\x89PNG\r\n\x1a\n" + b"\x00" * 120
+
+    class _ValidModels:
+        def generate_content(self, model=None, contents=None, config=None):
+            calls.append({"model": model, "contents": contents, "config": config})
+            return _FakeResponse([_FakePart(fake_png)])
+
+    class _ValidClient:
+        models = _ValidModels()
+
+    monkeypatch.setattr(
+        gc, "get_genai_client", lambda http_options=None, location=None: _ValidClient()
+    )
+
     selector = ImageSelector()
     monkeypatch.setattr(selector, "_providers", lambda: [tool])
 

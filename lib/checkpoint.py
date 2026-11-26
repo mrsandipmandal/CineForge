@@ -75,18 +75,11 @@ def get_pipeline_stages(pipeline_type: str | None) -> list[str]:
         # Graceful fallback: return all known stages in canonical order
         return list(STAGES)
 
-CHECKPOINT_SCHEMA_PATH = (
-    Path(__file__).resolve().parent.parent
-    / "schemas"
-    / "checkpoints"
-    / "checkpoint.schema.json"
-)
+from lib.paths import PROJECTS_DIR, get_schemas_dir  # noqa: E402  (single source of truth)
 
-# Canonical project root. Checkpoints, artifacts, and the project marker all
-# live under PROJECTS_DIR/<project_id>/ — this is the location the Backlot
-# board watches. Callers may still pass a different pipeline_dir (tests do),
-# but production runs should use the default.
-from lib.paths import PROJECTS_DIR  # noqa: E402  (single source of truth)
+CHECKPOINT_SCHEMA_PATH = (
+    get_schemas_dir() / "checkpoints" / "checkpoint.schema.json"
+)
 
 PROJECT_MARKER_FILENAME = "project.json"
 HISTORY_DIRNAME = "history"

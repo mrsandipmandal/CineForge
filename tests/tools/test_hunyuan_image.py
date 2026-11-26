@@ -376,16 +376,14 @@ def test_image_selector_maps_shared_reference_input(monkeypatch, tmp_path):
     tool = HunyuanImage()
     selector = ImageSelector()
     monkeypatch.setattr(selector, "_providers", lambda: [tool])
-    monkeypatch.setattr(
-        selector,
-        "_select_best_tool",
-        lambda _inputs, _candidates, _context: (tool, None),
-    )
     observed = {}
 
     def fake_execute(inputs):
         observed.update(inputs)
-        return ToolResult(success=True, data={}, artifacts=[inputs["output_path"]])
+        out = Path(inputs["output_path"])
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 120)
+        return ToolResult(success=True, data={}, artifacts=[str(out)])
 
     monkeypatch.setattr(tool, "execute", fake_execute)
     result = selector.execute(

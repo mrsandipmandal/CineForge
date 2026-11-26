@@ -12,13 +12,10 @@ from typing import Any, Optional
 import yaml
 import jsonschema
 
-PIPELINE_DEFS_DIR = Path(__file__).resolve().parent.parent / "pipeline_defs"
-SCHEMA_PATH = (
-    Path(__file__).resolve().parent.parent
-    / "schemas"
-    / "pipelines"
-    / "pipeline_manifest.schema.json"
-)
+from lib.paths import get_pipeline_defs_dir, get_schemas_dir
+
+PIPELINE_DEFS_DIR = get_pipeline_defs_dir()
+SCHEMA_PATH = get_schemas_dir() / "pipelines" / "pipeline_manifest.schema.json"
 
 
 from functools import lru_cache

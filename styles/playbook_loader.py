@@ -16,17 +16,14 @@ from typing import Any, Optional
 import yaml
 import jsonschema
 
-STYLES_DIR = Path(__file__).resolve().parent
+from lib.paths import get_custom_styles_dir, get_schemas_dir, get_styles_dir
+
+STYLES_DIR = get_styles_dir()
 # Generated playbooks are written to styles/custom/ by
 # lib/playbook_generator.save_playbook(); both lookups below search it as a
 # fallback so those playbooks are visible to the render path.
 CUSTOM_SUBDIR = "custom"
-SCHEMA_PATH = (
-    Path(__file__).resolve().parent.parent
-    / "schemas"
-    / "styles"
-    / "playbook.schema.json"
-)
+SCHEMA_PATH = get_schemas_dir() / "styles" / "playbook.schema.json"
 
 
 def _load_playbook_schema() -> dict:
@@ -47,14 +44,19 @@ def load_playbook(name: str, styles_dir: Optional[Path] = None) -> dict[str, Any
     Returns:
         Validated playbook dict.
     """
-    styles_dir = styles_dir or STYLES_DIR
-    path = styles_dir / f"{name}.yaml"
-    if not path.exists():
-        path = styles_dir / CUSTOM_SUBDIR / f"{name}.yaml"
-    if not path.exists():
+    base_dir = styles_dir or STYLES_DIR
+    candidates = [
+        base_dir / f"{name}.yaml",
+        base_dir / CUSTOM_SUBDIR / f"{name}.yaml",
+    ]
+    if styles_dir is None:
+        candidates.append(get_custom_styles_dir() / f"{name}.yaml")
+
+    path = next((p for p in candidates if p.exists()), None)
+    if path is None:
         raise FileNotFoundError(
             f"Playbook not found: {name!r} "
-            f"(searched {styles_dir} and {styles_dir / CUSTOM_SUBDIR})"
+            f"(searched {base_dir} and {base_dir / CUSTOM_SUBDIR})"
         )
 
     with open(path, encoding="utf-8") as f:
@@ -72,15 +74,20 @@ def validate_playbook(playbook: dict) -> None:
 
 def list_playbooks(styles_dir: Optional[Path] = None) -> list[str]:
     """List all available playbook names (presets + generated custom ones)."""
-    styles_dir = styles_dir or STYLES_DIR
+    base_dir = styles_dir or STYLES_DIR
     names = [
         p.stem
-        for p in styles_dir.glob("*.yaml")
+        for p in base_dir.glob("*.yaml")
         if p.stem != "__pycache__"
     ]
-    custom_dir = styles_dir / CUSTOM_SUBDIR
-    if custom_dir.exists():
-        names.extend(p.stem for p in custom_dir.glob("*.yaml"))
+    custom_dirs = [base_dir / CUSTOM_SUBDIR]
+    if styles_dir is None:
+        ws_custom = get_custom_styles_dir()
+        if ws_custom not in custom_dirs:
+            custom_dirs.append(ws_custom)
+    for custom_dir in custom_dirs:
+        if custom_dir.exists():
+            names.extend(p.stem for p in custom_dir.glob("*.yaml"))
     return sorted(set(names))
 
 

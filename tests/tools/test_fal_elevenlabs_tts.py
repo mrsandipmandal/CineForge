@@ -48,11 +48,6 @@ def test_tts_selector_routes_to_fal_provider(monkeypatch):
     selector = TTSSelector()
     monkeypatch.setattr(selector, "_providers", lambda: [tool])
     monkeypatch.setattr(
-        selector,
-        "_select_best_tool",
-        lambda _inputs, _candidates, _context: (tool, None),
-    )
-    monkeypatch.setattr(
         tool,
         "execute",
         lambda inputs: ToolResult(success=True, data={"received": inputs}),

@@ -19,10 +19,12 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from lib.paths import get_backlot_state_dir, get_workspace_root
+
 logger = logging.getLogger(__name__)
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-CONFIG_FILE = REPO_ROOT / ".backlot" / "tts_settings.json"
+REPO_ROOT = get_workspace_root()
+CONFIG_FILE = get_backlot_state_dir() / "tts_settings.json"
 
 # Strict system default provider priority
 DEFAULT_PRIORITY: List[str] = [
@@ -201,6 +203,12 @@ def get_effective_priority(
     inputs = inputs or {}
 
     # Check for runtime overrides
+    has_explicit_paid = "allow_paid" in inputs or "enable_paid_providers" in inputs
+    explicit_allow_paid = (
+        inputs["allow_paid"]
+        if "allow_paid" in inputs
+        else inputs.get("enable_paid_providers")
+    )
     allow_paid = (
         allow_paid_override
         if allow_paid_override is not None
@@ -211,6 +219,7 @@ def get_effective_priority(
     enabled_map = dict(cfg.get("enabled_providers", {}))
 
     # Input allowed_providers filter
+    allowed_set: Optional[set[str]] = None
     allowed_input = inputs.get("allowed_providers")
     if allowed_input and isinstance(allowed_input, list):
         allowed_set = {str(x).lower().replace("_tts", "") for x in allowed_input}
@@ -218,22 +227,27 @@ def get_effective_priority(
 
     # Explicit preferred_provider
     preferred = inputs.get("preferred_provider")
+    explicit_pref: Optional[str] = None
     if preferred and preferred != "auto":
         pref_clean = preferred.lower().replace("_tts", "")
-        if pref_clean in priority_list:
-            priority_list.remove(pref_clean)
-        priority_list.insert(0, pref_clean)
+        if allowed_set is None or pref_clean in allowed_set:
+            if pref_clean in priority_list:
+                priority_list.remove(pref_clean)
+            priority_list.insert(0, pref_clean)
+            if not (has_explicit_paid and explicit_allow_paid is False):
+                explicit_pref = pref_clean
 
     eligible = []
     for p in priority_list:
         is_paid = is_paid_provider(p)
-        # Check paid gate
-        if is_paid and not allow_paid:
+        # Check paid gate — only an explicitly requested preferred_provider may run
+        # when allow_paid was omitted; explicit allow_paid=False blocks everything paid.
+        if is_paid and not allow_paid and p != explicit_pref:
             continue
         # Check if enabled
         if not enabled_map.get(p, True):
-            # If allow_paid is explicitly True, allow paid providers in priority_list
-            if not (is_paid and allow_paid):
+            # If allow_paid is explicitly True or caller explicitly asked for p, allow it
+            if not (is_paid and (allow_paid or p == explicit_pref)):
                 continue
         eligible.append(p)
 

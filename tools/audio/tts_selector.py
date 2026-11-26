@@ -375,10 +375,24 @@ class TTSSelector(BaseTool):
                 )
             return ToolResult(
                 success=False,
-                error="No eligible TTS providers are currently installed, configured, or available.",
+                error=(
+                    "No eligible TTS providers are currently installed, configured, or available "
+                    "(all free providers are unavailable and paid providers are disabled by policy unless allow_paid=True)."
+                ),
             )
 
         fallback_history: list[dict[str, Any]] = []
+        preferred_req = str(inputs.get("preferred_provider") or "").lower().replace("_tts", "")
+        explicit_allow_paid = (
+            inputs["allow_paid"]
+            if "allow_paid" in inputs
+            else inputs.get("enable_paid_providers")
+        )
+        allow_explicit_pref_paid = bool(
+            preferred_req
+            and preferred_req != "auto"
+            and explicit_allow_paid is not False
+        )
 
         # Execute in priority order with automatic fallback
         for idx, tool in enumerate(candidate_tools):
@@ -386,7 +400,9 @@ class TTSSelector(BaseTool):
             is_primary = (idx == 0 and prov == "openaifm")
 
             # Double-check paid protection
-            if is_paid_provider(prov) and not allow_paid:
+            if is_paid_provider(prov) and not allow_paid and not (
+                allow_explicit_pref_paid and prov.lower().replace("_tts", "") == preferred_req
+            ):
                 continue
 
             logger.info(
@@ -489,6 +505,12 @@ class TTSSelector(BaseTool):
         adapted = dict(inputs)
         props = tool.input_schema.get("properties", {})
 
+        if inputs.get("model") and "model_id" in props and "model" not in props:
+            if inputs.get("model_id") and inputs["model_id"] != inputs["model"]:
+                raise ValueError("model and model_id disagree")
+            adapted["model_id"] = inputs["model"]
+            adapted.pop("model", None)
+
         # Map instructions / prompt
         instructions = inputs.get("instructions") or inputs.get("prompt")
         if instructions:
@@ -543,10 +565,22 @@ class TTSSelector(BaseTool):
                     adapted["model"] = "en_US-lessac-medium"
 
         elif tool.name == "elevenlabs_tts":
-            if "bn" in lang:
+            if "bn" in lang or "hi" in lang:
                 adapted.setdefault("model_id", "eleven_multilingual_v2")
-            elif "hi" in lang:
-                adapted.setdefault("model_id", "eleven_multilingual_v2")
+
+        elif tool.name == "azure_tts":
+            if "voice" not in adapted:
+                if "bn" in lang:
+                    adapted["voice"] = "bn-IN-BashkarNeural"
+                elif "hi" in lang:
+                    adapted["voice"] = "hi-IN-MadhurNeural"
+
+        elif tool.name == "google_tts":
+            if "voice_id" not in adapted:
+                if "bn" in lang:
+                    adapted["voice_id"] = "bn-IN-Standard-A"
+                elif "hi" in lang:
+                    adapted["voice_id"] = "hi-IN-Neural2-A"
 
         # Strip selector-only control parameters that providers don't recognize
         for k in (
@@ -555,5 +589,29 @@ class TTSSelector(BaseTool):
             "operation", "config_updates",
         ):
             adapted.pop(k, None)
+
+        if tool.name in {"azure_tts", "mai_tts"}:
+            if inputs.get("voice_id") and not inputs.get("voice"):
+                adapted["voice"] = inputs["voice_id"]
+
+            ssml_speed = inputs.get("speaking_rate", inputs.get("speed"))
+            if ssml_speed is not None and "rate" not in inputs:
+                percent = round((float(ssml_speed) - 1.0) * 100)
+                adapted["rate"] = f"{percent:+d}%" if percent else "0%"
+
+            pitch = inputs.get("pitch")
+            if isinstance(pitch, (int, float)):
+                adapted["pitch"] = f"{pitch:+g}st" if pitch else "0%"
+
+            # The selector's numeric style is ElevenLabs-specific. Azure's style
+            # is a named express-as value such as "calm" or "newscast".
+            if not isinstance(inputs.get("style"), str):
+                adapted.pop("style", None)
+
+            output_format = str(inputs.get("output_format", ""))
+            if output_format.startswith("mp3"):
+                adapted["output_format"] = "mp3"
+            elif output_format.startswith(("wav", "riff", "pcm")):
+                adapted["output_format"] = "wav"
 
         return adapted

@@ -90,22 +90,58 @@ async function loadIdentityCatalog(container) {
 }
 
 async function loadProvidersCatalog(container) {
-  container.innerHTML = `<div class="identity-card" style="color:var(--matrix-muted)">Loading live provider capabilities...</div>`;
+  container.innerHTML = `<div class="identity-card" style="color:var(--matrix-muted)">Loading live studio readiness and provider capabilities...</div>`;
   try {
-    const sum = await getJSON("/api/providers/summary");
+    let doc = null;
+    try {
+      doc = await getJSON("/api/doctor");
+    } catch (_) {
+      doc = null;
+    }
+    const sum = (doc && doc.provider_summary) || await getJSON("/api/providers/summary");
     container.innerHTML = "";
     const wrapper = el("div", { class: "lab-container" });
     wrapper.append(el("div", { class: "lab-head" },
-      el("h2", {}, "SYSTEM PROVIDER CAPABILITY ENVELOPE"),
+      el("h2", {}, "STUDIO READINESS & PROVIDER ENVELOPE"),
+      doc ? el("span", { class: "chip" }, `${doc.total_tools_discovered} tools · ${doc.paths?.workspace_root || ""}`) : null,
     ));
+
+    if (doc) {
+      const rt = sum.composition_runtimes || {};
+      const bins = doc.binaries || {};
+      const rtGrid = el("div", { class: "lab-grid", style: "margin-bottom:18px" },
+        el("div", { class: "provider-stat-card" },
+          el("h4", {}, el("span", {}, "RUNTIMES & ENGINES"), el("span", { style: "color:var(--matrix-green)" }, "LOCAL")),
+          el("div", { class: "provider-tags" },
+            el("span", { class: `provider-pill ${rt.ffmpeg || bins.ffmpeg?.installed ? "ok" : "miss"}` }, `FFMPEG: ${rt.ffmpeg || bins.ffmpeg?.installed ? "READY" : "MISSING"}`),
+            el("span", { class: `provider-pill ${bins.node?.installed ? "ok" : "miss"}` }, `NODE: ${bins.node?.installed ? (bins.node.version || "READY") : "OPTIONAL"}`),
+            el("span", { class: `provider-pill ${rt.remotion ? "ok" : "miss"}` }, `REMOTION: ${rt.remotion ? "READY" : "NOT INSTALLED"}`),
+            el("span", { class: `provider-pill ${rt.hyperframes ? "ok" : "miss"}` }, `HYPERFRAMES: ${rt.hyperframes ? "READY" : "NOT READY"}`),
+          ),
+        ),
+        el("div", { class: "provider-stat-card" },
+          el("h4", {}, el("span", {}, "QUICK CLI / MCP CONNECT"), el("span", { style: "color:var(--matrix-green)" }, "EASY SETUP")),
+          el("p", { class: "identity-card-desc", style: "margin-bottom:6px" }, "Run in terminal to unlock keys, MCP assistants, or skills:"),
+          el("div", { class: "provider-tags" },
+            el("span", { class: "provider-pill ok" }, "cineforge setup"),
+            el("span", { class: "provider-pill ok" }, "cineforge mcp install --client claude"),
+            el("span", { class: "provider-pill ok" }, "cineforge skills install --target all"),
+          ),
+        ),
+      );
+      wrapper.append(rtGrid);
+    }
 
     const pGrid = el("div", { class: "lab-grid" });
     for (const cap of (sum.capabilities || [])) {
+      const avail = (cap.available_providers || []).map((p) => el("span", { class: "provider-pill ok" }, p));
+      const unavail = (cap.unavailable_providers || []).map((p) => el("span", { class: "provider-pill miss" }, p));
       pGrid.append(el("div", { class: "provider-stat-card" },
         el("h4", {},
           el("span", {}, cap.capability.toUpperCase()),
           el("span", { style: "color:var(--matrix-green)" }, `${cap.configured} / ${cap.total}`)
         ),
+        (avail.length || unavail.length) ? el("div", { class: "provider-tags" }, ...avail, ...unavail) : null,
       ));
     }
     wrapper.append(pGrid);

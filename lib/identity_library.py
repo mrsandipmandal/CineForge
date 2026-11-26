@@ -17,9 +17,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from lib.paths import REPO_ROOT
+from lib.paths import REPO_ROOT, get_sample_files_dir
 
-DEFAULT_SAMPLE_DIR = REPO_ROOT / "sample-files"
+DEFAULT_SAMPLE_DIR = get_sample_files_dir()
 SUPPORTED_AUDIO_EXT = {".wav", ".mp3", ".flac", ".ogg", ".m4a"}
 SUPPORTED_IMAGE_EXT = {".png", ".jpg", ".jpeg", ".webp"}
 MAX_SAMPLE_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB limit per sample file

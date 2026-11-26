@@ -26,10 +26,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from tools.tool_registry import registry
 
+from lib.paths import get_backlot_state_dir, get_workspace_root
+
 logger = logging.getLogger(__name__)
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-CONFIG_FILE = REPO_ROOT / ".backlot" / "image_settings.json"
+REPO_ROOT = get_workspace_root()
+CONFIG_FILE = get_backlot_state_dir() / "image_settings.json"
 
 # Strict system default image provider priority
 DEFAULT_IMAGE_PRIORITY: List[str] = [

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "cineforge": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "cineforge",
+        "cineforge-mcp"
+      ]
+    }
+  }
+}

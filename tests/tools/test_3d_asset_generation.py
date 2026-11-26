@@ -102,6 +102,7 @@ def test_asset_manifest_accepts_generated_mesh_type():
             "path": "assets/3d/hero-cottage.glb",
             "source_tool": "atlas_3d",
             "scene_id": "village",
+            "duration_seconds": 0,
         }],
     }, schema)
 
