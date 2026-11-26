@@ -57,7 +57,72 @@ Get your studio up and running in **under 60 seconds**. No paid API keys are req
 
 ---
 
-### Step 1: One-Command Automated Setup
+### Option A: One-Line Package & MCP Install (Recommended — No Git Clone Needed)
+
+Install CineForge as a global CLI tool and MCP server using [`uv`](https://docs.astral.sh/uv/) or `pip`:
+
+```bash
+# Install CineForge CLI + MCP Server (using uv or pip)
+uv tool install cineforge
+# or: pip install cineforge
+
+# Initialize workspace (~/.cineforge) and run guided setup
+cineforge setup
+
+# Check ready runtimes, FFmpeg, Node.js, and providers
+cineforge doctor
+
+# Connect automatically to Claude Desktop, Cursor, Antigravity, Claude Code, or VS Code
+cineforge mcp install --client claude    # or: cursor | antigravity | claude-code | vscode | all
+
+# Launch Backlot Control Room in your browser
+cineforge studio
+```
+
+> **Zero-Install MCP Launch (`uvx`):** Add `"command": "uvx", "args": ["--from", "cineforge", "cineforge-mcp"]` to your MCP client config (or print any client's JSON with `cineforge mcp config --client claude --uvx`).
+
+---
+
+### Option B: Portable Agent Skill & IDE Plugin (Any Project Folder)
+
+Teach your AI coding assistant (Antigravity, Claude Code, Cursor, Codex) to drive CineForge without cloning the repository:
+
+```bash
+# Install via skills.sh CLI
+npx skills add mrsandipmandal/CineForge --skill cineforge
+
+# Or install skills, rules, and slash commands using the CineForge CLI
+cineforge skills install --target all        # agents, claude, cursor, codex, antigravity
+```
+
+For **Claude Code**, this repository also ships a native plugin manifest (`.claude-plugin/plugin.json`) bundling the CineForge skill, slash commands, and `.mcp.json`.
+
+---
+
+### Option C: Zero-Dependency Docker Studio (Python + FFmpeg + Node + Remotion Pre-Bundled)
+
+```bash
+# Start Backlot UI (http://127.0.0.1:4750) and Streamable-HTTP MCP Server (http://127.0.0.1:8766/mcp)
+docker compose up -d
+```
+
+---
+
+### Option D: 1-Command Terminal Installer
+
+```bash
+# macOS / Linux / WSL
+curl -fsSL https://raw.githubusercontent.com/mrsandipmandal/CineForge/main/scripts/install.sh | bash
+```
+
+```powershell
+# Windows PowerShell
+irm https://raw.githubusercontent.com/mrsandipmandal/CineForge/main/scripts/install.ps1 | iex
+```
+
+---
+
+### Option E: Clone Repository Setup (Contributors & Local Dev)
 
 ```bash
 # Clone the repository
@@ -184,7 +249,15 @@ Keep this cheat sheet handy to control your studio from the command line or any 
 
 | Shortcut / Command | Action |
 | :--- | :--- |
-| `make setup` | Complete 1-click install (venv, Python packages, Remotion dependencies) |
+| `cineforge setup` | Interactive guided setup (workspace, optional API keys, Remotion, Piper) |
+| `cineforge doctor` | Check FFmpeg, Node.js, Remotion, HyperFrames, and provider availability |
+| `cineforge studio` | Launch the Backlot Matrix live control room in your default browser |
+| `cineforge demo` | Render zero-key Remotion showcase demos into `projects/demos/renders/` |
+| `cineforge mcp install --client claude` | Auto-configure CineForge MCP in Claude Desktop, Cursor, Antigravity, or VS Code |
+| `cineforge skills install --target all` | Install portable CineForge AI skills & commands into any project or IDE |
+| `cineforge-mcp` | Start the Smart Hybrid CineForge MCP server (`stdio` or `--transport streamable-http`) |
+| `docker compose up -d` | Start pre-bundled Studio + HTTP MCP containers with FFmpeg & Node 22 |
+| `make setup` | Complete 1-click repo install (venv, Python packages, Remotion dependencies) |
 | `python -m backlot open` | Launch the Backlot Matrix live control room in your default browser |
 | `python -m backlot open <project-id>` | Open live monitoring for a specific production workspace |
 | `make demo` | Render all three zero-key showcase demos instantly |
