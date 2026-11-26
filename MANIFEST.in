@@ -1,0 +1,25 @@
+include AGENT_GUIDE.md PROJECT_CONTEXT.md PROMPT_GALLERY.md README.md LICENSE config.yaml .env.example
+recursive-include backlot/ui *
+recursive-include schemas *.json
+recursive-include styles *.yaml
+recursive-include pipeline_defs *.yaml
+recursive-include skills *.md
+recursive-include ink-theater *
+recursive-include .claude/commands *.md
+recursive-include .codex/prompts *.md
+recursive-include .claude-plugin *.json
+include .mcp.json
+recursive-include tools/provider_contracts *.json
+recursive-include tools/_comfyui/workflows *
+recursive-include tools/graphics/templates *
+recursive-include tools/video/stock_sources *
+include remotion-composer/package.json remotion-composer/package-lock.json remotion-composer/tsconfig.json remotion-composer/SCENE_TYPES.md
+recursive-include remotion-composer/src *
+recursive-include remotion-composer/public *
+recursive-include .agents/skills *.md *.py *.js *.ts *.json *.yaml *.yml *.sh *.css *.html *.txt *.svg
+global-exclude __pycache__ *.py[cod] *.mp4 *.mov *.webm *.onnx
+prune remotion-composer/node_modules
+prune remotion-composer/out
+prune remotion-composer/projects
+prune projects
+prune tests
