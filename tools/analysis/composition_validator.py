@@ -147,6 +147,12 @@ class CompositionValidator(BaseTool):
                     if public.is_dir():
                         resolved = public
                         break
+                if resolved is None:
+                    from lib.paths import get_remotion_composer_dir
+
+                    public = get_remotion_composer_dir() / "public"
+                    if public.is_dir():
+                        resolved = public
                 assets_root = resolved or comp_path.parent
 
         errors: list[str] = []

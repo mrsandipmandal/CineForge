@@ -80,18 +80,26 @@ class CineForgeConfig(BaseModel):
     def load(cls, config_path: Optional[Path] = None) -> "CineForgeConfig":
         """Load config from YAML file. Falls back to defaults if file missing."""
         if config_path is None:
-            config_path = Path(__file__).resolve().parent.parent / "config.yaml"
+            from lib.paths import get_config_path
+
+            config_path = get_config_path()
 
         if config_path.exists():
-            with open(config_path) as f:
+            with open(config_path, encoding="utf-8") as f:
                 raw = yaml.safe_load(f) or {}
             return cls.model_validate(raw)
 
         return cls()
 
     def resolve_path(self, key: str, project_root: Optional[Path] = None) -> Path:
-        """Resolve a relative path from PathsConfig against project root."""
+        """Resolve a relative path from PathsConfig against workspace or package root."""
         if project_root is None:
-            project_root = Path(__file__).resolve().parent.parent
+            from lib.paths import get_package_root, get_workspace_root
+
+            value = getattr(self.paths, key)
+            ws_candidate = (get_workspace_root() / value).resolve()
+            if ws_candidate.exists():
+                return ws_candidate
+            return (get_package_root() / value).resolve()
         value = getattr(self.paths, key)
         return (project_root / value).resolve()

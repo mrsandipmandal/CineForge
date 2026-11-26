@@ -19,10 +19,12 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from lib.paths import get_backlot_state_dir, get_workspace_root
+
 logger = logging.getLogger(__name__)
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-CONFIG_FILE = REPO_ROOT / ".backlot" / "tts_settings.json"
+REPO_ROOT = get_workspace_root()
+CONFIG_FILE = get_backlot_state_dir() / "tts_settings.json"
 
 # Strict system default provider priority
 DEFAULT_PRIORITY: List[str] = [

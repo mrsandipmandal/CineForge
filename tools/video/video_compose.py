@@ -235,7 +235,9 @@ class VideoCompose(BaseTool):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         if not shutil.which("ffmpeg"):
-            composer_dir = Path(__file__).resolve().parent.parent.parent / "remotion-composer"
+            from lib.paths import get_remotion_composer_dir
+
+            composer_dir = get_remotion_composer_dir()
             for p in composer_dir.glob("node_modules/@remotion/compositor-*/ffmpeg.exe"):
                 if p.is_file():
                     os.environ["PATH"] = str(p.parent) + os.pathsep + os.environ.get("PATH", "")
@@ -247,7 +249,9 @@ class VideoCompose(BaseTool):
 
         if not _shutil.which("npx"):
             return False
-        composer_dir = Path(__file__).resolve().parent.parent.parent / "remotion-composer"
+        from lib.paths import get_remotion_composer_dir
+
+        composer_dir = get_remotion_composer_dir()
         if not composer_dir.exists() or not (composer_dir / "package.json").exists():
             return False
         # Check that node_modules are actually installed — without this,
@@ -262,7 +266,9 @@ class VideoCompose(BaseTool):
 
         if _shutil.which("ffmpeg"):
             return True
-        composer_dir = Path(__file__).resolve().parent.parent.parent / "remotion-composer"
+        from lib.paths import get_remotion_composer_dir
+
+        composer_dir = get_remotion_composer_dir()
         for p in composer_dir.glob("node_modules/@remotion/compositor-*/ffmpeg.exe"):
             if p.is_file():
                 os.environ["PATH"] = str(p.parent) + os.pathsep + os.environ.get("PATH", "")
@@ -310,7 +316,9 @@ class VideoCompose(BaseTool):
                 "and motion-graphics pipelines that already use the scene-component stack."
             )
         else:
-            composer_dir = Path(__file__).resolve().parent.parent.parent / "remotion-composer"
+            from lib.paths import get_remotion_composer_dir
+
+            composer_dir = get_remotion_composer_dir()
             if composer_dir.exists() and (composer_dir / "package.json").exists() and not (composer_dir / "node_modules").exists():
                 info["remotion_note"] = (
                     "Remotion project exists but node_modules are NOT installed. "
@@ -1030,7 +1038,9 @@ class VideoCompose(BaseTool):
                 ),
             )
 
-        composer_dir = Path(__file__).resolve().parent.parent.parent / "remotion-composer"
+        from lib.paths import get_remotion_composer_dir
+
+        composer_dir = get_remotion_composer_dir()
         if not composer_dir.exists() or not (composer_dir / "node_modules").exists():
             return ToolResult(
                 success=False,
@@ -2104,7 +2114,9 @@ class VideoCompose(BaseTool):
                 props["themeConfig"] = theme_config
 
         # remotion-composer lives at project root
-        composer_dir = Path(__file__).resolve().parent.parent.parent / "remotion-composer"
+        from lib.paths import get_remotion_composer_dir
+
+        composer_dir = get_remotion_composer_dir()
         if not composer_dir.exists():
             return ToolResult(
                 success=False,

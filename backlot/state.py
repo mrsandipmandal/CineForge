@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from lib.events import read_events
-from lib.paths import PROJECTS_DIR, REPO_ROOT  # single source of truth (env-overridable)
+from lib.paths import PROJECTS_DIR, REPO_ROOT, get_workspace_root  # single source of truth (env-overridable)
 
 MEDIA_IMAGE_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
 MEDIA_VIDEO_EXT = {".mp4", ".webm", ".mov"}
@@ -285,6 +285,7 @@ def _resolve_asset_path(project_dir: Path, raw_path: str) -> Optional[Path]:
         candidates.append(p)
     else:
         candidates.append(project_dir / raw_path)
+        candidates.append(get_workspace_root() / raw_path)
         candidates.append(REPO_ROOT / raw_path)
         # repo-relative with the project prefix repeated
         parts = p.parts

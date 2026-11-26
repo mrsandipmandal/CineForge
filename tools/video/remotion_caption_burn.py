@@ -157,10 +157,14 @@ class RemotionCaptionBurn(BaseTool):
     # ------------------------------------------------------------------ #
 
     def _find_remotion_root(self) -> Path | None:
-        """Find the remotion-composer directory relative to the repo."""
+        """Find the remotion-composer directory in cwd, workspace, or package."""
+        from lib.paths import get_package_root, get_remotion_composer_dir, get_workspace_root
+
         candidates = [
+            get_remotion_composer_dir(),
             Path.cwd() / "remotion-composer",
-            Path(__file__).resolve().parent.parent.parent / "remotion-composer",
+            get_workspace_root() / "remotion-composer",
+            get_package_root() / "remotion-composer",
         ]
         for p in candidates:
             if (

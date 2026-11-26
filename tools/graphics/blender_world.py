@@ -23,9 +23,10 @@ from tools.base_tool import (
 )
 
 
-_REPO_ROOT = Path(__file__).resolve().parents[2]
+from lib.paths import get_runtime_dir
+
 _PORTABLE_BLENDER = (
-    _REPO_ROOT / ".runtime" / "blender" / "blender-4.5.10-windows-x64" / "blender.exe"
+    get_runtime_dir() / "blender" / "blender-4.5.10-windows-x64" / "blender.exe"
 )
 _RUNTIME_SCRIPT = Path(__file__).resolve().parent / "templates" / "blender-world-runtime.py"
 
