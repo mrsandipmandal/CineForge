@@ -191,10 +191,10 @@ jobs:
         env:
           PYTHONDONTWRITEBYTECODE: "1"
 
-      - name: Tool unit tests
+      - name: Packaging, CLI, and MCP tests
         run: |
-          python -m pytest tests/tools/ -v --tb=short \
-            --junit-xml=test-reports/tool-results.xml
+          python -m pytest tests/packaging/ tests/cli/ tests/mcp/ -v --tb=short \
+            --junit-xml=test-reports/distribution-results.xml
         env:
           PYTHONDONTWRITEBYTECODE: "1"
 
@@ -202,6 +202,13 @@ jobs:
         run: |
           python -m pytest tests/backlot/ -v --tb=short \
             --junit-xml=test-reports/backlot-results.xml
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+
+      - name: Tool unit tests
+        run: |
+          python -m pytest tests/tools/ -v --tb=short \
+            --junit-xml=test-reports/tool-results.xml
         env:
           PYTHONDONTWRITEBYTECODE: "1"
 
@@ -325,7 +332,10 @@ jobs:
           print("Integration smoke: PASSED")
           EOF
 
-      - name: Setup.py install smoke
+      - name: Editable package, CLI, and MCP smoke
         run: |
           pip install -e . --quiet
-          python -c "import tools; print('Package installation smoke: PASSED')"
+          cineforge --version
+          cineforge pipelines list --json > /dev/null
+          cineforge-mcp --help > /dev/null
+          python -c "import tools, cineforge_cli, cineforge_mcp; print('Package installation smoke: PASSED')"

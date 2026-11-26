@@ -72,7 +72,7 @@ jobs:
 
       - name: Install build tooling
         run: |
-          pip install --upgrade pip build wheel setuptools
+          pip install --upgrade pip build wheel setuptools twine
 
       - name: Validate setup.py
         run: |
@@ -86,10 +86,21 @@ jobs:
           echo "Build artifacts:"
           ls -lh dist/
 
-      - name: Validate wheel installs cleanly
+      - name: Validate distributions with twine
         run: |
-          pip install dist/*.whl --quiet
-          python -c "import tools; print('Wheel install smoke: PASSED')"
+          twine check dist/*
+
+      - name: Validate wheel installs cleanly outside repo
+        run: |
+          python -m venv /tmp/ci-clean-venv
+          /tmp/ci-clean-venv/bin/pip install dist/*.whl --quiet
+          cd /tmp
+          CINEFORGE_HOME=/tmp/ci-ws /tmp/ci-clean-venv/bin/cineforge --version
+          CINEFORGE_HOME=/tmp/ci-ws /tmp/ci-clean-venv/bin/cineforge init /tmp/ci-ws
+          CINEFORGE_HOME=/tmp/ci-ws /tmp/ci-clean-venv/bin/cineforge doctor --json > /dev/null
+          CINEFORGE_HOME=/tmp/ci-ws /tmp/ci-clean-venv/bin/cineforge skills install --target claude --project-dir /tmp/ci-proj
+          CINEFORGE_HOME=/tmp/ci-ws /tmp/ci-clean-venv/bin/cineforge-mcp --help > /dev/null
+          /tmp/ci-clean-venv/bin/python -c "import tools, cineforge_cli, cineforge_mcp, backlot; print('Wheel install smoke: PASSED')"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
