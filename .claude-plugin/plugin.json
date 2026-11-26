@@ -1,0 +1,22 @@
+{
+  "name": "cineforge",
+  "version": "0.2.0",
+  "description": "Autonomous AI Film & Video Production Studio — 186+ tools, 14 pipelines, Remotion/HyperFrames/FFmpeg composition, Backlot Control Room, and MCP server.",
+  "author": {
+    "name": "Sandip Mandal",
+    "url": "https://github.com/mrsandipmandal"
+  },
+  "repository": "https://github.com/mrsandipmandal/CineForge",
+  "license": "Apache-2.0",
+  "keywords": [
+    "video-production",
+    "ai-video",
+    "remotion",
+    "ffmpeg",
+    "tts",
+    "mcp"
+  ],
+  "commands": "./.claude/commands",
+  "skills": "./.agents/skills",
+  "mcpServers": "./.mcp.json"
+}

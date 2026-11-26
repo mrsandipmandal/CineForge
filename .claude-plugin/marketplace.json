@@ -1,0 +1,15 @@
+{
+  "name": "cineforge-marketplace",
+  "owner": {
+    "name": "Sandip Mandal",
+    "url": "https://github.com/mrsandipmandal"
+  },
+  "plugins": [
+    {
+      "name": "cineforge",
+      "source": "./",
+      "description": "Autonomous AI Film & Video Production Studio with 186+ tools, Backlot UI, and MCP integration.",
+      "version": "0.2.0"
+    }
+  ]
+}
