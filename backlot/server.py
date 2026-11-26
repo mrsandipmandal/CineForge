@@ -390,31 +390,26 @@ def create_app() -> FastAPI:
         if not path or ".." in path.replace("\\", "/").split("/"):
             raise HTTPException(status_code=403, detail="Path outside repository")
         clean_path = os.path.normpath(path).lstrip("/\\")
-        if ".." in clean_path.split(os.sep) or ".." in clean_path.split("/"):
+        if (
+            not clean_path
+            or clean_path == "."
+            or os.path.splitdrive(clean_path)[0]
+            or ".." in clean_path.split(os.sep)
+            or ".." in clean_path.split("/")
+        ):
             raise HTTPException(status_code=403, detail="Path outside repository")
-        allowed_roots = [
-            os.path.realpath(str(get_workspace_root())),
-            os.path.realpath(str(REPO_ROOT)),
-        ]
-        target_path: Optional[Path] = None
-        for base in allowed_roots:
-            target = os.path.realpath(os.path.join(base, clean_path))
-            if not (target == base or target.startswith(base + os.sep)):
-                continue
-            cand = Path(target)
-            if cand.is_file():
-                target_path = cand
-                break
-        if target_path is None:
-            # Verify the path would stay inside at least one root even if missing.
-            if not any(
-                (t := os.path.realpath(os.path.join(base, clean_path))) == base
-                or t.startswith(base + os.sep)
-                for base in allowed_roots
-            ):
-                raise HTTPException(status_code=403, detail="Path outside repository")
-            raise HTTPException(status_code=404, detail="Audio file not found")
-        return FileResponse(target_path)
+
+        ws_target, ws_in_root = _resolve_preview_audio_file(get_workspace_root(), clean_path)
+        if ws_target is not None:
+            return FileResponse(ws_target)
+
+        repo_target, repo_in_root = _resolve_preview_audio_file(REPO_ROOT, clean_path)
+        if repo_target is not None:
+            return FileResponse(repo_target)
+
+        if not ws_in_root or not repo_in_root:
+            raise HTTPException(status_code=403, detail="Path outside repository")
+        raise HTTPException(status_code=404, detail="Audio file not found")
 
     # ---- Thumbnails (downscaled, cached on disk) ------------------------
 
@@ -542,6 +537,27 @@ def _safe_project_file(project_dir: Path, file_path: str) -> Path:
         raise HTTPException(status_code=404, detail="media not found")
 
     return target_path
+
+
+def _resolve_preview_audio_file(root: Path, clean_path: str) -> tuple[Optional[Path], bool]:
+    """Resolve *clean_path* strictly inside *root*, returning (existing_file, stayed_within_root)."""
+    base = os.path.realpath(str(root))
+    target = os.path.realpath(os.path.join(base, clean_path))
+    try:
+        if os.path.commonpath([base, target]) != base:
+            return None, False
+    except (ValueError, OSError):
+        return None, False
+    if not target.startswith(base + os.sep):
+        return None, False
+    cand = Path(target)
+    try:
+        cand.relative_to(Path(base))
+    except ValueError:
+        return None, False
+    if cand.is_file():
+        return cand, True
+    return None, True
 
 
 def _sse(payload: dict) -> str:
