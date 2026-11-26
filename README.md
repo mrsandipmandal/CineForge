@@ -13,6 +13,7 @@
 <p align="center"><em>Turn your AI assistant into an end-to-end film studio: research, scripting, character consistency, voice cloning, motion editing, and final composition.</em></p>
 
 <p align="center">
+  <a href="#-how-cineforge-works">🧠 How It Works</a> &nbsp;·&nbsp;
   <a href="#-whats-new-in-v020">🚀 What's New in v0.2.0</a> &nbsp;·&nbsp;
   <a href="#-quick-start--installation">⚡ Quick Start</a> &nbsp;·&nbsp;
   <a href="#-shortcuts--quick-commands-reference">⌨️ Shortcuts Cheat Sheet</a> &nbsp;·&nbsp;
@@ -39,6 +40,51 @@
   <a href="https://x.com/mr_sandipmandal"><img src="https://img.shields.io/badge/X-%40mr__sandipmandal-111111?style=for-the-badge&logo=x&logoColor=white" alt="X"></a>
   <a href="https://github.com/mrsandipmandal/CineForge/discussions"><img src="https://img.shields.io/badge/Community-GitHub%20Discussions-0b1220?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Discussions"></a>
 </p>
+
+---
+
+## 🧠 How CineForge Works
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/mrsandipmandal/CineForge/main/assets/cineforge-how-it-works.png" alt="How CineForge Works — Connect, Preflight, Governed Pipeline, and Live Studio Control Room" width="960">
+</p>
+
+<details>
+<summary><strong>View interactive Mermaid flowchart (GitHub)</strong></summary>
+
+```mermaid
+flowchart TB
+    subgraph Entry["1. Connect via Any Interface"]
+        direction LR
+        User["Creator or AI Assistant"] --> CLI["PyPI CLI & Python SDK (cineforge)"]
+        User --> MCP["MCP Server (cineforge-mcp)"]
+        User --> Skill["Agent Skill, Plugin & Docker"]
+    end
+
+    subgraph Init["2. Mandatory Preflight & Isolated Workspace"]
+        direction LR
+        Preflight["Preflight / Doctor Check (FFmpeg, Node, Remotion, HyperFrames)"] --> Workspace["Project Init (~/.cineforge or projects/id)"]
+    end
+
+    subgraph Pipeline["3. Governed Pipeline (pipeline_defs/*.yaml)"]
+        direction LR
+        Research["Research & Proposal + Cost Estimate"] --> Gate{"Human Approval Gate (Style, Music & Runtime)"}
+        Gate -->|Approved| Assets["Script, Scenes, TTS Cascade & Visuals"]
+        Assets --> Compose["Remotion / HyperFrames / FFmpeg + QC"]
+    end
+
+    subgraph Observe["4. Live Studio & Safety Nets"]
+        direction LR
+        Backlot["Backlot Matrix Studio (http://127.0.0.1:4750)"]
+        Guards["Audio/Image Byte Guards & Paid Gating"]
+    end
+
+    Entry --> Init
+    Init --> Pipeline
+    Pipeline -.->|Checkpoints & SSE Telemetry| Observe
+```
+
+</details>
 
 ---
 
