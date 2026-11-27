@@ -29,7 +29,7 @@
   <img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14%20%7C%203.15-blue?style=flat-square" alt="Python">
   <img src="https://img.shields.io/badge/remotion-4.0-E50914?style=flat-square" alt="Remotion">
   <img src="https://img.shields.io/badge/ffmpeg-8.0%20%7C%209.0-007808?style=flat-square" alt="FFmpeg">
-  <img src="https://img.shields.io/badge/tests-2593%20passed-brightgreen?style=flat-square" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-2599%20passed-brightgreen?style=flat-square" alt="Tests">
   <a href="https://github.com/mrsandipmandal/CineForge/releases"><img src="https://img.shields.io/badge/release-v0.2.0-orange?style=flat-square" alt="Release"></a>
 </p>
 
@@ -166,13 +166,19 @@ cineforge studio
 Connect CineForge as an MCP server so your AI assistant can inspect providers, initialize projects, generate narration/images/video, and render compositions without cloning the repo:
 
 ```bash
-# Auto-configure your AI client (creates a backup if a config file already exists)
-cineforge mcp install --client claude       # Also: claude-code | cursor | antigravity | windsurf | vscode | all
+# Scan installed IDEs & AI coding assistants on your machine
+cineforge mcp detect
 
-# Preview the config path & JSON without writing:
+# Interactive setup: identifies installed IDEs and asks where & what scope (global/project) to install
+cineforge mcp install
+
+# Or target specific / all detected clients directly:
+cineforge mcp install --client detected     # Also: claude | claude-code | cursor | antigravity | windsurf | vscode | opencode | gemini-cli | codex | all
+
+# Preview the config path & payload without writing:
 cineforge mcp install --client cursor --dry-run
 
-# Or print ready-to-paste JSON for zero-install uvx launching:
+# Or print ready-to-paste config for zero-install uvx launching:
 cineforge mcp config --client claude --uvx
 ```
 
@@ -408,8 +414,14 @@ cineforge studio
 Configure your AI editor automatically, or paste the generated JSON into your client's MCP config:
 
 ```bash
-# Auto-install MCP config into Claude Desktop, Cursor, Antigravity, or VS Code
-cineforge mcp install --client claude
+# Detect installed IDEs/CLIs on your machine and check MCP status
+cineforge mcp detect
+
+# Interactive wizard: lists installed IDEs and asks where & what scope (global/project) to install
+cineforge mcp install
+
+# Or target one/all detected clients non-interactively:
+cineforge mcp install --client detected --scope global
 cineforge mcp install --client cursor --uvx
 ```
 
@@ -560,7 +572,8 @@ Keep this cheat sheet handy to control your studio from the command line or any 
 | `cineforge doctor` | Check FFmpeg, Node.js, Remotion, HyperFrames, and provider availability |
 | `cineforge studio` | Launch the Backlot Matrix live control room in your default browser |
 | `cineforge demo` | Render zero-key Remotion showcase demos into `projects/demos/renders/` |
-| `cineforge mcp install --client claude` | Auto-configure CineForge MCP in Claude Desktop, Cursor, Antigravity, or VS Code |
+| `cineforge mcp detect` | Detect installed IDEs / AI clients and check CineForge MCP status |
+| `cineforge mcp install` | Interactively choose detected IDEs (global or project scope) & configure MCP |
 | `cineforge skills install --target all` | Install portable CineForge AI skills & commands into any project or IDE |
 | `cineforge-mcp` | Start the Smart Hybrid CineForge MCP server (`stdio` or `--transport streamable-http`) |
 | `docker compose up -d` | Start pre-bundled Studio + HTTP MCP containers with FFmpeg & Node 22 |

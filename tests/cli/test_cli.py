@@ -203,3 +203,68 @@ def test_cli_tools_info_and_pipelines_show_tables_and_json() -> None:
     p_parsed = json.loads(pipe_json.stdout)
     assert p_parsed["name"] == "animated-explainer"
     assert p_parsed["stages"]
+
+
+def test_cli_mcp_detect_and_interactive_install(tmp_path: Path, monkeypatch) -> None:
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+    proj = tmp_path / "proj"
+    proj.mkdir()
+    ws = tmp_path / "ws"
+    ws.mkdir()
+
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: fake_home))
+    monkeypatch.setattr("cineforge_mcp.installer.platform.system", lambda: "Linux")
+    monkeypatch.setattr("cineforge_mcp.installer.shutil.which", lambda _name: None)
+
+    (fake_home / ".config" / "opencode").mkdir(parents=True)
+    (fake_home / ".config" / "Code" / "User").mkdir(parents=True)
+
+    # 1. `cineforge mcp detect` table and JSON
+    detect_tbl = runner.invoke(app, ["mcp", "detect", "--project-dir", str(proj)])
+    assert detect_tbl.exit_code == 0, detect_tbl.stdout
+    assert "Detected IDEs & MCP Clients" in detect_tbl.stdout
+    assert "OpenCode" in detect_tbl.stdout
+
+    detect_json = runner.invoke(app, ["mcp", "detect", "--project-dir", str(proj), "--json"])
+    assert detect_json.exit_code == 0, detect_json.stdout
+    rows = json.loads(detect_json.stdout)
+    by_id = {r["client"]: r for r in rows}
+    assert by_id["vscode"]["installed"] is True
+    assert by_id["opencode"]["installed"] is True
+    assert by_id["claude"]["installed"] is False
+
+    # 2. Interactive `cineforge mcp install` selecting vscode + opencode globally, decline skills
+    interactive_res = runner.invoke(
+        app,
+        ["mcp", "install", "--workspace", str(ws), "--project-dir", str(proj), "--uvx"],
+        input="vscode,opencode\nglobal\nn\n",
+    )
+    assert interactive_res.exit_code == 0, interactive_res.stdout
+    assert "Configured vscode (global)" in interactive_res.stdout
+    assert "Configured opencode (global)" in interactive_res.stdout
+    assert (fake_home / ".config" / "Code" / "User" / "mcp.json").is_file()
+    assert (fake_home / ".config" / "opencode" / "opencode.json").is_file()
+
+    # 3. Interactive `cineforge mcp install` abort with 'none'
+    abort_res = runner.invoke(
+        app,
+        ["mcp", "install", "--project-dir", str(proj)],
+        input="none\n",
+    )
+    assert abort_res.exit_code == 0, abort_res.stdout
+    assert "No MCP client selected." in abort_res.stdout
+
+    # 4. Non-interactive `--client detected --dry-run`
+    dry_res = runner.invoke(
+        app,
+        ["mcp", "install", "--client", "detected", "--scope", "global", "--project-dir", str(proj), "--dry-run"],
+    )
+    assert dry_res.exit_code == 0, dry_res.stdout
+    assert "Would update vscode (global)" in dry_res.stdout
+    assert "Would update opencode (global)" in dry_res.stdout
+
+    # 5. `cineforge mcp config --client codex --uvx` prints TOML
+    codex_cfg = runner.invoke(app, ["mcp", "config", "--client", "codex", "--uvx"])
+    assert codex_cfg.exit_code == 0, codex_cfg.stdout
+    assert "[mcp_servers.cineforge]" in codex_cfg.stdout

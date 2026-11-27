@@ -208,6 +208,25 @@ def setup(
         ok, msg = warm_hyperframes_cache()
         console.print(f"[{'green' if ok else 'yellow'}]{msg}[/]")
 
+    if not non_interactive:
+        from cineforge_mcp.installer import detect_mcp_clients
+
+        detected = detect_mcp_clients()
+        installed_names = [d["display_name"] for d in detected if d["installed"]]
+        if installed_names:
+            console.print(
+                f"\n[bold]Detected IDEs / AI clients:[/bold] {', '.join(installed_names)}"
+            )
+            try:
+                configure_mcp = typer.confirm(
+                    "Configure CineForge MCP in your IDE(s) now?",
+                    default=False,
+                )
+            except (typer.Abort, EOFError):
+                configure_mcp = False
+            if configure_mcp:
+                _run_interactive_mcp_install(workspace=ws)
+
     console.print("\n[bold green]Setup complete![/bold green] Run [bold]cineforge doctor[/bold] to verify capabilities.")
 
 
@@ -823,57 +842,320 @@ def mcp_run(
     )
 
 
-@mcp_app.command("config")
-def mcp_config(
-    client: str = typer.Option("claude", "--client", "-c", help="Target client (claude, claude-code, cursor, antigravity, windsurf, vscode)."),
-    all_tools: bool = typer.Option(False, "--all-tools", help="Include --all-tools in generated command."),
-    profile: Optional[str] = typer.Option(None, "--profile", help="Include --profile in generated command."),
-    uvx: bool = typer.Option(False, "--uvx", help="Generate zero-install uvx launcher configuration."),
-) -> None:
-    """Print ready-to-paste MCP client JSON configuration."""
-    from cineforge_mcp.installer import build_client_payload, resolve_mcp_launch_spec
+def _render_mcp_clients_table(rows: list[dict[str, Any]]) -> None:
+    """Render a numbered Rich table of supported IDEs and their MCP config status."""
+    table = Table(title="Detected IDEs & MCP Clients")
+    table.add_column("#", justify="right", style="dim")
+    table.add_column("Client ID", style="cyan")
+    table.add_column("IDE / Assistant")
+    table.add_column("Detected")
+    table.add_column("MCP Status")
+    table.add_column("Signal")
+    table.add_column("Config Path")
+    for idx, row in enumerate(rows, 1):
+        det = "[green]yes[/green]" if row["installed"] else "[dim]no[/dim]"
+        if row["configured"]:
+            scopes = ", ".join(row["configured_scopes"])
+            cfg_status = f"[green]configured[/green] ({scopes})"
+        else:
+            cfg_status = "[yellow]not configured[/yellow]" if row["installed"] else "[dim]-[/dim]"
+        table.add_row(
+            str(idx),
+            row["client"],
+            row["display_name"],
+            det,
+            cfg_status,
+            escape(str(row["detection_reason"])),
+            escape(str(row["config_path"])),
+        )
+    console.print(table)
 
-    spec = resolve_mcp_launch_spec(all_tools=all_tools, profile=profile, use_uvx=uvx)
-    payload = build_client_payload(client, spec)
-    typer.echo(json.dumps(payload, indent=2))
+
+def _parse_mcp_selection(raw: str, rows: list[dict[str, Any]]) -> list[str]:
+    """Parse user input like '1,3', 'vscode,opencode', 'detected', 'all', or 'none'."""
+    token = raw.strip().lower()
+    if not token or token in ("none", "skip", "q", "quit"):
+        return []
+    if token == "all":
+        return [r["client"] for r in rows]
+    if token == "detected":
+        return [r["client"] for r in rows if r["installed"]]
+
+    by_id = {r["client"]: r["client"] for r in rows}
+    chosen: list[str] = []
+    for part in token.replace(" ", ",").split(","):
+        p = part.strip()
+        if not p:
+            continue
+        if p == "detected":
+            for r in rows:
+                if r["installed"] and r["client"] not in chosen:
+                    chosen.append(r["client"])
+            continue
+        if p == "all":
+            return [r["client"] for r in rows]
+        if p.isdigit():
+            idx = int(p)
+            if not (1 <= idx <= len(rows)):
+                raise ValueError(f"Selection index out of range: {p} (valid: 1..{len(rows)})")
+            cid = rows[idx - 1]["client"]
+        elif p in by_id:
+            cid = by_id[p]
+        else:
+            raise ValueError(f"Unknown MCP client {p!r}. Choose from: {', '.join(by_id)}, detected, all, none")
+        if cid not in chosen:
+            chosen.append(cid)
+    return chosen
 
 
-@mcp_app.command("install")
-def mcp_install(
-    client: str = typer.Option(
-        "claude",
-        "--client",
-        "-c",
-        help="Target client: claude, claude-code, cursor, antigravity, windsurf, vscode, or all.",
-    ),
-    all_tools: bool = typer.Option(False, "--all-tools", help="Enable --all-tools mode in MCP config."),
-    profile: Optional[str] = typer.Option(None, "--profile", help="Capability profile filter."),
-    uvx: bool = typer.Option(False, "--uvx", help="Use uvx launcher instead of local executable."),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Preview config path and payload without writing."),
-) -> None:
-    """Automatically configure CineForge MCP in Claude Desktop, Cursor, Antigravity, or VS Code."""
-    from cineforge_mcp.installer import SUPPORTED_CLIENTS, install_mcp_config
+def _apply_mcp_installs(
+    targets: list[str],
+    *,
+    scope: str = "auto",
+    workspace: Optional[Path] = None,
+    project_dir: Optional[Path] = None,
+    all_tools: bool = False,
+    profile: Optional[str] = None,
+    use_uvx: bool = False,
+    dry_run: bool = False,
+    tolerate_errors: bool = False,
+) -> list[dict[str, Any]]:
+    from cineforge_mcp.installer import install_mcp_config
 
-    targets = list(SUPPORTED_CLIENTS) if client == "all" else [client]
+    results: list[dict[str, Any]] = []
     for target in targets:
         try:
             res = install_mcp_config(
                 target,
+                workspace=workspace,
+                project_dir=project_dir,
+                scope=scope,
                 all_tools=all_tools,
                 profile=profile,
-                use_uvx=uvx,
+                use_uvx=use_uvx,
                 dry_run=dry_run,
             )
         except Exception as exc:
             console.print(f"[red]Failed for {target}:[/red] {exc}")
-            if client != "all":
+            if not tolerate_errors:
                 raise typer.Exit(1) from exc
             continue
-
         status = "Would update" if dry_run else "Configured"
-        console.print(f"[green]{status}[/green] [cyan]{target}[/cyan] → {res['config_path']}")
+        console.print(
+            f"[green]{status}[/green] [cyan]{target}[/cyan] ({res['scope']}) → {res['config_path']}"
+        )
         if res.get("backup_path"):
             console.print(f"  Backup saved: {res['backup_path']}")
+        results.append(res)
+    return results
+
+
+def _install_matching_skills(
+    installed_results: list[dict[str, Any]],
+    *,
+    project_dir: Optional[Path] = None,
+) -> None:
+    """Install CineForge workflow skills once per unique target IDE from MCP install results."""
+    from cineforge_cli.skills_installer import install_skills
+    from cineforge_mcp.installer import _CLIENT_META
+
+    seen: set[tuple[str, bool]] = set()
+    for res in installed_results:
+        meta = _CLIENT_META.get(res["client"]) or {}
+        st = meta.get("skill_target")
+        use_global = res.get("scope") == "global"
+        if not st or (st, use_global) in seen:
+            continue
+        seen.add((st, use_global))
+        written = install_skills(st, project_dir=project_dir, global_install=use_global)
+        for tgt, paths in written.items():
+            console.print(f"[green]Installed skills[/green] [cyan]{tgt}[/cyan] ({len(paths)} file(s))")
+
+
+def _run_interactive_mcp_install(
+    *,
+    scope: str = "auto",
+    workspace: Optional[Path] = None,
+    project_dir: Optional[Path] = None,
+    all_tools: bool = False,
+    profile: Optional[str] = None,
+    use_uvx: bool = False,
+    dry_run: bool = False,
+    with_skills: Optional[bool] = None,
+) -> None:
+    from cineforge_mcp.installer import SUPPORTED_SCOPES, detect_mcp_clients
+
+    rows = detect_mcp_clients(project_dir=project_dir)
+    _render_mcp_clients_table(rows)
+
+    detected_nums = [str(i) for i, row in enumerate(rows, 1) if row["installed"]]
+    default_choice = ",".join(detected_nums) if detected_nums else "none"
+    try:
+        raw_choice = typer.prompt(
+            "Select IDE(s)/client(s) to configure (numbers, names, 'detected', 'all', or 'none')",
+            default=default_choice,
+        )
+    except (EOFError, typer.Abort):
+        console.print("[dim]Aborted MCP configuration.[/dim]")
+        return
+
+    try:
+        targets = _parse_mcp_selection(raw_choice, rows)
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1) from exc
+
+    if not targets:
+        console.print("[dim]No MCP client selected.[/dim]")
+        return
+
+    chosen_scope = scope
+    row_by_id = {r["client"]: r for r in rows}
+    multi_scope = [r["display_name"] for cid in targets if (r := row_by_id.get(cid)) and r["supports_project_scope"]]
+    if chosen_scope == "auto" and multi_scope:
+        try:
+            raw_scope = typer.prompt(
+                f"Scope for {', '.join(multi_scope)} [global/project]",
+                default="global",
+            ).strip().lower()
+        except (EOFError, typer.Abort):
+            raw_scope = "global"
+        if raw_scope not in ("global", "project"):
+            console.print(f"[red]Unsupported scope:[/red] {raw_scope}. Choose 'global' or 'project'.")
+            raise typer.Exit(1)
+        chosen_scope = raw_scope
+    elif chosen_scope not in SUPPORTED_SCOPES:
+        console.print(f"[red]Unsupported scope:[/red] {chosen_scope}")
+        raise typer.Exit(1)
+
+    installed = _apply_mcp_installs(
+        targets,
+        scope=chosen_scope,
+        workspace=workspace,
+        project_dir=project_dir,
+        all_tools=all_tools,
+        profile=profile,
+        use_uvx=use_uvx,
+        dry_run=dry_run,
+        tolerate_errors=len(targets) > 1,
+    )
+    if dry_run or not installed:
+        return
+
+    skill_targets: list[str] = []
+    for res in installed:
+        st = (row_by_id.get(res["client"]) or {}).get("skill_target")
+        if st and st not in skill_targets:
+            skill_targets.append(st)
+
+    if not skill_targets:
+        return
+
+    should_install_skills = with_skills
+    if should_install_skills is None:
+        try:
+            should_install_skills = typer.confirm(
+                f"Also install CineForge workflow skills ({', '.join(skill_targets)})?",
+                default=False,
+            )
+        except (EOFError, typer.Abort):
+            should_install_skills = False
+
+    if should_install_skills:
+        _install_matching_skills(installed, project_dir=project_dir)
+
+
+@mcp_app.command("detect")
+def mcp_detect(
+    project_dir: Optional[Path] = typer.Option(None, "--project-dir", "-d", help="Project directory to inspect for workspace-local MCP files."),
+    json_output: bool = typer.Option(False, "--json", help="Print JSON output."),
+) -> None:
+    """Detect installed IDEs / AI clients and check CineForge MCP status."""
+    from cineforge_mcp.installer import detect_mcp_clients
+
+    rows = detect_mcp_clients(project_dir=project_dir)
+    if json_output:
+        typer.echo(json.dumps(rows, indent=2))
+        return
+    _render_mcp_clients_table(rows)
+
+
+@mcp_app.command("config")
+def mcp_config(
+    client: str = typer.Option(
+        "claude",
+        "--client",
+        "-c",
+        help="Target client (claude, claude-code, cursor, antigravity, windsurf, vscode, opencode, gemini-cli, codex).",
+    ),
+    all_tools: bool = typer.Option(False, "--all-tools", help="Include --all-tools in generated command."),
+    profile: Optional[str] = typer.Option(None, "--profile", help="Include --profile in generated command."),
+    uvx: bool = typer.Option(False, "--uvx", help="Generate zero-install uvx launcher configuration."),
+) -> None:
+    """Print ready-to-paste MCP client configuration (JSON, or TOML for Codex)."""
+    from cineforge_mcp.installer import format_client_config, resolve_mcp_launch_spec
+
+    spec = resolve_mcp_launch_spec(all_tools=all_tools, profile=profile, use_uvx=uvx)
+    typer.echo(format_client_config(client, spec))
+
+
+@mcp_app.command("install")
+def mcp_install(
+    client: Optional[str] = typer.Option(
+        None,
+        "--client",
+        "-c",
+        help="Target client(s): claude, claude-code, cursor, antigravity, windsurf, vscode, opencode, gemini-cli, codex, detected, all, or omit to detect & choose interactively.",
+    ),
+    scope: str = typer.Option("auto", "--scope", "-s", help="Config scope: auto, global, or project."),
+    project_dir: Optional[Path] = typer.Option(None, "--project-dir", "-d", help="Project directory for project-scoped configs."),
+    workspace: Optional[Path] = typer.Option(None, "--workspace", "-w", help="Workspace directory written into CINEFORGE_HOME."),
+    all_tools: bool = typer.Option(False, "--all-tools", help="Enable --all-tools mode in MCP config."),
+    profile: Optional[str] = typer.Option(None, "--profile", help="Capability profile filter."),
+    uvx: bool = typer.Option(False, "--uvx", help="Use uvx launcher instead of local executable."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Preview config path and payload without writing."),
+    with_skills: Optional[bool] = typer.Option(None, "--with-skills/--no-skills", help="Install matching agent skills after configuring MCP."),
+) -> None:
+    """Detect installed IDEs and configure CineForge MCP (interactively if --client is omitted)."""
+    from cineforge_mcp.installer import detect_mcp_clients
+
+    if client is None:
+        _run_interactive_mcp_install(
+            scope=scope,
+            workspace=workspace,
+            project_dir=project_dir,
+            all_tools=all_tools,
+            profile=profile,
+            use_uvx=uvx,
+            dry_run=dry_run,
+            with_skills=with_skills,
+        )
+        return
+
+    rows = detect_mcp_clients(project_dir=project_dir)
+    try:
+        targets = _parse_mcp_selection(client, rows)
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1) from exc
+
+    if not targets:
+        console.print("[dim]No installed/matching MCP client selected.[/dim]")
+        return
+
+    installed = _apply_mcp_installs(
+        targets,
+        scope=scope,
+        workspace=workspace,
+        project_dir=project_dir,
+        all_tools=all_tools,
+        profile=profile,
+        use_uvx=uvx,
+        dry_run=dry_run,
+        tolerate_errors=client in ("all", "detected") or len(targets) > 1,
+    )
+    if with_skills and not dry_run:
+        _install_matching_skills(installed, project_dir=project_dir)
 
 
 @skills_app.command("list")
