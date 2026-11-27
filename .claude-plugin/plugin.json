@@ -1,7 +1,7 @@
 {
   "name": "cineforge",
-  "version": "0.2.0",
-  "description": "Autonomous AI Film & Video Production Studio — 186+ tools, 14 pipelines, Remotion/HyperFrames/FFmpeg composition, Backlot Control Room, and MCP server.",
+  "version": "0.3.0",
+  "description": "Autonomous AI Film & Video Production Studio — 187 tools, 14 pipelines, Remotion/HyperFrames/FFmpeg composition, Backlot Control Room, and MCP server.",
   "author": {
     "name": "Sandip Mandal",
     "url": "https://github.com/mrsandipmandal"

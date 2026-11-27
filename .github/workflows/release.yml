@@ -166,33 +166,31 @@ jobs:
         run: |
           TAG="${{ steps.vars.outputs.tag }}"
           cat << 'EOF' > RELEASE_NOTES.md
-          ## 🎬 CineForge Release ${{ steps.vars.outputs.tag }}
+          ## 🎬 CineForge Release ${TAG}
 
-          Autonomous AI Film & Video Production System.
+          Autonomous AI Film & Video Production System — **187 production tools** across **32 capabilities**, **14 governed pipelines**, PyPI CLI, Smart Hybrid MCP server, and Backlot Control Room.
 
           ### 🌟 Highlights & New Features
 
-          #### 🔬 Science Explainer Shorts — Multi-Language Autonomous Production
-          - **Interactive Skill**: Interactive, research-driven production skill for YouTube Shorts, TikTok, Instagram Reels, and YouTube Standard.
-          - **Dynamic Multi-Language Support**: Automatically selects and communicates in English, Bengali (`bn-IN`), Hindi (`hi-IN`), Spanish, French, German, Arabic, Japanese, and more.
-          - **Live Web Research**: Discovers and scores trending science topics by surprise factor and visual potential.
-          - **1-Gate Human Approval**: Single transparent review of 5-scene plan and cost breakdown ($0.00).
-          - **Zero-Cost Tech Stack**: Powered by `edge_tts`, FFmpeg Ken-Burns zoompan, acoustic ambient synthesis, and burned ASS subtitles.
+          - **Unified CLI (`cineforge`)**: Interactive `setup`, `doctor --check-keys` diagnostics, Rich `tools info` / `pipelines show`, zero-key `demo` rendering, `studio`, and `backlot`.
+          - **Smart Hybrid MCP Server (`cineforge-mcp`)**: Supports `stdio` and `streamable-http` transports with curated core workflows plus dynamic execution across all 187 tools (`--all-tools`, `--profile`).
+          - **Automatic IDE Detection & Interactive MCP Installer**: `cineforge mcp detect` and interactive `cineforge mcp install` auto-detect installed IDEs/CLIs (`claude`, `claude-code`, `cursor`, `antigravity`, `windsurf`, `vscode`, `opencode`, `gemini-cli`, `codex`), ask global vs project scope, merge configs safely with `.bak` backups, and optionally install matching agent skills.
+          - **PyPI Packaging, Docker & 1-Line Installers**: Clean `uv tool install cineforge` / `pip install cineforge` isolation with `~/.cineforge` workspace separation, `docker-compose.yml`, plus `install.sh` / `install.ps1`.
+          - **Dedicated `edge_tts` Neural TTS & Python 3.10–3.15 Matrix**: Dedicated `edge_tts` tool and full compatibility verified across Python 3.10–3.15 (2,599 passing tests).
 
           ### 📦 Standalone Agent Skill Packages
-          You can download and install the agent skills separately without the full core repository:
+          Download and install the agent skills separately without the full core repository:
           - `bengali-science-explainer-skill-${TAG}.zip` — Standalone Science Explainer Shorts skill.
           - `cineforge-agent-skills-${TAG}.zip` — Complete CineForge Layer 3 agent skills fleet.
 
           ### 🚀 Quick Start
           ```bash
-          # Clone and setup CineForge
-          git clone https://github.com/mrsandipmandal/CineForge.git
-          cd CineForge
-          make setup
+          # Recommended global CLI + MCP install via uv
+          uv tool install cineforge
+          cineforge setup
 
-          # Start Backlot Matrix Studio
-          python -m backlot open
+          # Auto-detect IDEs and install CineForge MCP interactively
+          cineforge mcp install
           ```
           EOF
           # Substitute tag variable

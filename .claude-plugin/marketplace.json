@@ -8,8 +8,8 @@
     {
       "name": "cineforge",
       "source": "./",
-      "description": "Autonomous AI Film & Video Production Studio with 186+ tools, Backlot UI, and MCP integration.",
-      "version": "0.2.0"
+      "description": "Autonomous AI Film & Video Production Studio with 187 tools, Backlot UI, and MCP integration.",
+      "version": "0.3.0"
     }
   ]
 }

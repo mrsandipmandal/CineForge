@@ -14,7 +14,7 @@
 
 <p align="center">
   <a href="#-how-cineforge-works">🧠 How It Works</a> &nbsp;·&nbsp;
-  <a href="#-whats-new-in-v020">🚀 What's New in v0.2.0</a> &nbsp;·&nbsp;
+  <a href="#-whats-new-in-v030">🚀 What's New in v0.3.0</a> &nbsp;·&nbsp;
   <a href="#-quick-start--installation">⚡ Quick Start</a> &nbsp;·&nbsp;
   <a href="#-shortcuts--quick-commands-reference">⌨️ Shortcuts Cheat Sheet</a> &nbsp;·&nbsp;
   <a href="#-complete-documentation-index">📚 Documentation Index</a> &nbsp;·&nbsp;
@@ -30,7 +30,7 @@
   <img src="https://img.shields.io/badge/remotion-4.0-E50914?style=flat-square" alt="Remotion">
   <img src="https://img.shields.io/badge/ffmpeg-8.0%20%7C%209.0-007808?style=flat-square" alt="FFmpeg">
   <img src="https://img.shields.io/badge/tests-2599%20passed-brightgreen?style=flat-square" alt="Tests">
-  <a href="https://github.com/mrsandipmandal/CineForge/releases"><img src="https://img.shields.io/badge/release-v0.2.0-orange?style=flat-square" alt="Release"></a>
+  <a href="https://github.com/mrsandipmandal/CineForge/releases"><img src="https://img.shields.io/badge/release-v0.3.0-orange?style=flat-square" alt="Release"></a>
 </p>
 
 <p align="center"><strong>Connect & Community</strong></p>
@@ -96,7 +96,7 @@ Get your studio up and running in **under 60 seconds**. No paid API keys are req
 
 | Tool | Version | Purpose | Installation |
 | :--- | :---: | :--- | :--- |
-| **Python** | `3.10 – 3.12` | Studio engine, tool registry & pipelines | [python.org](https://www.python.org/downloads/) |
+| **Python** | `3.10 – 3.15` | Studio engine, tool registry & pipelines | [python.org](https://www.python.org/downloads/) |
 | **FFmpeg** | `6.0+` | Video encoding, Ken-Burns, audio synthesis | `sudo apt install ffmpeg` / `brew install ffmpeg` / [ffmpeg.org](https://ffmpeg.org/download.html) |
 | **Node.js** | `20+` | Remotion React & HyperFrames motion engines | [nodejs.org](https://nodejs.org/) |
 | **Git** | Any | Repository management & version control | [git-scm.com](https://git-scm.com/) |
@@ -521,8 +521,30 @@ print(res.success, res.artifacts)
 
 ---
 
+<a id="-whats-new-in-v030"></a>
+## 🚀 What's New in v0.3.0
+
+CineForge **v0.3.0** transforms CineForge from a local repository workflow into a full PyPI-packaged AI film platform with a unified CLI, Smart Hybrid MCP server, automatic IDE detection, Docker support, and verified Python 3.10–3.15 compatibility across **187 production tools** and **14 pipelines**.
+
+### 🧰 1. Unified CLI (`cineforge`) & Guided Setup
+- **`cineforge setup` & `cineforge doctor --check-keys`**: Guided workspace initialization (`~/.cineforge`), optional Remotion/HyperFrames/Piper provisioning, `.env` duplicate detection, and live API key health checks.
+- **Rich Inspection & Execution (`tools`, `pipelines`, `demo`, `studio`)**: Structured Rich tables (`cineforge tools info`, `cineforge pipelines show`), `--json` automation mode, zero-key `cineforge demo` showcase renders, and `cineforge studio` Backlot Control Room launcher.
+- **Dedicated `edge_tts` Tool (`tools/audio/edge_tts.py`)**: Standalone zero-key neural TTS adapter alongside `tts_selector`, Piper, Kokoro, and OpenAI.fm.
+
+### 🔌 2. Smart Hybrid MCP Server (`cineforge-mcp`) & Auto IDE Detection
+- **Automatic IDE / AI Client Detection (`cineforge mcp detect`)**: Scans your machine for installed editors and CLIs — **Claude Desktop**, **Claude Code**, **Cursor**, **Antigravity**, **Windsurf**, **VS Code**, **OpenCode**, **Gemini CLI**, and **Codex CLI** — showing detected signals, config paths, and current MCP status.
+- **Interactive MCP & Skills Wizard (`cineforge mcp install`)**: Omitting `--client` opens an interactive prompt that pre-selects detected IDEs, lets you choose **global** or **project** scope, safely merges JSON/JSONC (`opencode.json`, `User/mcp.json`, `.claude.json`) or TOML (`~/.codex/config.toml`) with `.bak` backups, and optionally installs matching CineForge agent skills.
+- **Dual Transport (`stdio` & `streamable-http`)**: Exposed curated studio workflows by default with `--all-tools` and `--profile` modes for dynamic tool access.
+
+### 📦 3. PyPI Distribution, Docker & Portable Skills
+- **Zero-Clone Installation (`uv tool install cineforge` / `pip install cineforge`)**: Bundled package assets cleanly separated from your writable workspace (`~/.cineforge`), plus 1-line OS installers (`install.sh` / `install.ps1`) and `docker-compose.yml`.
+- **Portable Skills & Claude Plugin**: Installable workflow skills across `agents`, `claude`, `cursor`, `codex`, and `antigravity` via `cineforge skills install` or `.claude-plugin`.
+- **Python 3.10–3.15 Verified**: CI matrix green across Python 3.10 through 3.15 with **2,599 passing tests** and Backlot `/api/doctor` readiness telemetry.
+
+---
+
 <a id="-whats-new-in-v020"></a>
-## 🚀 What's New in v0.2.0
+### ✨ Previous Milestone: v0.2.0
 
 CineForge **v0.2.0** introduces cinematic 2.5D animation, a non-destructive pre-export enhancement suite, Google Veo 2 video integration, high-fidelity neural voice cloning with VoxCPM2, and autonomous creator skills.
 
@@ -582,8 +604,8 @@ Keep this cheat sheet handy to control your studio from the command line or any 
 | `python -m backlot open <project-id>` | Open live monitoring for a specific production workspace |
 | `make demo` | Render all three zero-key showcase demos instantly |
 | `./render-demo.sh world-in-numbers` | Render the 45s data-visualization explainer demo |
-| `make test-contracts` | Run contract tests across all 175 production tools (zero API spend) |
-| `pytest tests/ -v` | Execute full test suite (1,308 verified tests) |
+| `make test-contracts` | Run contract tests across all 187 production tools (zero API spend) |
+| `pytest tests/ -v` | Execute full test suite (2,599 passing tests) |
 | `python -m backlot.server` | Start the Backlot backend daemon on port `4750` (or `8765`) |
 
 ---
@@ -836,7 +858,7 @@ research  →  proposal  →  script  →  scene_plan  →  assets  →  edit  �
 
 ```
 CineForge Matrix/
-├── tools/                 # 175 production tools (BaseTool subclasses)
+├── tools/                 # 187 production tools (BaseTool subclasses)
 │   ├── audio/             # Voice identity, TTS selector, audio mixer, Suno
 │   ├── avatar/            # Character face identity, talking head, lip-sync
 │   ├── video/             # Video generation, clip search, stitcher, trimmer
@@ -850,7 +872,7 @@ CineForge Matrix/
 ├── backlot/               # Backlot Matrix Studio (FastAPI, SSE change feed, Matrix UI)
 ├── remotion-composer/     # React / Remotion composition engine (1080p/4K video)
 ├── lib/                   # Checkpoints, pipeline loader, cost tracker, state machine
-└── tests/                 # 1,308 contract tests, integration tests, security tests
+└── tests/                 # 2,599 contract tests, integration tests, CLI/MCP & security tests
 ```
 
 ### Core Architecture Rules:
@@ -869,7 +891,7 @@ CineForge includes an extensive automated test suite covering BaseTool contracts
 # Run contract and library tests (zero API keys needed)
 make test-contracts
 
-# Run full test suite with coverage (1,308 passing tests)
+# Run full test suite (2,599 passing tests)
 pytest tests/ -v
 
 # Run Backlot backend smoke tests
