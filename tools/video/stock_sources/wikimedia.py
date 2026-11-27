@@ -67,6 +67,8 @@ class WikimediaSource:
         """
         import requests  # lazy
 
+        last_exc: Exception | None = None
+        succeeded_once = False
         for _label, search_text in _build_search_queries(query, filters.kind):
             params = {
                 "action": "query",
@@ -91,8 +93,10 @@ class WikimediaSource:
                 )
                 r.raise_for_status()
                 data = r.json()
-            except Exception:
+            except Exception as exc:
+                last_exc = exc
                 continue
+            succeeded_once = True
             pages = list(((data.get("query") or {}).get("pages") or {}).values())
             if not pages:
                 continue
@@ -106,6 +110,8 @@ class WikimediaSource:
             if out:
                 return out
 
+        if not succeeded_once and last_exc is not None:
+            raise last_exc
         return []
 
     def download(self, candidate: Candidate, out_path: Path) -> Path:

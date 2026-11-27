@@ -714,6 +714,7 @@ class TestCapabilityMetadata:
             "grok",
             "heygen",
             "mistral",
+            "microsoft_edge",
             "microsoft_mai",
             "azure",
             "cartesia",

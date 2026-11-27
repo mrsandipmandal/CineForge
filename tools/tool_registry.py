@@ -7,12 +7,29 @@ and lets the orchestrator/agents query capabilities by tier, status, etc.
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import inspect
+import os
 import pkgutil
+import re
+import shutil
 from types import ModuleType
 from typing import Any, Optional
 
-from tools.base_tool import BaseTool, ToolStatus, ToolTier, ToolStability
+from tools.base_tool import BaseTool, ToolRuntime, ToolStability, ToolStatus, ToolTier
+
+_ENV_HINT_RE = re.compile(
+    r"\b([A-Z][A-Z0-9_]{2,}(?:_KEY|_TOKEN|_SECRET|_ENDPOINT|_URL|_REGION|_DEPLOYMENT|_MODEL|_ACCESSKEY|_SECRETKEY|_ROOT))\b"
+)
+
+_MODULE_TO_PIP = {
+    "cv2": "opencv-python",
+    "PIL": "pillow",
+    "yt_dlp": "yt-dlp",
+    "kokoro_onnx": "kokoro-onnx",
+    "faster_whisper": "faster-whisper",
+    "youtube_transcript_api": "youtube-transcript-api",
+}
 
 
 # Unicode punctuation that breaks on Windows cp1252 stdout. Map each to an
@@ -457,6 +474,160 @@ class ToolRegistry:
             t.name for t in self._tools.values()
             if t.resource_profile.vram_mb > 0
         ]
+
+    def describe_tool_availability(
+        self,
+        tool: BaseTool,
+        status: Optional[ToolStatus] = None,
+    ) -> dict[str, Any]:
+        """Classify why a tool is unavailable/degraded without mutating state."""
+        resolved_status = status if status is not None else tool.get_status()
+        if resolved_status == ToolStatus.AVAILABLE:
+            return {
+                "status": resolved_status.value,
+                "category": "ready",
+                "reason": "ready",
+                "missing_dependencies": [],
+            }
+
+        missing_envs: list[str] = []
+        missing_pkgs: list[str] = []
+        missing_cmds: list[str] = []
+        missing_deps: list[str] = []
+
+        for dep in getattr(tool, "dependencies", []) or []:
+            if dep.startswith(("cmd:", "binary:")):
+                cmd_name = dep.split(":", 1)[1]
+                if shutil.which(cmd_name) is None:
+                    missing_cmds.append(cmd_name)
+                    missing_deps.append(dep)
+            elif dep.startswith("env:"):
+                env_name = dep[4:]
+                if not os.environ.get(env_name):
+                    missing_envs.append(env_name)
+                    missing_deps.append(dep)
+            elif dep.startswith("python:"):
+                mod_name = dep[7:]
+                if importlib.util.find_spec(mod_name) is None:
+                    missing_pkgs.append(_MODULE_TO_PIP.get(mod_name, mod_name))
+                    missing_deps.append(dep)
+
+        inst = (getattr(tool, "install_instructions", "") or "").strip()
+        inst_lower = inst.lower()
+        env_hints: list[str] = []
+        for match in _ENV_HINT_RE.findall(inst):
+            if match not in env_hints and not os.environ.get(match):
+                env_hints.append(match)
+
+        if tool.name == "music_library":
+            return {
+                "status": resolved_status.value,
+                "category": "empty_folder",
+                "reason": "empty music_library/ (drop audio tracks)",
+                "missing_dependencies": missing_deps,
+            }
+        if tool.name == "bgm_montage_lite" and not os.environ.get("BGM_MONTAGE_LITE_ROOT"):
+            return {
+                "status": resolved_status.value,
+                "category": "external_repo",
+                "reason": "needs BGM_MONTAGE_LITE_ROOT clone",
+                "missing_dependencies": ["env:BGM_MONTAGE_LITE_ROOT", *missing_deps],
+            }
+        if resolved_status == ToolStatus.DEGRADED:
+            if tool.name == "corpus_builder":
+                if missing_pkgs:
+                    return {
+                        "status": resolved_status.value,
+                        "category": "missing_pkg",
+                        "reason": f"pip install {' '.join(missing_pkgs[:3])}",
+                        "missing_dependencies": missing_deps,
+                    }
+                return {
+                    "status": resolved_status.value,
+                    "category": "partial_sources",
+                    "reason": "partial stock keys (free sources ready)",
+                    "missing_dependencies": missing_deps,
+                }
+            if tool.name in ("eye_enhance", "face_tracker"):
+                return {
+                    "status": resolved_status.value,
+                    "category": "fallback_mode",
+                    "reason": "fallback active (install mediapipe)",
+                    "missing_dependencies": missing_deps,
+                }
+
+        if tool.runtime == ToolRuntime.LOCAL_GPU:
+            if "comfyui" in tool.provider.lower() or "COMFYUI_SERVER_URL" in env_hints:
+                return {
+                    "status": resolved_status.value,
+                    "category": "external_server",
+                    "reason": "needs ComfyUI server (COMFYUI_SERVER_URL)",
+                    "missing_dependencies": ["env:COMFYUI_SERVER_URL"],
+                }
+            if tool.name == "blender_world":
+                return {
+                    "status": resolved_status.value,
+                    "category": "external_server",
+                    "reason": "needs Blender 4.5+ (BLENDER_PATH)",
+                    "missing_dependencies": ["cmd:blender"],
+                }
+            gpu_suffix = f" ({', '.join(missing_pkgs[:2])})" if missing_pkgs else ""
+            return {
+                "status": resolved_status.value,
+                "category": "local_gpu",
+                "reason": f"needs CUDA GPU + local weights{gpu_suffix}",
+                "missing_dependencies": missing_deps,
+            }
+
+        if missing_envs:
+            return {
+                "status": resolved_status.value,
+                "category": "missing_env",
+                "reason": f"needs {', '.join(missing_envs[:2])}",
+                "missing_dependencies": missing_deps,
+            }
+        if missing_pkgs:
+            return {
+                "status": resolved_status.value,
+                "category": "missing_pkg",
+                "reason": f"pip install {' '.join(missing_pkgs[:3])}",
+                "missing_dependencies": missing_deps,
+            }
+        if missing_cmds:
+            return {
+                "status": resolved_status.value,
+                "category": "missing_cmd",
+                "reason": f"needs command: {', '.join(missing_cmds[:2])}",
+                "missing_dependencies": missing_deps,
+            }
+
+        # Any remaining unset env hints on API/Hybrid tools with custom get_status()
+
+        if env_hints and tool.runtime in (ToolRuntime.API, ToolRuntime.HYBRID):
+            return {
+                "status": resolved_status.value,
+                "category": "missing_env",
+                "reason": f"needs {', '.join(env_hints[:2])}",
+                "missing_dependencies": [f"env:{e}" for e in env_hints],
+            }
+
+        if "pip install " in inst_lower:
+            for line in inst.splitlines():
+                if "pip install" in line.lower():
+                    return {
+                        "status": resolved_status.value,
+                        "category": "missing_pkg",
+                        "reason": line.strip()[:56],
+                        "missing_dependencies": missing_deps,
+                    }
+
+        first_line = inst.splitlines()[0].strip() if inst else ""
+        return {
+            "status": resolved_status.value,
+            "category": "other",
+            "reason": (first_line[:56] or f"status: {resolved_status.value}"),
+            "missing_dependencies": missing_deps,
+        }
 
     def network_required_tools(self) -> list[str]:
         """List tools that require network access."""

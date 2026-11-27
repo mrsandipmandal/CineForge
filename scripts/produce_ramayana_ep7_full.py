@@ -50,6 +50,21 @@ REMOTION_PUBLIC_DIR = REPO_ROOT / "remotion-composer" / "public" / PROJECT_ID
 REMOTION_PROJECT_DIR = REPO_ROOT / "remotion-composer" / "projects" / PROJECT_ID
 
 
+def _set_output_dirs(project_dir: Path, remotion_root: Path | None = None) -> None:
+    """Point module-level output directories at *project_dir* (and optional *remotion_root*)."""
+    global PROJECT_DIR, ARTIFACTS_DIR, AUDIO_DIR, IMAGES_DIR, CHECKPOINTS_DIR
+    global REMOTION_PUBLIC_DIR, REMOTION_PROJECT_DIR
+    PROJECT_DIR = Path(project_dir)
+    ARTIFACTS_DIR = PROJECT_DIR / "artifacts"
+    AUDIO_DIR = PROJECT_DIR / "audio"
+    IMAGES_DIR = PROJECT_DIR / "images"
+    CHECKPOINTS_DIR = PROJECT_DIR / "checkpoints"
+    if remotion_root is not None:
+        rem_base = Path(remotion_root)
+        REMOTION_PUBLIC_DIR = rem_base / "public" / PROJECT_ID
+        REMOTION_PROJECT_DIR = rem_base / "projects" / PROJECT_ID
+
+
 def ensure_project_directories() -> None:
     """Create all required project and public directories."""
     for d in [PROJECT_DIR, ARTIFACTS_DIR, AUDIO_DIR, IMAGES_DIR, CHECKPOINTS_DIR, REMOTION_PUBLIC_DIR, REMOTION_PROJECT_DIR]:
@@ -686,8 +701,16 @@ def generate_checkpoints_and_manifests(scenes: list[dict[str, Any]], script_data
     logger.info("Generated all Ep7 stage checkpoints successfully.")
 
 
-def produce_ramayana_ep7_full(project_dir: Path | str | None = None) -> dict[str, Any]:
+def produce_ramayana_ep7_full(
+    project_dir: Path | str | None = None,
+    remotion_root: Path | str | None = None,
+) -> dict[str, Any]:
     """Execute complete end-to-end production pipeline for Ramayana Ep 7."""
+    if project_dir is not None or remotion_root is not None:
+        _set_output_dirs(
+            Path(project_dir) if project_dir is not None else PROJECT_DIR,
+            Path(remotion_root) if remotion_root is not None else None,
+        )
     ensure_project_directories()
 
     # Step 1: Ensure initial content (script.json, timestamps.json, youtube_metadata.txt)

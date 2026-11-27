@@ -10,24 +10,62 @@ Validates the full production pipeline:
 """
 
 import json
+import shutil
 from pathlib import Path
 import pytest
 
-from scripts.produce_ramayana_ep7_full import (
-    PROJECT_DIR,
-    ARTIFACTS_DIR,
-    AUDIO_DIR,
-    CHECKPOINTS_DIR,
-    produce_ramayana_ep7_full,
-)
+pytestmark = pytest.mark.integration
+
+import scripts.produce_ramayana_ep7_full as prod_mod
+
+_REPO_PROJECT_DIR = prod_mod.REPO_ROOT / "projects" / prod_mod.PROJECT_ID
+PROJECT_DIR: Path = _REPO_PROJECT_DIR
+ARTIFACTS_DIR: Path = _REPO_PROJECT_DIR / "artifacts"
+AUDIO_DIR: Path = _REPO_PROJECT_DIR / "audio"
+CHECKPOINTS_DIR: Path = _REPO_PROJECT_DIR / "checkpoints"
 
 
 @pytest.fixture(scope="module", autouse=True)
-def run_ep7_pipeline():
-    """Execute end-to-end Ep7 production before running assertions."""
-    result = produce_ramayana_ep7_full()
-    assert result.get("success") is True, f"Pipeline execution failed: {result}"
-    return result
+def run_ep7_pipeline(tmp_path_factory):
+    """Execute Ep7 production inside an isolated temp copy so git-tracked files never mutate."""
+    global PROJECT_DIR, ARTIFACTS_DIR, AUDIO_DIR, CHECKPOINTS_DIR
+
+    tmp_root = tmp_path_factory.mktemp("ramayana_ep7")
+    iso_project = tmp_root / "projects" / prod_mod.PROJECT_ID
+    iso_remotion = tmp_root / "remotion-composer"
+    shutil.copytree(_REPO_PROJECT_DIR, iso_project)
+
+    PROJECT_DIR = iso_project
+    ARTIFACTS_DIR = iso_project / "artifacts"
+    AUDIO_DIR = iso_project / "audio"
+    CHECKPOINTS_DIR = iso_project / "checkpoints"
+
+    orig_dirs = (
+        prod_mod.PROJECT_DIR,
+        prod_mod.ARTIFACTS_DIR,
+        prod_mod.AUDIO_DIR,
+        prod_mod.IMAGES_DIR,
+        prod_mod.CHECKPOINTS_DIR,
+        prod_mod.REMOTION_PUBLIC_DIR,
+        prod_mod.REMOTION_PROJECT_DIR,
+    )
+    try:
+        result = prod_mod.produce_ramayana_ep7_full(
+            project_dir=iso_project,
+            remotion_root=iso_remotion,
+        )
+        assert result.get("success") is True, f"Pipeline execution failed: {result}"
+        yield result
+    finally:
+        (
+            prod_mod.PROJECT_DIR,
+            prod_mod.ARTIFACTS_DIR,
+            prod_mod.AUDIO_DIR,
+            prod_mod.IMAGES_DIR,
+            prod_mod.CHECKPOINTS_DIR,
+            prod_mod.REMOTION_PUBLIC_DIR,
+            prod_mod.REMOTION_PROJECT_DIR,
+        ) = orig_dirs
 
 
 def test_ep7_e2e_pipeline_execution():

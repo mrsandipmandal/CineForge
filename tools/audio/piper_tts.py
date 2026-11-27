@@ -114,21 +114,28 @@ class PiperTTS(BaseTool):
 
     def _resolve_model_path(self, model_name: str) -> tuple[Path, Path]:
         """Resolve ONNX and JSON config paths for a model name or file path."""
+        from lib.paths import get_workspace_root
+
         # 1. Direct path
         direct_path = Path(model_name)
         if direct_path.is_file() and direct_path.suffix == ".onnx":
             config_path = direct_path.with_name(direct_path.name + ".json")
             return direct_path, config_path
 
-        # 2. Check library/models/piper/
-        local_dir = Path("library/models/piper")
-        candidate = local_dir / f"{model_name}.onnx"
-        if candidate.is_file():
-            config_candidate = local_dir / f"{model_name}.onnx.json"
-            return candidate, config_candidate
+        # 2. Check workspace, legacy CWD, and ~/.piper/models
+        candidates = [
+            get_workspace_root() / "library" / "models" / "piper",
+            Path("library/models/piper"),
+            Path.home() / ".piper" / "models",
+        ]
+        for local_dir in candidates:
+            candidate = local_dir / f"{model_name}.onnx"
+            if candidate.is_file():
+                config_candidate = local_dir / f"{model_name}.onnx.json"
+                return candidate, config_candidate
 
-        # 3. Default path expectation
-        return candidate, local_dir / f"{model_name}.onnx.json"
+        default_dir = get_workspace_root() / "library" / "models" / "piper"
+        return default_dir / f"{model_name}.onnx", default_dir / f"{model_name}.onnx.json"
 
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
         binary = self._get_piper_binary()

@@ -36,11 +36,11 @@ class FaceTracker(BaseTool):
     execution_mode = ExecutionMode.SYNC
     determinism = Determinism.DETERMINISTIC
 
-    dependencies = ["cmd:ffmpeg"]
+    dependencies = ["cmd:ffmpeg", "python:cv2"]
     install_instructions = (
-        "For best results install MediaPipe:\n"
-        "pip install mediapipe opencv-python\n\n"
-        "Falls back to OpenCV Haar cascade (ships with opencv-python)."
+        "Install OpenCV (plus optional MediaPipe for 468-landmark precision):\n"
+        "pip install opencv-python\n"
+        "pip install mediapipe  # Optional, higher accuracy"
     )
     agent_skills = ["ffmpeg"]
 
@@ -116,8 +116,8 @@ class FaceTracker(BaseTool):
 
     def _has_mediapipe(self) -> bool:
         try:
-            import mediapipe  # noqa: F401
-            return True
+            import mediapipe as mp  # noqa: F401
+            return hasattr(mp, "solutions")
         except ImportError:
             return False
 

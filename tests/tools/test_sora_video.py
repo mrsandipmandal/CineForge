@@ -28,38 +28,35 @@ def test_sora_video_is_discovered_as_openai_video_provider():
     assert tool.capability == "video_generation"
 
 
-def test_sora_video_loads_openai_key_from_repo_dotenv_when_process_env_is_empty():
-    env_path = PROJECT_ROOT / ".env"
-    if env_path.exists():
-        pytest.skip("Protect local .env contents; CI regression covers absent-.env checkout")
-
+def test_sora_video_loads_openai_key_from_repo_dotenv_when_process_env_is_empty(tmp_path):
+    """Ensure sora_video loads OPENAI_API_KEY from an isolated workspace .env."""
+    env_path = tmp_path / ".env"
     env_path.write_text("OPENAI_API_KEY=test-openai-key\n", encoding="utf-8")
-    try:
-        env = os.environ.copy()
-        env.pop("OPENAI_API_KEY", None)
-        env["PYTHONPATH"] = str(PROJECT_ROOT)
 
-        result = subprocess.run(
-            [
-                sys.executable,
-                "-c",
-                (
-                    "import os; "
-                    "import tools.video.sora_video; "
-                    "print('set' if os.environ.get('OPENAI_API_KEY') else 'missing')"
-                ),
-            ],
-            cwd=PROJECT_ROOT,
-            env=env,
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-    finally:
-        env_path.unlink(missing_ok=True)
+    env = os.environ.copy()
+    env.pop("OPENAI_API_KEY", None)
+    env["CINEFORGE_HOME"] = str(tmp_path)
+    env["PYTHONPATH"] = str(PROJECT_ROOT)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import os; "
+                "import tools.video.sora_video; "
+                "print(os.environ.get('OPENAI_API_KEY', 'missing'))"
+            ),
+        ],
+        cwd=tmp_path,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
 
     assert result.returncode == 0, result.stderr
-    assert result.stdout.strip() == "set"
+    assert result.stdout.strip() == "test-openai-key"
 
 
 def test_sora_video_reports_unavailable_when_openai_sdk_lacks_video_api(monkeypatch):

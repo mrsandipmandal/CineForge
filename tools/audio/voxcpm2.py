@@ -8,15 +8,19 @@ Supports both:
 from __future__ import annotations
 
 import base64
+import importlib.util
 import json
 import os
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Any
 
 import requests
+
+from lib.paths import get_backlot_state_dir, get_workspace_root
 
 from tools.base_tool import (
     BaseTool,
@@ -32,6 +36,24 @@ from tools.base_tool import (
 )
 
 SESSION_FILE = Path(".kaggle_active_session.json")
+_DEFAULT_SESSION_FILE = SESSION_FILE
+
+
+def _resolve_session_file() -> Path:
+    if SESSION_FILE != _DEFAULT_SESSION_FILE:
+        return SESSION_FILE
+    return get_backlot_state_dir() / "voxcpm2_session.json"
+
+
+def _find_kaggle_bin() -> str | None:
+    exe = shutil.which("kaggle")
+    if exe:
+        return exe
+    scripts_dir = Path(sys.prefix) / ("Scripts" if sys.platform == "win32" else "bin")
+    candidate = scripts_dir / ("kaggle.exe" if sys.platform == "win32" else "kaggle")
+    if candidate.is_file():
+        return str(candidate)
+    return None
 
 
 def resolve_kaggle_kernel() -> str:
@@ -40,8 +62,8 @@ def resolve_kaggle_kernel() -> str:
     if explicit:
         return explicit.strip()
 
-    kaggle_bin = shutil.which("kaggle") or "/home/sandip/.local/bin/kaggle"
-    if os.path.exists(kaggle_bin):
+    kaggle_bin = _find_kaggle_bin()
+    if kaggle_bin:
         try:
             res = subprocess.run(
                 [kaggle_bin, "kernels", "list", "--mine", "--csv"],
@@ -57,14 +79,14 @@ def resolve_kaggle_kernel() -> str:
                         return ref
         except Exception:
             pass
-    return "mrsandipmandal/voxindica-voxcpm2-worker"
+    return ""
 
 
 def fetch_live_kaggle_tunnel(kernel_slug: str | None = None) -> tuple[str | None, str | None]:
     """Fetch live trycloudflare.com URL and Bearer token from Kaggle kernel logs."""
     slug = kernel_slug or resolve_kaggle_kernel()
-    kaggle_bin = shutil.which("kaggle") or "/home/sandip/.local/bin/kaggle"
-    if not os.path.exists(kaggle_bin):
+    kaggle_bin = _find_kaggle_bin()
+    if not slug or not kaggle_bin:
         return None, None
 
     try:
@@ -94,11 +116,13 @@ def fetch_live_kaggle_tunnel(kernel_slug: str | None = None) -> tuple[str | None
 
 def push_kaggle_kernel(folder_path: str | Path | None = None) -> tuple[bool, str]:
     """Push local notebook folder to Kaggle to start GPU execution."""
-    target_dir = Path(folder_path) if folder_path else Path("/media/sandip/Pro/VoxIndica/notebooks/kaggle")
+    target_dir = Path(folder_path) if folder_path else (get_workspace_root() / "notebooks" / "kaggle")
     if not target_dir.is_dir() or not (target_dir / "kernel-metadata.json").is_file():
-        return False, f"Invalid kernel folder: {target_dir}"
+        return False, f"Invalid Kaggle kernel folder: {target_dir}"
 
-    kaggle_bin = shutil.which("kaggle") or "/home/sandip/.local/bin/kaggle"
+    kaggle_bin = _find_kaggle_bin()
+    if not kaggle_bin:
+        return False, "kaggle CLI not found on PATH (install with `pip install kaggle`)."
     try:
         proc = subprocess.run(
             [kaggle_bin, "kernels", "push", "-p", str(target_dir)],
@@ -124,9 +148,8 @@ class VoxCPM2TTS(BaseTool):
 
     install_instructions = (
         "Configure either:\n"
-        "  1. Remote Kaggle worker: Run mrsandipmandal/voxindica-voxcpm2-worker on Kaggle\n"
-        "     and provide the TUNNEL URL and BEARER TOKEN.\n"
-        "  2. Local GPU: pip install voxcpm2 soundfile torch\n"
+        "  1. Remote worker: Set VOXCPM2_SERVER_URL (or KAGGLE_KERNEL + kaggle CLI) and BEARER TOKEN\n"
+        "  2. Local GPU: pip install voxcpm soundfile torch (with CUDA GPU)"
     )
     fallback = "piper_tts"
     fallback_tools = ["indic_tts", "piper_tts", "mms_tts"]
@@ -230,9 +253,10 @@ class VoxCPM2TTS(BaseTool):
     @classmethod
     def get_active_session(cls) -> dict[str, str]:
         """Read cached runtime session info if present."""
-        if SESSION_FILE.is_file():
+        session_file = _resolve_session_file()
+        if session_file.is_file():
             try:
-                return json.loads(SESSION_FILE.read_text(encoding="utf-8"))
+                return json.loads(session_file.read_text(encoding="utf-8"))
             except Exception:
                 pass
         return {}
@@ -240,19 +264,22 @@ class VoxCPM2TTS(BaseTool):
     @classmethod
     def save_active_session(cls, tunnel_url: str, bearer_token: str = "") -> None:
         """Cache runtime tunnel info for seamless execution during the pipeline run."""
+        session_file = _resolve_session_file()
+        session_file.parent.mkdir(parents=True, exist_ok=True)
         payload = {
             "tunnel_url": tunnel_url.rstrip("/"),
             "bearer_token": bearer_token,
             "updated_at": time.time(),
         }
-        SESSION_FILE.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        session_file.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
     @classmethod
     def clear_active_session(cls) -> None:
         """Clear cached session file."""
-        if SESSION_FILE.exists():
+        session_file = _resolve_session_file()
+        if session_file.exists():
             try:
-                SESSION_FILE.unlink()
+                session_file.unlink()
             except Exception:
                 pass
 
@@ -284,13 +311,21 @@ class VoxCPM2TTS(BaseTool):
 
         return tunnel_url, bearer_token
 
+    def _local_voxcpm_ready(self) -> bool:
+        return (
+            importlib.util.find_spec("voxcpm") is not None
+            and importlib.util.find_spec("soundfile") is not None
+            and self._cuda_available()
+        )
+
     def get_status(self) -> ToolStatus:
-        tunnel_url, _ = self._resolve_connection({})
-        if tunnel_url:
+        if os.environ.get("VOXCPM2_SERVER_URL", "").strip():
             return ToolStatus.AVAILABLE
-        if os.environ.get("TTS_OFFLINE", "").lower() == "true" and self._cuda_available():
+        if self.get_active_session().get("tunnel_url"):
             return ToolStatus.AVAILABLE
-        return ToolStatus.AVAILABLE
+        if self._local_voxcpm_ready():
+            return ToolStatus.AVAILABLE
+        return ToolStatus.UNAVAILABLE
 
     def _cuda_available(self) -> bool:
         try:
@@ -322,9 +357,9 @@ class VoxCPM2TTS(BaseTool):
                 results["http_shutdown_error"] = str(e)
 
         # Trigger Kaggle API stop to release GPU allocation
-        kaggle_bin = shutil.which("kaggle") or "/home/sandip/.local/bin/kaggle"
-        if os.path.exists(kaggle_bin):
-            kernel_slug = resolve_kaggle_kernel()
+        kaggle_bin = _find_kaggle_bin()
+        kernel_slug = resolve_kaggle_kernel()
+        if kaggle_bin and kernel_slug:
             try:
                 proc = subprocess.run(
                     [kaggle_bin, "kernels", "stop", kernel_slug],
@@ -415,7 +450,7 @@ class VoxCPM2TTS(BaseTool):
                 error=(
                     "No active Kaggle Cloudflare tunnel URL configured and local GPU is not available.\n"
                     "Please provide 'tunnel_url' and 'bearer_token' from your running Kaggle notebook "
-                    f"({resolve_kaggle_kernel()})."
+                    f"({resolve_kaggle_kernel() or 'KAGGLE_KERNEL env var'})."
                 ),
             )
 

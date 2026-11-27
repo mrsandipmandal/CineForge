@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from cineforge_cli.core import write_env_keys
@@ -67,6 +68,60 @@ def test_workspace_falls_back_to_home_cineforge(monkeypatch, tmp_path: Path) -> 
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: fake_home))
     monkeypatch.chdir(outside_dir)
     assert get_workspace_root() == (fake_home / ".cineforge").resolve()
+
+
+def test_home_with_dot_cineforge_does_not_hijack_workspace_root(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.delenv("CINEFORGE_HOME", raising=False)
+    monkeypatch.delenv("CINEFORGE_WORKSPACE", raising=False)
+    monkeypatch.delenv("CINEFORGE_PROJECTS_DIR", raising=False)
+
+    fake_home = tmp_path / "fake-home"
+    (fake_home / ".cineforge").mkdir(parents=True)
+    subdir = fake_home / "Downloads"
+    subdir.mkdir()
+
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: fake_home))
+    for cwd in (fake_home, subdir):
+        monkeypatch.chdir(cwd)
+        assert get_workspace_root() == (fake_home / ".cineforge").resolve()
+
+
+def test_env_loader_ignores_blank_assignments_in_cascade(monkeypatch, tmp_path: Path) -> None:
+    from lib.env_loader import load_env
+
+    monkeypatch.delenv("FAL_KEY", raising=False)
+    monkeypatch.delenv("PEXELS_API_KEY", raising=False)
+
+    first_env = tmp_path / "ws" / ".env"
+    second_env = tmp_path / "pkg" / ".env"
+    first_env.parent.mkdir(parents=True)
+    second_env.parent.mkdir(parents=True)
+
+    first_env.write_text("FAL_KEY=\nPEXELS_API_KEY=\"\"\n", encoding="utf-8")
+    second_env.write_text("FAL_KEY=fal_from_pkg\nPEXELS_API_KEY=px_from_pkg\n", encoding="utf-8")
+
+    monkeypatch.setattr("lib.env_loader.get_env_search_paths", lambda: [first_env, second_env])
+    load_env()
+
+    assert os.environ.get("FAL_KEY") == "fal_from_pkg"
+    assert os.environ.get("PEXELS_API_KEY") == "px_from_pkg"
+
+
+def test_music_library_falls_back_to_package_when_workspace_empty(monkeypatch, tmp_path: Path) -> None:
+    from lib.paths import ensure_workspace_initialized, get_music_library_dir
+
+    ws = ensure_workspace_initialized(tmp_path / "ws")
+    assert (ws / "music_library").is_dir()
+    pkg = tmp_path / "pkg"
+    (pkg / "music_library").mkdir(parents=True)
+    (pkg / "music_library" / "theme.mp3").write_bytes(b"ID3test")
+
+    monkeypatch.setenv("CINEFORGE_HOME", str(ws))
+    monkeypatch.setattr("lib.paths.get_package_root", lambda: pkg)
+    assert get_music_library_dir() == pkg / "music_library"
+
+    (ws / "music_library" / "custom.wav").write_bytes(b"RIFFtest")
+    assert get_music_library_dir() == ws / "music_library"
 
 
 def test_write_env_keys_preserves_existing_values(tmp_path: Path) -> None:

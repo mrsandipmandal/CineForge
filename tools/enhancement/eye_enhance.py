@@ -14,6 +14,7 @@ Falls back to FFmpeg region-based filters if MediaPipe is not installed.
 from __future__ import annotations
 
 import json
+import shutil
 import time
 from pathlib import Path
 from typing import Any
@@ -126,8 +127,8 @@ class EyeEnhance(BaseTool):
 
     def _has_mediapipe(self) -> bool:
         try:
-            import mediapipe  # noqa: F401
-            return True
+            import mediapipe as mp  # noqa: F401
+            return hasattr(mp, "solutions")
         except ImportError:
             return False
 
@@ -142,7 +143,7 @@ class EyeEnhance(BaseTool):
     def get_status(self) -> ToolStatus:
         if self._has_mediapipe() and self._has_opencv():
             return ToolStatus.AVAILABLE
-        if self._has_opencv():
+        if self._has_opencv() or shutil.which("ffmpeg"):
             return ToolStatus.DEGRADED
         return ToolStatus.UNAVAILABLE
 

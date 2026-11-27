@@ -35,7 +35,9 @@ def _parse_dotenv_into_environ(env_path: Path) -> None:
                 if match:
                     value = value[: match.start()]
                 value = value.strip()
-            if key and key not in os.environ:
+            # Ignore blank assignments (such as copied .env.example lines) so they
+            # do not poison os.environ or block keys in later .env files.
+            if key and value and not os.environ.get(key):
                 os.environ[key] = value
 
 

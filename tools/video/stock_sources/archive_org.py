@@ -141,6 +141,8 @@ class ArchiveOrgSource:
 
         import requests  # lazy
 
+        last_exc: Exception | None = None
+        succeeded_once = False
         for _label, solr_q in self._build_queries(query):
             params = [
                 ("q", solr_q),
@@ -161,10 +163,12 @@ class ArchiveOrgSource:
                 r = requests.get(_SEARCH_URL, params=params, timeout=30)
                 r.raise_for_status()
                 data = r.json()
-            except Exception:
-                # One strategy's network/parse error shouldn't kill the
-                # whole cascade — try the next one.
+            except Exception as exc:
+                # One strategy's query/parse error shouldn't kill later fallback
+                # strategies — remember the failure and raise if all fail.
+                last_exc = exc
                 continue
+            succeeded_once = True
             docs = (data.get("response") or {}).get("docs", []) or []
             if not docs:
                 continue
@@ -177,6 +181,8 @@ class ArchiveOrgSource:
             if out:
                 return out
 
+        if not succeeded_once and last_exc is not None:
+            raise last_exc
         return []
 
     def download(self, candidate: Candidate, out_path: Path) -> Path:

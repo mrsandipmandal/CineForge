@@ -15,6 +15,7 @@ fastapi>=0.110
 uvicorn>=0.29
 watchfiles>=0.21
 
+filelock>=3.13          # Cross-platform file locking (ClipCache manifest lock)
 websockets>=14.0       # Eleven v4 Turbo and realtime audio transports
 typer>=0.12            # CineForge CLI
 rich>=13.0             # Rich terminal output

@@ -105,14 +105,9 @@ _SOURCE_CREDENTIALS = {
     "VIDEVO_API_KEY": "test-videvo",
 }
 
-# Adapters that still swallow transport failures, recorded as known
-# defects rather than encoded as expected behavior. `strict=True` means
-# the suite fails the moment one of them is fixed and left in this map.
-_STILL_SWALLOWS_TRANSPORT_ERRORS = {
-    "archive_org": "#511 follow-up: query cascade continues past a failed strategy",
-    "wikimedia": "#511 follow-up: query cascade continues past a failed strategy",
-    "pond5_pd": "#511 follow-up: API failure falls through to the web fallback",
-}
+# All adapters now propagate transport errors per #511; kept empty to enforce
+# `strict=True` contract without silent regressions.
+_STILL_SWALLOWS_TRANSPORT_ERRORS: dict[str, str] = {}
 
 
 class TransportError(Exception):
@@ -219,3 +214,23 @@ def test_search_returns_empty_when_the_source_has_no_results(
         )
         == []
     )
+
+
+@pytest.mark.parametrize("source_name", ["archive_org", "wikimedia"])
+def test_cascade_falls_back_when_first_strategy_fails_and_later_succeeds(
+    source_name, monkeypatch
+):
+    """If strategy 1 errors (e.g. bad Solr syntax) but strategy 2 succeeds with 0 hits, return []."""
+    calls = {"n": 0}
+
+    def flaky_then_empty(*_args, **_kwargs):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise TransportError("strategy 1 failed")
+        return _EmptyOkResponse()
+
+    _install_fake_transport(monkeypatch, flaky_then_empty)
+    assert get_source(source_name).search(
+        "mountain storm footage", SearchFilters(kind="any", per_page=5)
+    ) == []
+    assert calls["n"] >= 2

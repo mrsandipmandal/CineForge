@@ -26,10 +26,10 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-00ff66.svg?style=flat-square" alt="License"></a>
-  <img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue?style=flat-square" alt="Python">
+  <img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14%20%7C%203.15-blue?style=flat-square" alt="Python">
   <img src="https://img.shields.io/badge/remotion-4.0-E50914?style=flat-square" alt="Remotion">
   <img src="https://img.shields.io/badge/ffmpeg-8.0%20%7C%209.0-007808?style=flat-square" alt="FFmpeg">
-  <img src="https://img.shields.io/badge/tests-1308%20passed-brightgreen?style=flat-square" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-2593%20passed-brightgreen?style=flat-square" alt="Tests">
   <a href="https://github.com/mrsandipmandal/CineForge/releases"><img src="https://img.shields.io/badge/release-v0.2.0-orange?style=flat-square" alt="Release"></a>
 </p>
 

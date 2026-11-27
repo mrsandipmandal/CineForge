@@ -91,8 +91,10 @@ class Pond5PublicDomainSource:
             r.raise_for_status()
             data = r.json()
         except Exception as e:
-            _log.warning("Pond5 PD search failed (API), trying web fallback: %s", e)
-            return self._search_web_fallback(query, kind, filters)
+            # Contract: an empty list means "nothing matched", so a transport failure
+            # must propagate until a real web fallback is implemented. See `base.StockSource`.
+            _log.warning("Pond5 PD search failed (API): %s", e)
+            raise
 
         results = data.get("results", []) or data.get("items", []) or []
         return self._parse_results(results, kind, filters)

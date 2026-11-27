@@ -35,7 +35,15 @@ def _is_repo_root(path: Path) -> bool:
 
 def _is_workspace_root(path: Path) -> bool:
     """Return True if *path* is an initialized CineForge workspace or checkout."""
-    if (path / ".cineforge").is_dir() or _is_repo_root(path):
+    if _is_repo_root(path):
+        return True
+    # Do not treat $HOME itself as a workspace root merely because ~/.cineforge
+    # exists inside it; ~/.cineforge is the default child workspace.
+    try:
+        is_home = path.resolve() == Path.home().resolve()
+    except OSError:
+        is_home = False
+    if not is_home and (path / ".cineforge").is_dir():
         return True
     return (path / "projects").is_dir() and (path / "config.yaml").is_file()
 
@@ -159,12 +167,40 @@ def get_env_search_paths() -> list[Path]:
     return ordered
 
 
+_MUSIC_EXTENSIONS = {
+    ".mp3",
+    ".wav",
+    ".m4a",
+    ".aac",
+    ".flac",
+    ".ogg",
+    ".opus",
+    ".aiff",
+    ".aif",
+}
+
+
+def _has_audio_files(directory: Path) -> bool:
+    """Return True if *directory* exists and contains at least one audio track."""
+    try:
+        return directory.is_dir() and any(
+            p.is_file() and p.suffix.lower() in _MUSIC_EXTENSIONS
+            for p in directory.rglob("*")
+        )
+    except OSError:
+        return False
+
+
 def get_music_library_dir() -> Path:
     """Return the user's royalty-free music library directory."""
     ws_dir = get_workspace_root() / "music_library"
+    pkg_dir = get_package_root() / "music_library"
+    if _has_audio_files(ws_dir):
+        return ws_dir
+    if _has_audio_files(pkg_dir):
+        return pkg_dir
     if ws_dir.exists():
         return ws_dir
-    pkg_dir = get_package_root() / "music_library"
     return pkg_dir if pkg_dir.exists() else ws_dir
 
 

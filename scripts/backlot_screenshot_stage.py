@@ -27,7 +27,6 @@ STAGE_DIR = REPO_ROOT / ".backlot" / "screenshot-stage"
 SHOTS_DIR = REPO_ROOT / "docs" / "images" / "backlot"
 PORT = 4790
 
-os.environ["CINEFORGE_PROJECTS_DIR"] = str(STAGE_DIR)
 sys.path.insert(0, str(REPO_ROOT))
 
 from PIL import Image, ImageDraw, ImageFilter  # noqa: E402
@@ -233,6 +232,7 @@ def stage_project(pid: str, title: str, palette: str, scenes: list, *,
                 "id": f"img_{sid}_{take+1}", "type": "image", "path": take_rel,
                 "scene_id": sid, "source_tool": "flux_image", "model": "flux-1.1-pro",
                 "cost_usd": 0.04, "prompt": desc,
+                "duration_seconds": round(float(_s1 - _s0), 2),
                 "quality_score": round(0.84 + take * 0.04, 2)})
             manifest["total_cost_usd"] = round(manifest["total_cost_usd"] + 0.04, 2)
         emit_event(pdir, {"tool": "flux_image", "event": "finish", "scene_id": sid,
@@ -330,6 +330,7 @@ SHOTS = [
 
 def shoot() -> None:
     env = dict(os.environ)
+    env["CINEFORGE_PROJECTS_DIR"] = str(STAGE_DIR)
     server = subprocess.Popen(
         [sys.executable, "-m", "backlot", "serve", "--port", str(PORT)],
         env=env, cwd=REPO_ROOT,

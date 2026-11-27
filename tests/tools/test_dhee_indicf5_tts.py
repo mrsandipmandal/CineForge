@@ -117,3 +117,19 @@ def test_dhee_indicf5_tool_registry_discovery():
     assert tool.capability == "tts"
     assert tool.provider == "dheeyantra"
 
+
+def test_get_status_unavailable_without_torch(monkeypatch):
+    import builtins
+    from tools.audio.dhee_indicf5_tts import DheeIndicF5TTS
+    from tools.base_tool import ToolStatus
+
+    real_import = builtins.__import__
+
+    def _fake_import(name, *args, **kwargs):
+        if name == "torch" or name.startswith("torch."):
+            raise ImportError("torch not installed")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _fake_import)
+    assert DheeIndicF5TTS().get_status() == ToolStatus.UNAVAILABLE
+

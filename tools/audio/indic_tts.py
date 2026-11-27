@@ -10,11 +10,14 @@ Supports:
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import sys
 import time
 from pathlib import Path
 from typing import Any
+
+from lib.paths import get_package_root, get_workspace_root
 
 from tools.base_tool import (
     BaseTool,
@@ -63,9 +66,9 @@ class IndicTTS(BaseTool):
 
     dependencies = []
     install_instructions = (
-        "AI4Bharat IndicTTS / IndicF5 local engine.\n"
-        "Weights are stored in library/models/ai4bharat/.\n"
-        "Runs on local CPU or NVIDIA RTX GPU."
+        "pip install torch torchaudio\n"
+        "  Place AI4Bharat weights in library/models/ai4bharat/<lang>/<speaker>/best_model.pth\n"
+        "  See https://github.com/AI4Bharat/IndicTTS for model downloads."
     )
     fallback = "piper_tts"
     fallback_tools = ["piper_tts", "sarvam_tts"]
@@ -157,10 +160,40 @@ class IndicTTS(BaseTool):
         },
     }
 
+    def _models_roots(self) -> list[Path]:
+        roots: list[Path] = []
+        env_dir = os.environ.get("INDIC_MODELS_DIR", "").strip()
+        if env_dir:
+            roots.append(Path(env_dir).expanduser())
+        roots.extend(
+            [
+                get_workspace_root() / "library" / "models" / "ai4bharat",
+                get_package_root() / "library" / "models" / "ai4bharat",
+                INDIC_MODELS_DIR,
+            ]
+        )
+        return roots
+
+    def _resolve_model_file(self, lang: str, speaker: str) -> Path:
+        for root in self._models_roots():
+            candidate = root / lang / speaker / "best_model.pth"
+            if candidate.is_file():
+                return candidate
+        return get_workspace_root() / "library" / "models" / "ai4bharat" / lang / speaker / "best_model.pth"
+
+    def _has_any_checkpoint(self) -> bool:
+        for root in self._models_roots():
+            if root.is_dir() and any(root.rglob("best_model.pth")):
+                return True
+        return False
+
     def get_status(self) -> ToolStatus:
-        # Check if local hardware supports running Python TTS
-        hw = probe_local_hardware()
-        return ToolStatus.AVAILABLE if hw["total_ram_gb"] >= 4.0 else ToolStatus.UNAVAILABLE
+        has_torch = importlib.util.find_spec("torch") is not None
+        if has_torch and self._has_any_checkpoint():
+            return ToolStatus.AVAILABLE
+        if importlib.util.find_spec("gradio_client") is not None:
+            return ToolStatus.DEGRADED
+        return ToolStatus.UNAVAILABLE
 
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
         text = inputs.get("text", "").strip()
@@ -231,21 +264,13 @@ class IndicTTS(BaseTool):
                     # If cloud space fails, log and continue to local check/fallback
                     pass
 
-            # Check for existing local model weights in library/models/ai4bharat/
-            model_dir = INDIC_MODELS_DIR / lang / speaker
-            model_file = model_dir / "best_model.pth"
+            # Check for existing local model weights in workspace or INDIC_MODELS_DIR
+            model_file = self._resolve_model_file(lang, speaker)
+            model_dir = model_file.parent
 
-            # Check if torch and transformers are available in the python environment
-            has_torch = False
-            try:
-                import torch
-                has_torch = True
-            except ImportError:
-                has_torch = False
+            has_torch = importlib.util.find_spec("torch") is not None
 
             if not model_file.exists() or not has_torch:
-                # If weights or torch are not yet downloaded locally, report clear guidance
-                # or fallback to piper_tts / mock generator for seamless development.
                 return ToolResult(
                     success=True,
                     data={
@@ -265,10 +290,10 @@ class IndicTTS(BaseTool):
                         },
                         "note": (
                             f"AI4Bharat IndicTTS engine configured for {lang} ({speaker}). "
-                            f"Model checkpoint directory: {model_dir}"
+                            f"Place checkpoint at {model_file} (or install torch) to synthesize."
                         ),
                     },
-                    artifacts=[str(out_path)],
+                    artifacts=[],
                 )
 
             # In-process synthesis execution when weights and torch are present

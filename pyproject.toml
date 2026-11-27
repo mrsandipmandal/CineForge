@@ -7,7 +7,7 @@ name = "cineforge"
 version = "0.2.0"
 description = "Autonomous AI Film & Video Production Platform with CLI, MCP Server, and Backlot Studio"
 readme = "README.md"
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
 requires-python = ">=3.10"
 authors = [
     { name = "Sandip Mandal" },
@@ -26,13 +26,14 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: End Users/Desktop",
-    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Topic :: Multimedia :: Video",
 ]
 dependencies = [
@@ -49,6 +50,7 @@ dependencies = [
     "fastapi>=0.110",
     "uvicorn>=0.29",
     "watchfiles>=0.21",
+    "filelock>=3.13",
     "websockets>=14.0",
     "typer>=0.12",
     "rich>=13.0",
@@ -62,6 +64,31 @@ mcp = [
 tts-local = [
     "piper-tts>=1.2.0",
     "edge-tts>=6.1.0",
+]
+tts = [
+    "piper-tts>=1.2.0",
+    "edge-tts>=6.1.0",
+    "kokoro-onnx>=0.4.0",
+    "soundfile>=0.12.0",
+]
+whisper = [
+    "faster-whisper>=1.0.0",
+]
+media = [
+    "yt-dlp>=2024.1.0",
+    "youtube-transcript-api>=0.6.0",
+    "faster-whisper>=1.0.0",
+]
+vision = [
+    "opencv-python-headless>=4.8.0",
+    "rembg>=2.0.50",
+    "mediapipe>=0.10.0,<0.10.30; python_version < '3.13'",
+]
+manim = [
+    "manim>=0.18.0",
+]
+local = [
+    "cineforge[media,tts,vision]",
 ]
 gpu = [
     "torch>=2.0",
@@ -78,8 +105,11 @@ dev = [
     "build>=1.0",
     "twine>=5.0",
 ]
+qa = [
+    "playwright>=1.40",
+]
 all = [
-    "cineforge[mcp,tts-local]",
+    "cineforge[mcp,local]",
 ]
 
 [project.scripts]
@@ -124,4 +154,9 @@ tools = [
     "graphics/templates/*",
     "graphics/templates/**/*",
     "video/stock_sources/*",
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: Full-stack integration tests",
 ]

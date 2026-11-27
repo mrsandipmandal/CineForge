@@ -25,6 +25,14 @@ logger = logging.getLogger(__name__)
 
 REPO_ROOT = get_workspace_root()
 CONFIG_FILE = get_backlot_state_dir() / "tts_settings.json"
+_DEFAULT_CONFIG_FILE = CONFIG_FILE
+
+
+def _get_config_file() -> Path:
+    """Return active TTS config file, respecting monkeypatched CONFIG_FILE in tests."""
+    if CONFIG_FILE != _DEFAULT_CONFIG_FILE:
+        return CONFIG_FILE
+    return get_backlot_state_dir() / "tts_settings.json"
 
 # Strict system default provider priority
 DEFAULT_PRIORITY: List[str] = [
@@ -144,9 +152,10 @@ def _default_config() -> Dict[str, Any]:
 def load_tts_config() -> Dict[str, Any]:
     """Load persistent TTS configuration, falling back to defaults."""
     cfg = _default_config()
-    if CONFIG_FILE.is_file():
+    config_file = _get_config_file()
+    if config_file.is_file():
         try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            with open(config_file, "r", encoding="utf-8") as f:
                 saved = json.load(f)
                 if isinstance(saved, dict):
                     # Merge keys
@@ -157,7 +166,7 @@ def load_tts_config() -> Dict[str, Any]:
                             else:
                                 cfg[k] = v
         except Exception as exc:
-            logger.warning("Failed to read %s: %s", CONFIG_FILE, exc)
+            logger.warning("Failed to read %s: %s", config_file, exc)
 
     # Ensure openaifm is present in priority list
     if not cfg.get("provider_priority"):
@@ -178,12 +187,13 @@ def save_tts_config(new_config: Dict[str, Any]) -> Dict[str, Any]:
             else:
                 current[k] = v
 
+    config_file = _get_config_file()
     try:
-        CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+        config_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(config_file, "w", encoding="utf-8") as f:
             json.dump(current, f, indent=2)
     except Exception as exc:
-        logger.error("Failed to write %s: %s", CONFIG_FILE, exc)
+        logger.error("Failed to write %s: %s", config_file, exc)
 
     return current
 

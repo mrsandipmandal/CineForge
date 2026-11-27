@@ -130,15 +130,21 @@ class DheeIndicF5TTS(BaseTool):
         return str(sample_path.resolve()), ref_text
 
     def get_status(self) -> ToolStatus:
-        """Check hardware and library availability."""
+        """Check hardware and library availability.
+
+        Returns:
+            AVAILABLE  — torch is installed and a CUDA GPU is present.
+            DEGRADED   — torch is installed but no CUDA GPU (CPU-only fallback).
+            UNAVAILABLE — torch is not installed (pip install torch torchaudio f5-tts).
+        """
         try:
             import torch  # type: ignore
 
             if torch.cuda.is_available():
                 return ToolStatus.AVAILABLE
-            return ToolStatus.DEGRADED
-        except Exception:
-            return ToolStatus.DEGRADED
+            return ToolStatus.DEGRADED  # torch present but CPU-only
+        except ImportError:
+            return ToolStatus.UNAVAILABLE  # torch not installed
 
     def estimate_cost(self, inputs: dict[str, Any]) -> float:
         """Local execution is free of API costs."""

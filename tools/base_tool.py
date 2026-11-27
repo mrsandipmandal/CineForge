@@ -55,7 +55,7 @@ def _load_dotenv() -> None:
                     if match:
                         value = value[: match.start()]
                     value = value.strip()
-                if key and key not in os.environ:
+                if key and value and not os.environ.get(key):
                     os.environ[key] = value
 
 

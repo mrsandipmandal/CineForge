@@ -106,3 +106,100 @@ def test_cli_skills_list_and_install(tmp_path: Path) -> None:
     assert (proj / ".claude" / "skills" / "cineforge" / "SKILL.md").is_file()
     assert (proj / ".claude" / "commands" / "backlot.md").is_file()
     assert (proj / ".cursor" / "rules" / "cineforge-mcp.mdc").is_file()
+
+
+def test_cli_skills_install_all_stays_within_project_dir(tmp_path: Path, monkeypatch) -> None:
+    fake_home = tmp_path / "fake-home"
+    fake_home.mkdir()
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: fake_home))
+
+    proj = tmp_path / "isolated-proj"
+    proj.mkdir()
+    res = runner.invoke(app, ["skills", "install", "--target", "all", "--project-dir", str(proj)])
+    assert res.exit_code == 0, res.stdout
+    assert (proj / ".codex" / "prompts" / "backlot.md").is_file()
+    assert not (fake_home / ".codex").exists()
+    assert not (fake_home / ".agents").exists()
+
+
+def test_cli_doctor_prioritizes_popular_unlocks_and_tools_list_includes_reason(
+    tmp_path: Path, monkeypatch
+) -> None:
+    ws = tmp_path / "doc-ws"
+    monkeypatch.setenv("CINEFORGE_HOME", str(ws))
+    monkeypatch.setenv("CINEFORGE_PROJECTS_DIR", str(ws / "projects"))
+    for key in ("GEMINI_API_KEY", "GOOGLE_API_KEY", "PEXELS_API_KEY"):
+        monkeypatch.delenv(key, raising=False)
+
+    res = runner.invoke(app, ["--workspace", str(ws), "doctor", "--json"])
+    assert res.exit_code == 0, res.stdout
+    payload = json.loads(res.stdout)
+    assert "status_counts" in payload
+    assert "popular_unlocks" in payload
+    unlock_vars = [u["env_var"] for u in payload["popular_unlocks"]]
+    assert unlock_vars[:2] == ["GEMINI_API_KEY", "PEXELS_API_KEY"]
+
+    t_res = runner.invoke(app, ["tools", "list", "--status", "unavailable", "--json"])
+    assert t_res.exit_code == 0, t_res.stdout
+    tools = json.loads(t_res.stdout)
+    assert tools
+    assert all("reason" in t and t["reason"] for t in tools)
+
+
+def test_cli_doctor_check_keys_and_env_warnings(tmp_path: Path, monkeypatch) -> None:
+    ws = tmp_path / "chk-ws"
+    ws.mkdir()
+    (ws / ".env").write_text("FOO=bar\nFOO=baz\n", encoding="utf-8")
+    monkeypatch.setenv("CINEFORGE_HOME", str(ws))
+    monkeypatch.setenv("CINEFORGE_PROJECTS_DIR", str(ws / "projects"))
+    monkeypatch.setenv("TTS_OFFLINE", "true")
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "test-key")
+    monkeypatch.setattr(
+        "cineforge_cli.main.check_api_keys",
+        lambda timeout=5.0: {
+            "ElevenLabs": {
+                "present": True,
+                "valid": False,
+                "status_code": 401,
+                "env_var": "ELEVENLABS_API_KEY",
+                "error": "HTTP 401",
+            }
+        },
+    )
+
+    res = runner.invoke(app, ["--workspace", str(ws), "doctor", "--check-keys", "--json"])
+    assert res.exit_code == 0, res.stdout
+    payload = json.loads(res.stdout)
+    assert "key_probes" in payload
+    assert payload["key_probes"]["ElevenLabs"]["status_code"] == 401
+    warnings = payload.get("env_warnings") or []
+    assert any("FOO" in w for w in warnings)
+    assert any("TTS_OFFLINE=true" in w for w in warnings)
+
+
+def test_cli_tools_info_and_pipelines_show_tables_and_json() -> None:
+    # Default view is structured Rich panels/tables (not raw JSON)
+    info_res = runner.invoke(app, ["tools", "info", "edge_tts"])
+    assert info_res.exit_code == 0, info_res.stdout
+    assert "Tool Info: edge_tts" in info_res.stdout
+    assert "Input Parameters" in info_res.stdout
+    assert "Capabilities & Guidance" in info_res.stdout
+    assert "cineforge[tts-local]" in info_res.stdout
+
+    # --json preserves machine-readable JSON output
+    info_json = runner.invoke(app, ["tools", "info", "edge_tts", "--json"])
+    assert info_json.exit_code == 0, info_json.stdout
+    parsed = json.loads(info_json.stdout)
+    assert parsed["name"] == "edge_tts"
+    assert "text" in parsed["input_schema"]["properties"]
+
+    pipe_res = runner.invoke(app, ["pipelines", "show", "animated-explainer"])
+    assert pipe_res.exit_code == 0, pipe_res.stdout
+    assert "Pipeline: animated-explainer" in pipe_res.stdout
+    assert "Production Stages" in pipe_res.stdout
+
+    pipe_json = runner.invoke(app, ["pipelines", "show", "animated-explainer", "--json"])
+    assert pipe_json.exit_code == 0, pipe_json.stdout
+    p_parsed = json.loads(pipe_json.stdout)
+    assert p_parsed["name"] == "animated-explainer"
+    assert p_parsed["stages"]

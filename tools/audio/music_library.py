@@ -33,9 +33,7 @@ from tools.base_tool import (
     ToolTier,
 )
 
-from lib.paths import get_music_library_dir, get_workspace_root
-
-_PROJECT_ROOT = get_workspace_root()
+from lib.paths import get_music_library_dir
 
 # Common royalty-free audio container extensions a user might drop in.
 _AUDIO_EXTENSIONS = {

@@ -292,7 +292,14 @@ class SchemaMedia(BaseTool):
     def execute(self, inputs):
         job = dict(inputs.get("resume_job") or {})
         try:
-            key = os.environ[self.credential]
+            if self.provider == "atlascloud":
+                from tools import atlas_client
+
+                key = atlas_client.get_api_key()
+                if not key:
+                    raise KeyError(self.credential)
+            else:
+                key = os.environ[self.credential]
             headers = {"Authorization": f"Bearer {key}"}
             if not job:
                 model, operation, endpoint, payload = self.build_request(inputs)

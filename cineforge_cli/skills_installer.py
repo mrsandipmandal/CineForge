@@ -132,16 +132,24 @@ def install_skills(
             rule_path.parent.mkdir(parents=True, exist_ok=True)
             rule_path.write_text(_CURSOR_RULE_CONTENT, encoding="utf-8")
             written.append(str(rule_path))
-            if _copy_if_exists(core_skill_src, base_dir / ".agents" / "skills" / "cineforge" / "SKILL.md"):
-                written.append(str(base_dir / ".agents" / "skills" / "cineforge" / "SKILL.md"))
+            shared_skill_dest = (
+                home / ".agents" / "skills" / "cineforge" / "SKILL.md"
+                if global_install
+                else base_dir / ".agents" / "skills" / "cineforge" / "SKILL.md"
+            )
+            if _copy_if_exists(core_skill_src, shared_skill_dest):
+                written.append(str(shared_skill_dest))
             written.extend(_copy_tree_md(commands_dir, cursor_root / "commands"))
 
         elif tgt == "codex":
-            # Codex reads global ~/.codex/prompts and ~/.agents/skills.
-            codex_root = home / ".codex"
+            codex_root = (home / ".codex") if global_install else (base_dir / ".codex")
             prompt_src = codex_prompts_dir if codex_prompts_dir.is_dir() else commands_dir
             written.extend(_copy_tree_md(prompt_src, codex_root / "prompts"))
-            skill_dest = (home / ".agents" / "skills" / "cineforge" / "SKILL.md")
+            skill_dest = (
+                home / ".agents" / "skills" / "cineforge" / "SKILL.md"
+                if global_install
+                else base_dir / ".agents" / "skills" / "cineforge" / "SKILL.md"
+            )
             if _copy_if_exists(core_skill_src, skill_dest):
                 written.append(str(skill_dest))
 

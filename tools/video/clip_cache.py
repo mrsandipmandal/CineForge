@@ -236,6 +236,7 @@ class ClipCache:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.manifest_path = self.cache_dir / self.MANIFEST_NAME
         self.lock_path = self.cache_dir / self.LOCK_NAME
+        self._clear_stale_lock()
 
         # Per-instance runtime counters. Reset every time a new
         # ClipCache object is built. For persistent totals, sum
@@ -248,6 +249,31 @@ class ClipCache:
     # ------------------------------------------------------------------
     # Locking
     # ------------------------------------------------------------------
+
+    _STALE_LOCK_SECONDS = 600  # 10 minutes — any lock older than this is presumed dead
+
+    def _clear_stale_lock(self) -> None:
+        """Remove a lock file that is older than _STALE_LOCK_SECONDS.
+
+        Called once at ``ClipCache`` construction time.  A lock that has
+        existed for more than 10 minutes almost certainly belongs to a
+        process that crashed without releasing it; deleting it here is
+        safe because:
+
+        * Any live holder will re-acquire or fail on the *next*
+          ``_locked()`` context, not silently corrupt data.
+        * We only remove it when the mtime is old enough that no
+          human-fast workflow could have produced it.
+        """
+        try:
+            lock_mtime = self.lock_path.stat().st_mtime
+            age = time.time() - lock_mtime
+            if age > self._STALE_LOCK_SECONDS:
+                self.lock_path.unlink(missing_ok=True)
+        except FileNotFoundError:
+            pass  # No lock — nothing to do.
+        except OSError:
+            pass  # Can't stat or unlink — leave it, _locked() will time out naturally.
 
     @contextmanager
     def _locked(self, timeout: float = 60.0) -> Iterator[None]:
