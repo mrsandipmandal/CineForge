@@ -1,8 +1,9 @@
 """CineForge Smart Hybrid Model Context Protocol (MCP) server.
 
 Exposes CineForge's instruction-driven video production pipelines, dynamic tool
-registry (186+ tools), Backlot studio board, and Layer 2/3 skills to any MCP
-client (Claude Desktop, Cursor, Antigravity, Claude Code, Windsurf, VS Code).
+registry (187 tools), Backlot studio board, and Layer 2/3 skills to any MCP
+client (Claude Desktop, Claude Code, Cursor, Antigravity, Windsurf, VS Code,
+OpenCode, Gemini CLI, and Codex CLI).
 
 By default runs in Smart Hybrid mode (~20 curated workflow + selector +
 universal dispatcher tools) to avoid overwhelming LLM tool contexts. Pass
@@ -93,15 +94,22 @@ def _execute_registry_tool(
         }
 
     payload = dict(inputs or {})
-    if dry_run:
+    try:
+        if dry_run:
+            return {
+                "tool": tool_name,
+                "success": True,
+                "dry_run": tool.dry_run(payload),
+            }
+
+        result = tool.execute(payload)
+        return _tool_result_to_dict(tool_name, result)
+    except Exception as exc:
         return {
             "tool": tool_name,
-            "success": True,
-            "dry_run": tool.dry_run(payload),
+            "success": False,
+            "error": str(exc),
         }
-
-    result = tool.execute(payload)
-    return _tool_result_to_dict(tool_name, result)
 
 
 def _register_core_tools(mcp: MCPServer) -> None:
@@ -226,7 +234,11 @@ def _register_core_tools(mcp: MCPServer) -> None:
         """Load the pipeline manifest stage contract AND its Layer 2 director skill instructions."""
         from lib.pipeline_loader import load_pipeline_readonly
 
-        manifest = load_pipeline_readonly(pipeline)
+        try:
+            manifest = load_pipeline_readonly(pipeline)
+        except Exception as exc:
+            return {"found": False, "error": str(exc)}
+
         stage_def = next((s for s in manifest.get("stages", []) if s.get("name") == stage), None)
         if stage_def is None:
             valid = [s.get("name") for s in manifest.get("stages", [])]
@@ -272,25 +284,30 @@ def _register_core_tools(mcp: MCPServer) -> None:
         """Initialize a canonical project workspace under projects/<project_id>/ and optionally launch Backlot."""
         from lib.checkpoint import init_project
 
-        ensure_workspace_initialized()
-        projects_root = get_projects_dir()
-        project_dir = init_project(
-            project_id,
-            title=title,
-            pipeline_type=pipeline_type,
-            pipeline_dir=projects_root,
-            style_playbook=style_playbook,
-        )
-        board_info: dict[str, Any] = {}
-        if open_board:
-            board_info = cineforge_open_backlot(project_id=project_id)
+        try:
+            ensure_workspace_initialized()
+            projects_root = get_projects_dir()
+            _safe_child(projects_root, project_id)
+            project_dir = init_project(
+                project_id,
+                title=title,
+                pipeline_type=pipeline_type,
+                pipeline_dir=projects_root,
+                style_playbook=style_playbook,
+            )
+            board_info: dict[str, Any] = {}
+            if open_board:
+                board_info = cineforge_open_backlot(project_id=project_id)
 
-        return {
-            "project_id": project_id,
-            "project_dir": str(project_dir),
-            "pipeline_type": pipeline_type,
-            "backlot": board_info,
-        }
+            return {
+                "success": True,
+                "project_id": project_id,
+                "project_dir": str(project_dir),
+                "pipeline_type": pipeline_type,
+                "backlot": board_info,
+            }
+        except Exception as exc:
+            return {"success": False, "error": str(exc)}
 
     @mcp.tool()
     def cineforge_project_status(project_id: str) -> dict[str, Any]:
@@ -303,7 +320,10 @@ def _register_core_tools(mcp: MCPServer) -> None:
         )
 
         projects_root = get_projects_dir()
-        project_dir = _safe_child(projects_root, project_id)
+        try:
+            project_dir = _safe_child(projects_root, project_id)
+        except ValueError as exc:
+            return {"exists": False, "error": str(exc)}
         if not project_dir.is_dir():
             return {"exists": False, "error": f"Project not found: {project_id!r}"}
 
@@ -348,23 +368,27 @@ def _register_core_tools(mcp: MCPServer) -> None:
         from lib.checkpoint import write_checkpoint
 
         projects_root = get_projects_dir()
-        path = write_checkpoint(
-            projects_root,
-            project_id,
-            stage,
-            status,
-            artifacts,
-            pipeline_type=pipeline_type,
-            style_playbook=style_playbook,
-            checkpoint_policy=checkpoint_policy,
-            human_approval_required=human_approval_required,
-            human_approved=human_approved,
-            review=review,
-            cost_snapshot=cost_snapshot,
-            error=error,
-            metadata=metadata,
-        )
-        return {"saved": True, "checkpoint_path": str(path), "stage": stage, "status": status}
+        try:
+            _safe_child(projects_root, project_id)
+            path = write_checkpoint(
+                projects_root,
+                project_id,
+                stage,
+                status,
+                artifacts,
+                pipeline_type=pipeline_type,
+                style_playbook=style_playbook,
+                checkpoint_policy=checkpoint_policy,
+                human_approval_required=human_approval_required,
+                human_approved=human_approved,
+                review=review,
+                cost_snapshot=cost_snapshot,
+                error=error,
+                metadata=metadata,
+            )
+            return {"saved": True, "checkpoint_path": str(path), "stage": stage, "status": status}
+        except Exception as exc:
+            return {"saved": False, "stage": stage, "status": status, "error": str(exc)}
 
     @mcp.tool()
     def cineforge_estimate_cost(tool_name: str, inputs: Optional[dict[str, Any]] = None) -> dict[str, Any]:

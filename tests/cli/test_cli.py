@@ -268,3 +268,103 @@ def test_cli_mcp_detect_and_interactive_install(tmp_path: Path, monkeypatch) -> 
     codex_cfg = runner.invoke(app, ["mcp", "config", "--client", "codex", "--uvx"])
     assert codex_cfg.exit_code == 0, codex_cfg.stdout
     assert "[mcp_servers.cineforge]" in codex_cfg.stdout
+
+
+def test_cli_setup_pasted_keys_and_pty_masked_echo(tmp_path: Path, monkeypatch) -> None:
+    import os
+    import pty
+    import select
+    import subprocess
+    import sys
+
+    from cineforge_cli.core import POPULAR_API_KEYS
+    from cineforge_cli.main import _mask_secret_preview, _normalize_pasted_key
+
+    # 1. Normalization & preview helpers handle quotes, prefixes, and ANSI bracketed paste markers
+    assert _normalize_pasted_key('\x1b[200~"AIzaTestSecret9876"\x1b[201~', "GEMINI_API_KEY") == "AIzaTestSecret9876"
+    assert _normalize_pasted_key("export GEMINI_API_KEY='AIzaXYZ'", "GEMINI_API_KEY") == "AIzaXYZ"
+    assert _mask_secret_preview("AIzaTestSecret9876") == "AIza••••9876 (18 chars)"
+    assert _mask_secret_preview("short") == "***** (5 chars)"
+
+    # 2. Interactive `cineforge setup` via CliRunner saves pasted keys & reloads them cleanly
+    ws = tmp_path / "setup-ws"
+    for key_name, _, _ in POPULAR_API_KEYS:
+        monkeypatch.delenv(key_name, raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.setattr("cineforge_mcp.installer.detect_mcp_clients", lambda project_dir=None: [])
+
+    # First key = pasted with prefix + quotes, remaining 8 keys = Enter skip, then decline optional installs
+    responses = ['GEMINI_API_KEY="AIzaSyPastedKey123456"'] + [""] * (len(POPULAR_API_KEYS) - 1) + ["n", "n", "n"]
+    res = runner.invoke(app, ["--workspace", str(ws), "setup"], input="\n".join(responses) + "\n")
+    assert res.exit_code == 0, res.stdout
+    assert "✓ Captured GEMINI_API_KEY (AIza••••3456 (21 chars))" in res.stdout
+    env_text = (ws / ".env").read_text(encoding="utf-8")
+    assert "GEMINI_API_KEY=AIzaSyPastedKey123456" in env_text
+
+    # Re-running setup picks up the saved workspace .env key automatically
+    rerun = runner.invoke(app, ["--workspace", str(ws), "setup"], input="\n" * len(POPULAR_API_KEYS) + "n\nn\nn\n")
+    assert rerun.exit_code == 0, rerun.stdout
+    assert "✓ GEMINI_API_KEY already set" in rerun.stdout
+
+    # 3. Real POSIX PTY test verifying bracketed paste echoes '*' and captures value cleanly
+    if os.name == "posix":
+        master_fd, slave_fd = pty.openpty()
+        proc = subprocess.Popen(
+            [
+                sys.executable,
+                "-c",
+                "from cineforge_cli.main import _prompt_api_key_value; "
+                "print('RESULT=' + repr(_prompt_api_key_value('  KEY', env_name='GEMINI_API_KEY')))",
+            ],
+            stdin=slave_fd,
+            stdout=slave_fd,
+            stderr=slave_fd,
+            close_fds=True,
+        )
+        os.close(slave_fd)
+        try:
+            # Wait briefly for prompt, send bracketed paste + backspace + '9' + Enter
+            select.select([master_fd], [], [], 2.0)
+            os.write(master_fd, b"\x1b[200~AIzaPasteTestX\x1b[201~\x7f9\r")
+            output = b""
+            while True:
+                ready, _, _ = select.select([master_fd], [], [], 2.0)
+                if not ready:
+                    break
+                try:
+                    chunk = os.read(master_fd, 4096)
+                except OSError:
+                    break
+                if not chunk:
+                    break
+                output += chunk
+                if b"RESULT=" in output:
+                    break
+        finally:
+            os.close(master_fd)
+            proc.wait(timeout=5)
+        decoded = output.decode("utf-8", errors="replace")
+        assert "*" in decoded
+        assert "RESULT='AIzaPasteTest9'" in decoded
+
+
+def test_cli_error_handling_edges() -> None:
+    bad_json = runner.invoke(app, ["tools", "run", "local_hardware_probe", "--input", "{bad}"])
+    assert bad_json.exit_code == 1
+    assert "Invalid JSON input" in bad_json.stdout
+
+    bad_type = runner.invoke(app, ["tools", "run", "local_hardware_probe", "--input", "[1, 2]"])
+    assert bad_type.exit_code == 1
+    assert "JSON object" in bad_type.stdout
+
+    missing_file = runner.invoke(app, ["tools", "run", "local_hardware_probe", "--input-file", "/tmp/no-such-file-999.json"])
+    assert missing_file.exit_code == 1
+    assert "Failed to read input file" in missing_file.stdout
+
+    bad_status = runner.invoke(app, ["tools", "list", "--status", "bogus"])
+    assert bad_status.exit_code == 1
+    assert "Invalid --status" in bad_status.stdout
+
+    bad_client = runner.invoke(app, ["mcp", "config", "--client", "bogus"])
+    assert bad_client.exit_code == 1
+    assert "Unsupported client" in bad_client.stdout

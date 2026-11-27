@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import typer
 from rich.console import Console
@@ -104,12 +105,167 @@ def init(
     )
 
 
+_ANSI_PASTE_WRAPPER_RE = re.compile(r"\x1b\[20[01]~|\x1b\[[0-9;?]*[ -/]*[@-~]")
+
+
+def _normalize_pasted_key(raw: str, env_name: str = "") -> str:
+    """Clean bracketed-paste escape sequences, accidental ENV_NAME= prefixes, and quotes."""
+    cleaned = _ANSI_PASTE_WRAPPER_RE.sub("", raw or "").strip()
+    if not cleaned:
+        return ""
+    if cleaned.startswith("export "):
+        cleaned = cleaned[len("export "):].strip()
+    if env_name and "=" in cleaned:
+        lhs, _, rhs = cleaned.partition("=")
+        if lhs.strip() == env_name:
+            cleaned = rhs.strip()
+    if len(cleaned) >= 2 and cleaned[0] == cleaned[-1] and cleaned[0] in ('"', "'"):
+        cleaned = cleaned[1:-1].strip()
+    return cleaned
+
+
+def _mask_secret_preview(secret: str) -> str:
+    """Return a non-sensitive confirmation summary for a captured secret."""
+    n = len(secret)
+    if n <= 8:
+        return f"{'*' * n} ({n} chars)"
+    return f"{secret[:4]}••••{secret[-4:]} ({n} chars)"
+
+
+def _read_masked_posix_tty(prompt_label: str) -> Optional[str]:
+    """Read a line from a POSIX TTY showing '*' feedback on type or paste."""
+    import termios
+    import tty
+
+    sys.stdout.write(f"{prompt_label}: ")
+    sys.stdout.flush()
+
+    fd = sys.stdin.fileno()
+    old_attrs = termios.tcgetattr(fd)
+    buf: list[str] = []
+    aborted = False
+    try:
+        tty.setcbreak(fd)
+        while True:
+            ch = sys.stdin.read(1)
+            if not ch or ch == "\x04":  # EOF / Ctrl+D
+                if not buf:
+                    aborted = True
+                break
+            if ch == "\x03":  # Ctrl+C
+                aborted = True
+                break
+            if ch in ("\r", "\n"):
+                break
+            if ch in ("\x7f", "\b"):
+                if buf:
+                    buf.pop()
+                    sys.stdout.write("\b \b")
+                    sys.stdout.flush()
+                continue
+            if ch == "\x1b":
+                # Drain CSI escape sequences such as bracketed paste markers (\x1b[200~ / \x1b[201~)
+                nxt = sys.stdin.read(1)
+                if nxt == "[":
+                    while True:
+                        seq_ch = sys.stdin.read(1)
+                        if not seq_ch or ("@" <= seq_ch <= "~"):
+                            break
+                continue
+            if ch.isprintable():
+                buf.append(ch)
+                sys.stdout.write("*")
+                sys.stdout.flush()
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_attrs)
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+
+    return None if aborted else "".join(buf)
+
+
+def _prompt_api_key_value(
+    prompt_label: str,
+    *,
+    env_name: str,
+    show_keys: bool = False,
+) -> Optional[str]:
+    """Prompt for an API key with visible '*' feedback on TTYs and safe paste cleanup.
+
+    Returns ``None`` if the user aborted (Ctrl+C / EOF), ``""`` if skipped (Enter),
+    or the normalized secret string otherwise.
+    """
+    is_tty = bool(getattr(sys.stdin, "isatty", lambda: False)()) and bool(
+        getattr(sys.stdout, "isatty", lambda: False)()
+    )
+
+    raw: Optional[str]
+    if is_tty and not show_keys:
+        if os.name == "posix":
+            try:
+                raw = _read_masked_posix_tty(prompt_label)
+            except Exception:
+                raw = None
+                is_tty = False
+        elif os.name == "nt":
+            try:
+                import msvcrt  # type: ignore[import-not-found]
+
+                sys.stdout.write(f"{prompt_label}: ")
+                sys.stdout.flush()
+                buf: list[str] = []
+                aborted = False
+                while True:
+                    ch = msvcrt.getwch()  # type: ignore[attr-defined]
+                    if ch in ("\r", "\n"):
+                        break
+                    if ch in ("\x03", "\x1a"):
+                        aborted = True
+                        break
+                    if ch in ("\x08", "\x7f"):
+                        if buf:
+                            buf.pop()
+                            sys.stdout.write("\b \b")
+                            sys.stdout.flush()
+                        continue
+                    if ch in ("\x00", "\xe0"):
+                        msvcrt.getwch()  # type: ignore[attr-defined]
+                        continue
+                    if ch.isprintable():
+                        buf.append(ch)
+                        sys.stdout.write("*")
+                        sys.stdout.flush()
+                sys.stdout.write("\n")
+                sys.stdout.flush()
+                raw = None if aborted else "".join(buf)
+            except Exception:
+                is_tty = False
+                raw = None
+        else:
+            is_tty = False
+            raw = None
+
+        if is_tty:
+            return None if raw is None else _normalize_pasted_key(raw, env_name=env_name)
+
+    try:
+        raw = typer.prompt(prompt_label, default="", show_default=False, hide_input=False)
+    except (typer.Abort, EOFError, KeyboardInterrupt):
+        return None
+    return _normalize_pasted_key(raw, env_name=env_name)
+
+
 @app.command()
 def setup(
     non_interactive: bool = typer.Option(
         False,
         "--non-interactive",
         help="Initialize workspace without prompting for API keys or optional installs.",
+    ),
+    show_keys: bool = typer.Option(
+        False,
+        "--show-keys",
+        help="Display pasted API keys in plain text instead of masking with '*'.",
     ),
     with_remotion: bool = typer.Option(
         False,
@@ -133,10 +289,12 @@ def setup(
     ),
 ) -> None:
     """Guided interactive setup for workspace, optional API keys, and runtimes."""
+    from lib.env_loader import load_env
     from lib.paths import ensure_workspace_initialized, get_remotion_composer_dir
 
     ws = ensure_workspace_initialized()
-    console.print(f"[bold cyan]CineForge Setup[/bold cyan] — workspace: [green]{ws}[/green]\n")
+    load_env(ws)
+    console.print(f"[bold cyan]CineForge Setup[/bold cyan] — workspace: [green]{escape(str(ws))}[/green]\n")
 
     report = build_doctor_report()
     bins = report["binaries"]
@@ -153,44 +311,57 @@ def setup(
         )
 
     if not non_interactive:
-        console.print("\n[bold]Optional API Keys[/bold] (press Enter to skip — $0.00 offline mode works right away):")
+        console.print(
+            "\n[bold]Optional API Keys[/bold] "
+            "(paste or type key and press Enter, or press Enter to skip — $0.00 offline mode works right away):"
+        )
         collected: dict[str, str] = {}
-        for env_name, label, note in POPULAR_API_KEYS:
-            already = bool(
-                os.environ.get(env_name)
-                or (env_name == "GEMINI_API_KEY" and os.environ.get("GOOGLE_API_KEY"))
-            )
-            prompt_text = f"  {env_name} ({label} — {note})"
-            if already:
-                console.print(f"  [green]✓[/green] {env_name} already set")
-                continue
-            val = typer.prompt(prompt_text, default="", show_default=False, hide_input=True)
-            if val.strip():
-                collected[env_name] = val.strip()
-
-        if collected:
-            env_path = write_env_keys(ws / ".env", collected)
-            console.print(f"[green]Saved {len(collected)} key(s) to {env_path}[/green]")
+        try:
+            for env_name, label, note in POPULAR_API_KEYS:
+                already = bool(
+                    os.environ.get(env_name)
+                    or (env_name == "GEMINI_API_KEY" and os.environ.get("GOOGLE_API_KEY"))
+                )
+                prompt_text = f"  {env_name} ({label} — {note})"
+                if already:
+                    console.print(f"  [green]✓[/green] {env_name} already set")
+                    continue
+                val = _prompt_api_key_value(prompt_text, env_name=env_name, show_keys=show_keys)
+                if val is None:
+                    console.print("\n[dim]Stopped key entry.[/dim]")
+                    break
+                if val:
+                    collected[env_name] = val
+                    console.print(
+                        f"    [green]✓ Captured {env_name}[/green] ({_mask_secret_preview(val)})"
+                    )
+        finally:
+            if collected:
+                env_path = write_env_keys(ws / ".env", collected)
+                console.print(f"[green]Saved {len(collected)} key(s) to {escape(str(env_path))}[/green]")
 
         remotion_dir = get_remotion_composer_dir()
-        if not with_remotion and bins["node"]["installed"] and not (remotion_dir / "node_modules").is_dir():
-            with_remotion = typer.confirm(
-                "Install Remotion React composer dependencies into workspace (~700 MB npm install)?",
-                default=False,
-            )
-        if not with_piper:
-            try:
-                import piper  # type: ignore  # noqa: F401
-            except ImportError:
-                with_piper = typer.confirm(
-                    "Install free offline Piper TTS (`pip install piper-tts`)?",
+        try:
+            if not with_remotion and bins["node"]["installed"] and not (remotion_dir / "node_modules").is_dir():
+                with_remotion = typer.confirm(
+                    "Install Remotion React composer dependencies into workspace (~700 MB npm install)?",
                     default=False,
                 )
-        if not with_hyperframes and bins["npx"]["installed"]:
-            with_hyperframes = typer.confirm(
-                "Pre-warm HyperFrames runtime cache (`npx --yes hyperframes --version`)?",
-                default=False,
-            )
+            if not with_piper:
+                try:
+                    import piper  # type: ignore  # noqa: F401
+                except ImportError:
+                    with_piper = typer.confirm(
+                        "Install free offline Piper TTS (`pip install piper-tts`)?",
+                        default=False,
+                    )
+            if not with_hyperframes and bins["npx"]["installed"]:
+                with_hyperframes = typer.confirm(
+                    "Pre-warm HyperFrames runtime cache (`npx --yes hyperframes --version`)?",
+                    default=False,
+                )
+        except (typer.Abort, EOFError, KeyboardInterrupt):
+            console.print("[dim]Skipped remaining optional runtime prompts.[/dim]")
 
     if with_remotion:
         ok, msg = setup_remotion_workspace(ws, install_deps=True)
@@ -256,10 +427,10 @@ def doctor(
 
     console.print(
         Panel.fit(
-            f"[bold]Workspace:[/bold] {paths['workspace_root']}\n"
-            f"[bold]Projects:[/bold]  {paths['projects_dir']}\n"
-            f"[bold]Package:[/bold]   {paths['package_root']}\n"
-            f"[bold]Env files:[/bold] {env_display}\n"
+            f"[bold]Workspace:[/bold] {escape(str(paths['workspace_root']))}\n"
+            f"[bold]Projects:[/bold]  {escape(str(paths['projects_dir']))}\n"
+            f"[bold]Package:[/bold]   {escape(str(paths['package_root']))}\n"
+            f"[bold]Env files:[/bold] {escape(env_display)}\n"
             f"[bold]Tools:[/bold]     {report['total_tools_discovered']} discovered "
             f"([green]{counts.get('available', 0)} ready[/green], "
             f"[yellow]{counts.get('degraded', 0)} degraded[/yellow], "
@@ -276,22 +447,28 @@ def doctor(
     rt_table.add_row(
         "FFmpeg",
         "[green]READY[/green]" if runtimes.get("ffmpeg") or bins["ffmpeg"]["installed"] else "[red]MISSING[/red]",
-        bins["ffmpeg"].get("version") or bins["ffmpeg"].get("path") or "Install ffmpeg",
+        escape(str(bins["ffmpeg"].get("version") or bins["ffmpeg"].get("path") or "Install ffmpeg")),
     )
     rt_table.add_row(
         "Node.js",
         "[green]READY[/green]" if bins["node"]["installed"] else "[yellow]OPTIONAL[/yellow]",
-        bins["node"].get("version") or "Needed for Remotion / HyperFrames",
+        escape(str(bins["node"].get("version") or "Needed for Remotion / HyperFrames")),
     )
     rt_table.add_row(
         "Remotion",
         "[green]READY[/green]" if runtimes.get("remotion") else "[yellow]NOT INSTALLED[/yellow]",
-        paths["remotion_dir"],
+        escape(str(paths["remotion_dir"])),
+    )
+    hf_reasons = (report.get("hyperframes") or {}).get("reasons") or []
+    hf_detail = (
+        "npx hyperframes (Node >= 22 + FFmpeg)"
+        if runtimes.get("hyperframes") or not hf_reasons
+        else "; ".join(str(r) for r in hf_reasons)
     )
     rt_table.add_row(
         "HyperFrames",
         "[green]READY[/green]" if runtimes.get("hyperframes") else "[yellow]NOT READY[/yellow]",
-        "npx hyperframes (Node >= 22 + FFmpeg)",
+        escape(hf_detail),
     )
     console.print(rt_table)
 
@@ -484,27 +661,33 @@ def pipelines_list(
     table.add_column("Stages")
     table.add_column("Description")
     for row in rows:
-        table.add_row(row["name"], row["stability"], " → ".join(row["stages"]), row["description"])
+        table.add_row(
+            escape(str(row["name"])),
+            escape(str(row["stability"])),
+            escape(" → ".join(row["stages"])),
+            escape(str(row["description"])),
+        )
     console.print(table)
 
 
 def _render_pipeline_show(manifest: dict[str, Any]) -> None:
     """Render a structured Rich panel + stages table for a pipeline manifest."""
     orch = manifest.get("orchestration") or {}
+    pname = escape(str(manifest.get("name", "-")))
     meta_parts = [
-        f"[bold]Name:[/bold]        {manifest.get('name', '-')}",
-        f"[bold]Version:[/bold]     {manifest.get('version', '-')}",
-        f"[bold]Category:[/bold]    {manifest.get('category', '-')}",
-        f"[bold]Stability:[/bold]   {manifest.get('stability', '-')}",
-        f"[bold]Checkpoint:[/bold]  {manifest.get('default_checkpoint_policy', '-')}",
+        f"[bold]Name:[/bold]        {pname}",
+        f"[bold]Version:[/bold]     {escape(str(manifest.get('version', '-')))}",
+        f"[bold]Category:[/bold]    {escape(str(manifest.get('category', '-')))}",
+        f"[bold]Stability:[/bold]   {escape(str(manifest.get('stability', '-')))}",
+        f"[bold]Checkpoint:[/bold]  {escape(str(manifest.get('default_checkpoint_policy', '-')))}",
     ]
     if "budget_default_usd" in orch:
-        meta_parts.append(f"[bold]Budget cap:[/bold]  ${orch['budget_default_usd']}")
+        meta_parts.append(f"[bold]Budget cap:[/bold]  ${escape(str(orch['budget_default_usd']))}")
     desc = " ".join(str(manifest.get("description") or "").split())
     if desc:
-        meta_parts.append(f"\n{desc}")
+        meta_parts.append(f"\n{escape(desc)}")
 
-    console.print(Panel.fit("\n".join(meta_parts), title=f"Pipeline: {manifest.get('name', '-')}"))
+    console.print(Panel.fit("\n".join(meta_parts), title=f"Pipeline: {pname}"))
 
     stages = manifest.get("stages") or []
     if stages:
@@ -521,10 +704,10 @@ def _render_pipeline_show(manifest: dict[str, Any]) -> None:
             gate = "[yellow]human[/yellow]" if st.get("human_approval_default") else "auto"
             stage_table.add_row(
                 str(idx),
-                str(st.get("name") or "-"),
-                str(st.get("skill") or "-"),
-                produces,
-                requires,
+                escape(str(st.get("name") or "-")),
+                escape(str(st.get("skill") or "-")),
+                escape(produces),
+                escape(requires),
                 gate,
             )
         console.print(stage_table)
@@ -548,8 +731,8 @@ def pipelines_show(
 
     try:
         manifest = load_pipeline_readonly(name)
-    except FileNotFoundError as exc:
-        console.print(f"[red]{exc}[/red]")
+    except (FileNotFoundError, ValueError, Exception) as exc:
+        console.print(f"[red]{escape(str(exc))}[/red]")
         raise typer.Exit(1) from exc
     if json_output:
         typer.echo(json.dumps(manifest, indent=2))
@@ -569,10 +752,17 @@ def tools_list(
     """List CineForge tools discovered by the registry."""
     from tools.tool_registry import registry
 
+    status_filter = status.strip().lower() if status else None
+    valid_statuses = {"available", "degraded", "unavailable"}
+    if status_filter and status_filter not in valid_statuses:
+        console.print(
+            f"[red]Invalid --status {status!r}.[/red] Choose from: {', '.join(sorted(valid_statuses))}"
+        )
+        raise typer.Exit(1)
+
     registry.ensure_discovered()
     entries = []
     q_lower = (query or "").strip().lower()
-    status_filter = status.strip().lower() if status else None
     for name in sorted(registry.list_all()):
         tool = registry.get(name)
         if tool is None:
@@ -618,18 +808,26 @@ def tools_list(
     table.add_column("Requires / Note")
     has_unavail = False
     for item in entries:
+        reason_escaped = escape(str(item["reason"]))
         if item["status"] == "available":
             status_markup = "[green]available[/green]"
             note_markup = "[green]-[/green]"
         elif item["status"] == "degraded":
             has_unavail = True
             status_markup = "[yellow]degraded[/yellow]"
-            note_markup = f"[yellow]{item['reason']}[/yellow]"
+            note_markup = f"[yellow]{reason_escaped}[/yellow]"
         else:
             has_unavail = True
             status_markup = "[dim]unavailable[/dim]"
-            note_markup = f"[dim]{item['reason']}[/dim]"
-        table.add_row(item["name"], item["capability"], item["provider"], item["runtime"], status_markup, note_markup)
+            note_markup = f"[dim]{reason_escaped}[/dim]"
+        table.add_row(
+            escape(str(item["name"])),
+            escape(str(item["capability"])),
+            escape(str(item["provider"])),
+            escape(str(item["runtime"])),
+            status_markup,
+            note_markup,
+        )
     console.print(table)
     if has_unavail:
         console.print(
@@ -785,10 +983,21 @@ def tools_run(
         console.print(f"[red]Unknown tool:[/red] {name}")
         raise typer.Exit(1)
 
-    if input_file:
-        payload = json.loads(input_file.read_text(encoding="utf-8"))
-    else:
-        payload = json.loads(input_json)
+    try:
+        raw_text = input_file.read_text(encoding="utf-8") if input_file else input_json
+    except OSError as exc:
+        console.print(f"[red]Failed to read input file:[/red] {escape(str(exc))}")
+        raise typer.Exit(1) from exc
+
+    try:
+        payload = json.loads(raw_text)
+    except json.JSONDecodeError as exc:
+        console.print(f"[red]Invalid JSON input:[/red] {escape(str(exc))}")
+        raise typer.Exit(1) from exc
+
+    if not isinstance(payload, dict):
+        console.print("[red]Tool input must be a JSON object (e.g. '{\"key\": \"value\"}').[/red]")
+        raise typer.Exit(1)
 
     if dry_run:
         typer.echo(json.dumps(tool.dry_run(payload), indent=2, default=str))
@@ -1088,6 +1297,7 @@ def mcp_config(
         "-c",
         help="Target client (claude, claude-code, cursor, antigravity, windsurf, vscode, opencode, gemini-cli, codex).",
     ),
+    workspace: Optional[Path] = typer.Option(None, "--workspace", "-w", help="Workspace directory written into CINEFORGE_HOME."),
     all_tools: bool = typer.Option(False, "--all-tools", help="Include --all-tools in generated command."),
     profile: Optional[str] = typer.Option(None, "--profile", help="Include --profile in generated command."),
     uvx: bool = typer.Option(False, "--uvx", help="Generate zero-install uvx launcher configuration."),
@@ -1095,8 +1305,17 @@ def mcp_config(
     """Print ready-to-paste MCP client configuration (JSON, or TOML for Codex)."""
     from cineforge_mcp.installer import format_client_config, resolve_mcp_launch_spec
 
-    spec = resolve_mcp_launch_spec(all_tools=all_tools, profile=profile, use_uvx=uvx)
-    typer.echo(format_client_config(client, spec))
+    try:
+        spec = resolve_mcp_launch_spec(
+            workspace=workspace,
+            all_tools=all_tools,
+            profile=profile,
+            use_uvx=uvx,
+        )
+        typer.echo(format_client_config(client, spec))
+    except ValueError as exc:
+        console.print(f"[red]{escape(str(exc))}[/red]")
+        raise typer.Exit(1) from exc
 
 
 @mcp_app.command("install")
@@ -1174,7 +1393,7 @@ def skills_list(
     table.add_column("Skill", style="cyan")
     table.add_column("Summary")
     for item in items:
-        table.add_row(item["name"], item["summary"])
+        table.add_row(escape(str(item["name"])), escape(str(item["summary"])))
     console.print(table)
 
 

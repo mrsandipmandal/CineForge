@@ -119,3 +119,63 @@ async def test_mcp_profile_and_all_tools_modes() -> None:
         assert len(names) > 150
         assert "tool_tts_selector" in names
         assert "tool_video_compose" in names
+
+
+@pytest.mark.asyncio
+async def test_mcp_structured_errors_for_invalid_inputs(tmp_path: Path, monkeypatch) -> None:
+    ws = tmp_path / "mcp-err-ws"
+    monkeypatch.setenv("CINEFORGE_HOME", str(ws))
+    monkeypatch.setenv("CINEFORGE_PROJECTS_DIR", str(ws / "projects"))
+    import lib.paths as paths_mod
+
+    monkeypatch.setattr(paths_mod, "PROJECTS_DIR", ws / "projects")
+
+    async with _open_session() as session:
+        bad_stage = json.loads(
+            (await session.call_tool("cineforge_get_stage_guide", {"pipeline": "no-such-pipe", "stage": "script"}))
+            .content[0]
+            .text
+        )
+        assert bad_stage["found"] is False
+        assert bad_stage["error"]
+
+        bad_proj = json.loads(
+            (await session.call_tool("cineforge_project_status", {"project_id": "../escape"})).content[0].text
+        )
+        assert bad_proj["exists"] is False
+        assert bad_proj["error"]
+
+        bad_init = json.loads(
+            (
+                await session.call_tool(
+                    "cineforge_init_project",
+                    {"project_id": "../bad", "title": "Bad", "pipeline_type": "animated-explainer"},
+                )
+            )
+            .content[0]
+            .text
+        )
+        assert bad_init["success"] is False
+        assert bad_init["error"]
+
+        await session.call_tool(
+            "cineforge_init_project",
+            {"project_id": "p-gate", "title": "Gate Test", "pipeline_type": "animated-explainer"},
+        )
+        gate_err = json.loads(
+            (
+                await session.call_tool(
+                    "cineforge_save_checkpoint",
+                    {
+                        "project_id": "p-gate",
+                        "stage": "script",
+                        "status": "completed",
+                        "artifacts": {},
+                    },
+                )
+            )
+            .content[0]
+            .text
+        )
+        assert gate_err["saved"] is False
+        assert "GATE VIOLATION" in gate_err["error"]
