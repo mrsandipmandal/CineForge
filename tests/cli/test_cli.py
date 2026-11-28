@@ -278,34 +278,93 @@ def test_cli_setup_pasted_keys_and_pty_masked_echo(tmp_path: Path, monkeypatch) 
     import subprocess
     import sys
 
-    from cineforge_cli.core import POPULAR_API_KEYS
+    from cineforge_cli.core import POPULAR_API_KEYS, load_all_env_var_specs
     from cineforge_cli.main import _mask_secret_preview, _normalize_pasted_key
 
-    # 1. Normalization & preview helpers handle quotes, prefixes, and ANSI bracketed paste markers
+    # 1. Normalization, preview & catalog helpers
     assert _normalize_pasted_key('\x1b[200~"AIzaTestSecret9876"\x1b[201~', "GEMINI_API_KEY") == "AIzaTestSecret9876"
     assert _normalize_pasted_key("export GEMINI_API_KEY='AIzaXYZ'", "GEMINI_API_KEY") == "AIzaXYZ"
     assert _mask_secret_preview("AIzaTestSecret9876") == "AIza••••9876 (18 chars)"
     assert _mask_secret_preview("short") == "***** (5 chars)"
 
-    # 2. Interactive `cineforge setup` via CliRunner saves pasted keys & reloads them cleanly
+    all_specs = load_all_env_var_specs()
+    spec_names = [s["name"] for s in all_specs]
+    assert len(spec_names) == len(set(spec_names))
+    assert len(spec_names) >= 95
+    for expected_var in (
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
+        "KLING_API_KEY",
+        "MINIMAX_REGION",
+        "REPLICATE_API_TOKEN",
+        "HIGGSFIELD_KEY",
+        "FREESOUND_API_KEY",
+        "BFL_API_KEY",
+        "TTS_OFFLINE",
+        "BACKLOT_PORT",
+        "NVIDIA_NIM_API_KEY",
+        "NVIDIA_API_KEY",
+    ):
+        assert expected_var in spec_names
+
+    # 2. Full interactive `cineforge setup` iterates ALL .env variables one by one
     ws = tmp_path / "setup-ws"
-    for key_name, _, _ in POPULAR_API_KEYS:
-        monkeypatch.delenv(key_name, raising=False)
-    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    for var_name in spec_names:
+        monkeypatch.delenv(var_name, raising=False)
     monkeypatch.setattr("cineforge_mcp.installer.detect_mcp_clients", lambda project_dir=None: [])
 
-    # First key = pasted with prefix + quotes, remaining 8 keys = Enter skip, then decline optional installs
-    responses = ['GEMINI_API_KEY="AIzaSyPastedKey123456"'] + [""] * (len(POPULAR_API_KEYS) - 1) + ["n", "n", "n"]
+    answers_map = {
+        "GEMINI_API_KEY": 'GEMINI_API_KEY="AIzaSyPastedKey123456"',
+        "KLING_API_KEY": "kling_non_popular_key_77",
+        "FREESOUND_API_KEY": "fs_commented_key_99",
+    }
+    responses = [answers_map.get(name, "") for name in spec_names] + ["n", "n", "n"]
     res = runner.invoke(app, ["--workspace", str(ws), "setup"], input="\n".join(responses) + "\n")
     assert res.exit_code == 0, res.stdout
+    assert f"Environment Variables & API Keys ({len(spec_names)} total)" in res.stdout
+    assert "── Kling official direct API ──" in res.stdout
+    assert "── Additional Stock Media Sources ──" in res.stdout
+    assert "[current: global, Enter to keep]" in res.stdout
     assert "✓ Captured GEMINI_API_KEY (AIza••••3456 (21 chars))" in res.stdout
+    assert "✓ Captured KLING_API_KEY (klin••••y_77 (24 chars))" in res.stdout
+    assert "✓ Captured FREESOUND_API_KEY (fs_c••••y_99 (19 chars))" in res.stdout
     env_text = (ws / ".env").read_text(encoding="utf-8")
     assert "GEMINI_API_KEY=AIzaSyPastedKey123456" in env_text
+    assert "KLING_API_KEY=kling_non_popular_key_77" in env_text
+    assert "FREESOUND_API_KEY=fs_commented_key_99" in env_text
+    assert "# FREESOUND_API_KEY=" not in env_text
+    assert "MINIMAX_REGION=global" in env_text
 
-    # Re-running setup picks up the saved workspace .env key automatically
-    rerun = runner.invoke(app, ["--workspace", str(ws), "setup"], input="\n" * len(POPULAR_API_KEYS) + "n\nn\nn\n")
+    # 3. Re-running setup allows updating an already-set key, keeping others via Enter, or stopping early with :done
+    rerun = runner.invoke(
+        app,
+        ["--workspace", str(ws), "setup", "--keys-only"],
+        input="AIzaSyReplacedKey8888\n:done\n",
+    )
     assert rerun.exit_code == 0, rerun.stdout
-    assert "✓ GEMINI_API_KEY already set" in rerun.stdout
+    assert "[set: AIza••••3456 (21 chars), Enter to keep]" in rerun.stdout
+    assert "Finished key entry." in rerun.stdout
+    updated_env = (ws / ".env").read_text(encoding="utf-8")
+    assert updated_env.count("GEMINI_API_KEY=") == 1
+    assert "GEMINI_API_KEY=AIzaSyReplacedKey8888" in updated_env
+    assert "KLING_API_KEY=kling_non_popular_key_77" in updated_env
+
+    # 4. --popular-only prompts only the 9 popular keys and --skip-keys bypasses key prompts
+    pop_ws = tmp_path / "pop-ws"
+    for key_name, _, _ in POPULAR_API_KEYS:
+        monkeypatch.delenv(key_name, raising=False)
+    pop_res = runner.invoke(
+        app,
+        ["--workspace", str(pop_ws), "setup", "--popular-only", "--keys-only"],
+        input="AIzaPopOnly9999\n" + "\n" * (len(POPULAR_API_KEYS) - 1),
+    )
+    assert pop_res.exit_code == 0, pop_res.stdout
+    assert f"({len(POPULAR_API_KEYS)} total)" in pop_res.stdout
+    assert "GEMINI_API_KEY=AIzaPopOnly9999" in (pop_ws / ".env").read_text(encoding="utf-8")
+
+    skip_res = runner.invoke(app, ["--workspace", str(pop_ws), "setup", "--skip-keys"], input="n\nn\nn\n")
+    assert skip_res.exit_code == 0, skip_res.stdout
+    assert "Environment Variables & API Keys" not in skip_res.stdout
 
     # 3. Real POSIX PTY test verifying bracketed paste echoes '*' and captures value cleanly
     if os.name == "posix":

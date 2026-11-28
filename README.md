@@ -618,7 +618,7 @@ Keep this cheat sheet handy to control your studio from the command line or any 
 
 | Shortcut / Command | Action |
 | :--- | :--- |
-| `cineforge setup` | Interactive guided setup (workspace, optional API keys, Remotion, Piper) |
+| `cineforge setup` | Interactive setup for workspace, all 100+ `.env` API keys/settings (`--popular-only`, `--keys-only`), runtimes & IDE MCP |
 | `cineforge doctor` | Check FFmpeg, Node.js, Remotion, HyperFrames, and provider availability |
 | `cineforge update` | Check PyPI / git checkout version & upgrade CLI, MCP & skills safely |
 | `cineforge repair` | Diagnose and repair workspace, `.env`, Remotion, HyperFrames & IDE MCP configs |

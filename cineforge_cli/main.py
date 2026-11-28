@@ -25,6 +25,7 @@ from cineforge_cli.core import (
     discover_demos,
     install_media_extras,
     install_piper_tts,
+    load_all_env_var_specs,
     render_demo_video,
     setup_remotion_workspace,
     warm_hyperframes_cache,
@@ -247,13 +248,17 @@ def _prompt_api_key_value(
             raw = None
 
         if is_tty:
-            return None if raw is None else _normalize_pasted_key(raw, env_name=env_name)
+            if raw is None:
+                return None
+            cleaned = _normalize_pasted_key(raw, env_name=env_name)
+            return None if cleaned.lower() in (":done", ":stop", ":quit", ":exit") else cleaned
 
     try:
         raw = typer.prompt(prompt_label, default="", show_default=False, hide_input=False)
     except (typer.Abort, EOFError, KeyboardInterrupt):
         return None
-    return _normalize_pasted_key(raw, env_name=env_name)
+    cleaned = _normalize_pasted_key(raw, env_name=env_name)
+    return None if cleaned.lower() in (":done", ":stop", ":quit", ":exit") else cleaned
 
 
 @app.command()
@@ -267,6 +272,21 @@ def setup(
         False,
         "--show-keys",
         help="Display pasted API keys in plain text instead of masking with '*'.",
+    ),
+    popular_only: bool = typer.Option(
+        False,
+        "--popular-only",
+        help="Prompt only the 9 popular API keys instead of all .env variables.",
+    ),
+    keys_only: bool = typer.Option(
+        False,
+        "--keys-only",
+        help="Configure .env variables and skip optional runtime and MCP prompts.",
+    ),
+    skip_keys: bool = typer.Option(
+        False,
+        "--skip-keys",
+        help="Skip interactive .env variable prompts and jump to runtime/MCP setup.",
     ),
     with_remotion: bool = typer.Option(
         False,
@@ -289,7 +309,7 @@ def setup(
         help="Pre-warm the npx hyperframes cache.",
     ),
 ) -> None:
-    """Guided interactive setup for workspace, optional API keys, and runtimes."""
+    """Guided interactive setup for workspace, all .env API keys/settings, and runtimes."""
     from lib.env_loader import load_env
     from lib.paths import ensure_workspace_initialized, get_remotion_composer_dir
 
@@ -311,36 +331,77 @@ def setup(
             "or `winget install Gyan.FFmpeg`) for full video assembly."
         )
 
-    if not non_interactive:
+    if not non_interactive and not skip_keys:
+        if popular_only:
+            specs = [
+                {
+                    "name": env_name,
+                    "section": "Popular API Keys",
+                    "description": f"{label} — {note}",
+                    "example_default": "",
+                    "secret": True,
+                }
+                for env_name, label, note in POPULAR_API_KEYS
+            ]
+        else:
+            specs = load_all_env_var_specs(extra_env_path=ws / ".env")
+
+        total_vars = len(specs)
         console.print(
-            "\n[bold]Optional API Keys[/bold] "
-            "(paste or type key and press Enter, or press Enter to skip — $0.00 offline mode works right away):"
+            f"\n[bold]Environment Variables & API Keys ({total_vars} total)[/bold]\n"
+            "  Press Enter to keep/skip, type or paste a value to set/replace, or type :done / Ctrl+C to save & continue:"
         )
         collected: dict[str, str] = {}
+        current_section = ""
         try:
-            for env_name, label, note in POPULAR_API_KEYS:
-                already = bool(
-                    os.environ.get(env_name)
-                    or (env_name == "GEMINI_API_KEY" and os.environ.get("GOOGLE_API_KEY"))
+            for idx, spec in enumerate(specs, 1):
+                section = str(spec.get("section") or "General")
+                if section != current_section:
+                    current_section = section
+                    console.print(f"\n  [bold cyan]── {escape(section)} ──[/bold cyan]")
+
+                env_name = str(spec["name"])
+                desc = str(spec.get("description") or "").strip()
+                is_secret = bool(spec.get("secret", True))
+                example_default = str(spec.get("example_default") or "").strip()
+                existing = os.environ.get(env_name, "").strip()
+
+                if existing:
+                    if is_secret and not show_keys:
+                        state_hint = f"[set: {_mask_secret_preview(existing)}, Enter to keep]"
+                    elif is_secret:
+                        state_hint = f"[set: {existing}, Enter to keep]"
+                    else:
+                        state_hint = f"[current: {existing}, Enter to keep]"
+                elif example_default:
+                    state_hint = f"[example: {example_default}, Enter to skip]"
+                else:
+                    state_hint = "[Enter to skip]"
+
+                desc_part = f" ({desc})" if desc else ""
+                prompt_text = f"  [{idx}/{total_vars}] {env_name}{desc_part} {state_hint}"
+                val = _prompt_api_key_value(
+                    prompt_text,
+                    env_name=env_name,
+                    show_keys=show_keys or not is_secret,
                 )
-                prompt_text = f"  {env_name} ({label} — {note})"
-                if already:
-                    console.print(f"  [green]✓[/green] {env_name} already set")
-                    continue
-                val = _prompt_api_key_value(prompt_text, env_name=env_name, show_keys=show_keys)
                 if val is None:
-                    console.print("\n[dim]Stopped key entry.[/dim]")
+                    console.print("\n[dim]Finished key entry.[/dim]")
                     break
                 if val:
                     collected[env_name] = val
-                    console.print(
-                        f"    [green]✓ Captured {env_name}[/green] ({_mask_secret_preview(val)})"
-                    )
+                    if is_secret and not show_keys:
+                        console.print(
+                            f"    [green]✓ Captured {env_name}[/green] ({_mask_secret_preview(val)})"
+                        )
+                    else:
+                        console.print(f"    [green]✓ Captured {env_name}[/green] = {escape(val)}")
         finally:
             if collected:
                 env_path = write_env_keys(ws / ".env", collected)
                 console.print(f"[green]Saved {len(collected)} key(s) to {escape(str(env_path))}[/green]")
 
+    if not non_interactive and not keys_only:
         remotion_dir = get_remotion_composer_dir()
         try:
             if not with_remotion and bins["node"]["installed"] and not (remotion_dir / "node_modules").is_dir():
@@ -380,7 +441,7 @@ def setup(
         ok, msg = warm_hyperframes_cache()
         console.print(f"[{'green' if ok else 'yellow'}]{msg}[/]")
 
-    if not non_interactive:
+    if not non_interactive and not keys_only:
         from cineforge_mcp.installer import detect_mcp_clients
 
         detected = detect_mcp_clients()

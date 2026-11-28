@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -88,8 +89,211 @@ def _command_version(cmd: list[str]) -> Optional[str]:
         return None
 
 
+_NON_SECRET_ENV_SUFFIXES: tuple[str, ...] = (
+    "_REGION",
+    "_URL",
+    "_ENDPOINT",
+    "_PORT",
+    "_HOST",
+    "_HOSTS",
+    "_PATH",
+    "_DIR",
+    "_MODEL",
+    "_MODELS",
+    "_DISABLED",
+    "_ENABLED",
+    "_OFFLINE",
+    "_USE_VERTEXAI",
+    "_USE_ENTERPRISE",
+    "_LOCATION",
+    "_PROJECT",
+    "_PROJECT_ID",
+    "_DEPLOYMENT",
+    "_USERNAME",
+    "_KERNEL",
+    "_PER_USD",
+    "_MAX_GB",
+    "_VOICE_TYPE",
+    "_CREDENTIALS",
+)
+
+_EXTRA_ENV_DESCRIPTIONS: dict[str, str] = {
+    "HIGGSFIELD_API_SECRET": "Higgsfield API Secret paired with HIGGSFIELD_API_KEY",
+    "ARK_SEEDANCE_MODEL": "Default Seedance model ID for Volcengine Ark",
+    "ARK_BASE_URL": "Custom Volcengine Ark endpoint URL",
+    "ARK_CNY_PER_USD": "CNY-to-USD rate for Ark cost tracking",
+    "BFL_API_KEY": "Black Forest Labs direct FLUX.2 / FLUX.1 API key",
+    "BRIA_API_TOKEN": "Bria AI licensed image generation & editing token",
+    "MISTRAL_API_KEY": "Mistral AI LLM / Voxtral speech API key",
+    "MAI_API_KEY": "Microsoft AI Foundry API key",
+    "MAI_IMAGE_DEPLOYMENT": "MAI Foundry image generation deployment name",
+    "MAI_IMAGE_MODEL": "MAI declared image model ID",
+    "MAI_TRANSCRIBE_DEPLOYMENT": "MAI speech transcription deployment name",
+    "KAGGLE_KEY": "Kaggle API key paired with KAGGLE_USERNAME",
+    "FREESOUND_API_KEY": "Freesound audio & SFX library API key",
+    "COVERR_API_KEY": "Coverr free stock video API key",
+    "NARA_API_KEY": "National Archives (NARA) public-domain media API key",
+    "POND5_API_KEY": "Pond5 stock media API key",
+    "VIDEVO_API_KEY": "Videvo stock video API key",
+    "RUNWAYML_API_SECRET": "RunwayML SDK secret (alias for RUNWAY_API_KEY)",
+    "NVIDIA_NIM_API_KEY": "NVIDIA NIM API key (https://build.nvidia.com)",
+    "NVIDIA_API_KEY": "Alias for NVIDIA_NIM_API_KEY",
+    "NVIDIA_NIM_BASE_URL": "Self-hosted or custom NVIDIA NIM endpoint URL",
+    "GOOGLE_TTS_API_KEY": "Dedicated Google Cloud Text-to-Speech API key",
+    "GCLOUD_PROJECT": "Google Cloud project ID alias",
+    "GOOGLE_CLOUD_PROJECT_ID": "Google Cloud project ID alias",
+    "GOOGLE_GENAI_USE_VERTEXAI": "Set true to route Gemini calls via Vertex AI",
+    "VOXCPM2_SERVER_URL": "Remote VoxCPM2 voice-cloning server URL",
+    "VOXCPM2_BEARER_TOKEN": "Bearer token for remote VoxCPM2 server",
+    "BGM_MONTAGE_LITE_ROOT": "Path to local bgm-montage-lite checkout",
+    "BLENDER_PATH": "Explicit path to Blender executable",
+    "INDIC_MODELS_DIR": "Directory for cached local Indic TTS/STT models",
+    "MUSIC_LIBRARY_DIR": "Override directory for royalty-free music library",
+    "CINEFORGE_CACHE_DIR": "Override directory for CineForge media cache",
+    "CINEFORGE_CACHE_MAX_GB": "Maximum disk cache size in GB",
+    "OPENAI_FM_API_KEY": "OpenAI.fm speech gateway API key",
+    "OPENAI_FM_API_ENDPOINT": "Custom OpenAI.fm endpoint URL",
+    "OPENAI_FM_COOKIE": "Optional OpenAI.fm session cookie",
+    "OPENAIFM_DISABLED": "Set true to disable OpenAI.fm fallback",
+    "KOKORO_API_URL": "Local or remote Kokoro TTS server URL",
+    "KOKORO_DISABLED": "Set true to disable Kokoro TTS provider",
+    "BACKLOT_HOST": "Backlot Control Room bind host (default: 127.0.0.1)",
+    "BACKLOT_PORT": "Backlot Control Room HTTP port (default: 4750)",
+    "BACKLOT_ALLOWED_HOSTS": "Comma-separated allowed Host headers for Backlot",
+}
+
+_SECTION_BANNER_RE = re.compile(r"^#\s*---\s*(.+?)\s*---\s*$")
+_ENV_DECL_RE = re.compile(r"^([A-Z][A-Z0-9_]{2,})=(.*)$")
+
+
+def is_secret_env_var(name: str) -> bool:
+    """Return True if *name* stores a secret token/key rather than a plain setting."""
+    return not name.strip().upper().endswith(_NON_SECRET_ENV_SUFFIXES)
+
+
+def _compact_env_note(note: str, max_len: int = 120) -> str:
+    text = " ".join(note.split()).strip()
+    if len(text) <= max_len:
+        return text
+    return text[: max_len - 1].rstrip() + "…"
+
+
+def _parse_env_example_specs(env_example_path: Path) -> list[dict[str, Any]]:
+    """Parse active and commented variable declarations from a .env.example template."""
+    if not env_example_path.is_file():
+        return []
+
+    section = "General"
+    pending_comments: list[str] = []
+    parsed: list[dict[str, Any]] = []
+
+    for raw in env_example_path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = raw.strip()
+        if not line:
+            pending_comments = []
+            continue
+
+        sec_match = _SECTION_BANNER_RE.match(line)
+        if sec_match:
+            section = sec_match.group(1)
+            pending_comments = []
+            continue
+        if line == "# CineForge environment flags":
+            section = "Environment & Offline Flags"
+            pending_comments = []
+            continue
+
+        commented = line.startswith("#")
+        cand = line.lstrip("#").strip() if commented else line
+        var_match = _ENV_DECL_RE.match(cand)
+        if var_match:
+            name = var_match.group(1)
+            rest = var_match.group(2).strip()
+            inline_note = ""
+            if "#" in rest:
+                default_val, _, inline_note = rest.partition("#")
+                default_val = default_val.strip()
+                inline_note = inline_note.lstrip("#").strip()
+            else:
+                default_val = rest
+            combined = " ".join(pending_comments + ([inline_note] if inline_note else []))
+            desc = _EXTRA_ENV_DESCRIPTIONS.get(name) or _compact_env_note(combined)
+            parsed.append(
+                {
+                    "name": name,
+                    "section": section,
+                    "description": desc,
+                    "example_default": default_val,
+                    "secret": is_secret_env_var(name),
+                    "commented": commented,
+                    "popular": False,
+                }
+            )
+            pending_comments = []
+        elif commented:
+            if not cand.startswith(("CineForge -", "Copy this", "Optional overrides;")):
+                pending_comments.append(cand)
+
+    return parsed
+
+
+def load_all_env_var_specs(
+    env_example_path: Optional[Path] = None,
+    extra_env_path: Optional[Path] = None,
+) -> list[dict[str, Any]]:
+    """Return all setup-configurable .env variables ordered Popular-first, then .env.example sections."""
+    seen: set[str] = set()
+    specs: list[dict[str, Any]] = []
+
+    for name, label, note in POPULAR_API_KEYS:
+        seen.add(name)
+        specs.append(
+            {
+                "name": name,
+                "section": "Popular API Keys",
+                "description": f"{label} — {note}",
+                "example_default": "",
+                "secret": is_secret_env_var(name),
+                "commented": False,
+                "popular": True,
+            }
+        )
+
+    template_path = env_example_path or (get_package_root() / ".env.example")
+    for item in _parse_env_example_specs(template_path):
+        name = item["name"]
+        if name in seen:
+            continue
+        seen.add(name)
+        specs.append(item)
+
+    if extra_env_path and extra_env_path.is_file():
+        for raw in extra_env_path.read_text(encoding="utf-8", errors="replace").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            cand_match = _ENV_DECL_RE.match(line)
+            if cand_match:
+                name = cand_match.group(1)
+                if name not in seen:
+                    seen.add(name)
+                    specs.append(
+                        {
+                            "name": name,
+                            "section": "Workspace Custom Variables",
+                            "description": _EXTRA_ENV_DESCRIPTIONS.get(name, "Custom workspace variable"),
+                            "example_default": "",
+                            "secret": is_secret_env_var(name),
+                            "commented": False,
+                            "popular": False,
+                        }
+                    )
+
+    return specs
+
+
 def write_env_keys(env_path: Path, updates: dict[str, str]) -> Path:
-    """Safely insert or update non-empty KEY=VALUE entries in a .env file."""
+    """Safely insert, update, or uncomment KEY=VALUE entries in a .env file."""
     clean_updates = {k.strip(): v.strip() for k, v in updates.items() if k.strip() and v.strip()}
     env_path.parent.mkdir(parents=True, exist_ok=True)
     if not env_path.exists():
@@ -101,18 +305,39 @@ def write_env_keys(env_path: Path, updates: dict[str, str]) -> Path:
 
     lines = env_path.read_text(encoding="utf-8", errors="replace").splitlines()
     remaining = dict(clean_updates)
-    new_lines: list[str] = []
+    written_active: set[str] = set()
+    pass1_lines: list[str] = []
 
+    # Pass 1: update existing active entries in place and drop duplicate active lines for updated keys.
     for line in lines:
         stripped = line.strip()
         if stripped and not stripped.startswith("#") and "=" in stripped:
             key = stripped.partition("=")[0].strip()
             if key in remaining:
                 val = remaining.pop(key)
-                new_lines.append(f"{key}={val}")
+                pass1_lines.append(f"{key}={val}")
+                written_active.add(key)
                 continue
+            if key in written_active:
+                continue
+        pass1_lines.append(line)
+
+    # Pass 2: uncomment commented declarations (e.g. `# GEMINI_API_KEY=`) in place when still pending.
+    new_lines: list[str] = []
+    for line in pass1_lines:
+        stripped = line.strip()
+        if remaining and stripped.startswith("#"):
+            cand = stripped.lstrip("#").strip()
+            match = _ENV_DECL_RE.match(cand)
+            if match:
+                key = match.group(1)
+                if key in remaining:
+                    val = remaining.pop(key)
+                    new_lines.append(f"{key}={val}")
+                    continue
         new_lines.append(line)
 
+    # Pass 3: append any brand-new keys that did not exist in the file.
     if remaining:
         if new_lines and new_lines[-1].strip():
             new_lines.append("")

@@ -134,3 +134,32 @@ def test_write_env_keys_preserves_existing_values(tmp_path: Path) -> None:
     assert "EXISTING=keep_me" in text
     assert "FAL_KEY=fal_test_123" in text
     assert "SARVAM_API_KEY=srv_456" in text
+
+
+def test_write_env_keys_uncomments_and_deduplicates(tmp_path: Path) -> None:
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "# alias header\n"
+        "# GEMINI_API_KEY=            # Alias for GOOGLE_API_KEY\n"
+        "FAL_KEY=old_one\n"
+        "FAL_KEY=old_two\n"
+        "# TTS_OFFLINE=true\n",
+        encoding="utf-8",
+    )
+    write_env_keys(
+        env_file,
+        {
+            "GEMINI_API_KEY": "AIzaUncommented123",
+            "FAL_KEY": "fal_fresh_999",
+            "TTS_OFFLINE": "false",
+        },
+    )
+
+    text = env_file.read_text(encoding="utf-8")
+    assert "# alias header" in text
+    assert "GEMINI_API_KEY=AIzaUncommented123" in text
+    assert "# GEMINI_API_KEY=" not in text
+    assert text.count("FAL_KEY=") == 1
+    assert "FAL_KEY=fal_fresh_999" in text
+    assert "TTS_OFFLINE=false" in text
+    assert "# TTS_OFFLINE=" not in text
