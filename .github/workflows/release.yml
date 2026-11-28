@@ -172,12 +172,13 @@ jobs:
 
           ### 🌟 Highlights & New Features
 
+          - **Patch Fixes (v0.3.2)**: Aligned all 7 curated `cineforge-mcp` media/analysis wrapper parameter schemas (`tts_selector`, `image_selector`, `video_selector`, `video_compose`, `video_analyzer`, `transcriber`, `video_quality_enhancer`), rejected invalid `cineforge mcp run --transport` flags cleanly, updated `edge_tts` default voice to `en-US-AndrewNeural` with short-locale routing & `en-US-AriaNeural` fallback on `NoAudioReceived`, plus `backlot` typing cleanup.
           - **Patch Fixes (v0.3.1)**: Live `*`-masked terminal echo & bracketed-paste cleanup on `cineforge setup` API key prompts (`--show-keys` option + interrupt-safe `.env` persistence), CLI validation/escaping across `tools run/list`, `doctor`, `pipelines`, and `mcp config`, plus MCP project-ID traversal guards and structured `GATE VIOLATION` JSON error responses.
           - **Unified CLI (`cineforge`)**: Interactive `setup`, `doctor --check-keys` diagnostics, Rich `tools info` / `pipelines show`, zero-key `demo` rendering, `studio`, and `backlot`.
           - **Smart Hybrid MCP Server (`cineforge-mcp`)**: Supports `stdio` and `streamable-http` transports with curated core workflows plus dynamic execution across all 187 tools (`--all-tools`, `--profile`).
           - **Automatic IDE Detection & Interactive MCP Installer**: `cineforge mcp detect` and interactive `cineforge mcp install` auto-detect installed IDEs/CLIs (`claude`, `claude-code`, `cursor`, `antigravity`, `windsurf`, `vscode`, `opencode`, `gemini-cli`, `codex`), ask global vs project scope, merge configs safely with `.bak` backups, and optionally install matching agent skills.
           - **PyPI Packaging, Docker & 1-Line Installers**: Clean `uv tool install cineforge` / `pip install cineforge` isolation with `~/.cineforge` workspace separation, `docker-compose.yml`, plus `install.sh` / `install.ps1`.
-          - **Dedicated `edge_tts` Neural TTS & Python 3.10–3.15 Matrix**: Dedicated `edge_tts` tool and full compatibility verified across Python 3.10–3.15 (2,602 passing tests).
+          - **Dedicated `edge_tts` Neural TTS & Python 3.10–3.15 Matrix**: Dedicated `edge_tts` tool and full compatibility verified across Python 3.10–3.15 (2,606 passing tests).
 
           ### 📦 Standalone Agent Skill Packages
           Download and install the agent skills separately without the full core repository:

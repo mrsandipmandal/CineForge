@@ -14,7 +14,7 @@
 
 <p align="center">
   <a href="#-how-cineforge-works">🧠 How It Works</a> &nbsp;·&nbsp;
-  <a href="#-whats-new-in-v031">🚀 What's New in v0.3.1</a> &nbsp;·&nbsp;
+  <a href="#-whats-new-in-v032">🚀 What's New in v0.3.2</a> &nbsp;·&nbsp;
   <a href="#-quick-start--installation">⚡ Quick Start</a> &nbsp;·&nbsp;
   <a href="#-shortcuts--quick-commands-reference">⌨️ Shortcuts Cheat Sheet</a> &nbsp;·&nbsp;
   <a href="#-complete-documentation-index">📚 Documentation Index</a> &nbsp;·&nbsp;
@@ -29,8 +29,8 @@
   <img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14%20%7C%203.15-blue?style=flat-square" alt="Python">
   <img src="https://img.shields.io/badge/remotion-4.0-E50914?style=flat-square" alt="Remotion">
   <img src="https://img.shields.io/badge/ffmpeg-8.0%20%7C%209.0-007808?style=flat-square" alt="FFmpeg">
-  <img src="https://img.shields.io/badge/tests-2602%20passed-brightgreen?style=flat-square" alt="Tests">
-  <a href="https://github.com/mrsandipmandal/CineForge/releases"><img src="https://img.shields.io/badge/release-v0.3.1-orange?style=flat-square" alt="Release"></a>
+  <img src="https://img.shields.io/badge/tests-2606%20passed-brightgreen?style=flat-square" alt="Tests">
+  <a href="https://github.com/mrsandipmandal/CineForge/releases"><img src="https://img.shields.io/badge/release-v0.3.2-orange?style=flat-square" alt="Release"></a>
 </p>
 
 <p align="center"><strong>Connect & Community</strong></p>
@@ -521,10 +521,22 @@ print(res.success, res.artifacts)
 
 ---
 
-<a id="-whats-new-in-v031"></a>
-## 🚀 What's New in v0.3.1 (Patch Release)
+<a id="-whats-new-in-v032"></a>
+## 🚀 What's New in v0.3.2 (Patch Release)
 
-CineForge **v0.3.1** fixes interactive API key pasting during `cineforge setup` and hardens error handling across all CLI subcommands and the `cineforge-mcp` server (**2,602 passing tests**).
+CineForge **v0.3.2** resolves real end-to-end integration bugs uncovered during comprehensive CLI, MCP, and video rendering verification (**2,606 passing tests**).
+
+- **MCP Curated Wrapper Schema Alignment (`cineforge-mcp`)**: Aligned parameter forwarding across `cineforge_generate_tts` (`language_code`, `preferred_provider`), `cineforge_generate_image`/`video` (`preferred_provider`, `reference_image_path`, string `duration`), `cineforge_compose_video` (`operation="render"`), `cineforge_analyze_video` (`source`), `cineforge_transcribe_audio` (`input_path`, `output_dir`), and `cineforge_enhance_video` (`input_path`).
+- **MCP Transport Validation**: `cineforge mcp run` / `serve_mcp()` now validates `--transport` against `stdio | streamable-http | http | sse` cleanly with exit code `1` instead of falling back silently to `stdio`.
+- **Edge TTS Live Endpoint Fix (`tools/audio/edge_tts_tool.py`)**: Replaced deprecated `en-US-AndrewMultilingualNeural` default with `en-US-AndrewNeural`, added short language-code routing (`en`, `bn`, `hi`, etc.), and added automatic `NoAudioReceived` retry fallback to `en-US-AriaNeural`.
+- **Backlot Annotation Fix**: Fixed `cmd_serve` host type annotation in `backlot/__main__.py`.
+
+---
+
+<a id="-whats-new-in-v031"></a>
+### ✨ Previous Patch: v0.3.1
+
+CineForge **v0.3.1** fixes interactive API key pasting during `cineforge setup` and hardens error handling across all CLI subcommands and the `cineforge-mcp` server (**2,606 passing tests**).
 
 - **Fixed `cineforge setup` API Key Paste UX**: Replaced silent `hide_input=True` (`getpass`) prompts with live `*`-masked TTY feedback (`termios`/`tty` on POSIX, `msvcrt` on Windows), bracketed-paste escape sequence cleanup, `ENV_NAME=` prefix/quote normalization, non-sensitive capture confirmation (`✓ Captured GEMINI_API_KEY (AIza••••3456)`), `--show-keys` option, automatic `<workspace>/.env` preloading, and partial key saving on interrupt.
 - **CLI Hardening**: Graceful exit codes (`1`) on invalid JSON / missing `--input-file` in `tools run`, `--status` validation in `tools list`, `--workspace` + unsupported client handling in `mcp config`, `hyperframes` failure diagnostics in `doctor`, and full `rich.markup.escape` safety across tables.
@@ -540,7 +552,7 @@ CineForge **v0.3.0** transforms CineForge from a local repository workflow into 
 ### 🧰 1. Unified CLI (`cineforge`) & Guided Setup
 - **`cineforge setup` & `cineforge doctor --check-keys`**: Guided workspace initialization (`~/.cineforge`), optional Remotion/HyperFrames/Piper provisioning, `.env` duplicate detection, and live API key health checks.
 - **Rich Inspection & Execution (`tools`, `pipelines`, `demo`, `studio`)**: Structured Rich tables (`cineforge tools info`, `cineforge pipelines show`), `--json` automation mode, zero-key `cineforge demo` showcase renders, and `cineforge studio` Backlot Control Room launcher.
-- **Dedicated `edge_tts` Tool (`tools/audio/edge_tts.py`)**: Standalone zero-key neural TTS adapter alongside `tts_selector`, Piper, Kokoro, and OpenAI.fm.
+- **Dedicated `edge_tts` Tool (`tools/audio/edge_tts_tool.py`)**: Standalone zero-key neural TTS adapter alongside `tts_selector`, Piper, Kokoro, and OpenAI.fm.
 
 ### 🔌 2. Smart Hybrid MCP Server (`cineforge-mcp`) & Auto IDE Detection
 - **Automatic IDE / AI Client Detection (`cineforge mcp detect`)**: Scans your machine for installed editors and CLIs — **Claude Desktop**, **Claude Code**, **Cursor**, **Antigravity**, **Windsurf**, **VS Code**, **OpenCode**, **Gemini CLI**, and **Codex CLI** — showing detected signals, config paths, and current MCP status.
@@ -550,7 +562,7 @@ CineForge **v0.3.0** transforms CineForge from a local repository workflow into 
 ### 📦 3. PyPI Distribution, Docker & Portable Skills
 - **Zero-Clone Installation (`uv tool install cineforge` / `pip install cineforge`)**: Bundled package assets cleanly separated from your writable workspace (`~/.cineforge`), plus 1-line OS installers (`install.sh` / `install.ps1`) and `docker-compose.yml`.
 - **Portable Skills & Claude Plugin**: Installable workflow skills across `agents`, `claude`, `cursor`, `codex`, and `antigravity` via `cineforge skills install` or `.claude-plugin`.
-- **Python 3.10–3.15 Verified**: CI matrix green across Python 3.10 through 3.15 with **2,602 passing tests** and Backlot `/api/doctor` readiness telemetry.
+- **Python 3.10–3.15 Verified**: CI matrix green across Python 3.10 through 3.15 with **2,606 passing tests** and Backlot `/api/doctor` readiness telemetry.
 
 ---
 
@@ -616,7 +628,7 @@ Keep this cheat sheet handy to control your studio from the command line or any 
 | `make demo` | Render all three zero-key showcase demos instantly |
 | `./render-demo.sh world-in-numbers` | Render the 45s data-visualization explainer demo |
 | `make test-contracts` | Run contract tests across all 187 production tools (zero API spend) |
-| `pytest tests/ -v` | Execute full test suite (2,602 passing tests) |
+| `pytest tests/ -v` | Execute full test suite (2,606 passing tests) |
 | `python -m backlot.server` | Start the Backlot backend daemon on port `4750` (or `8765`) |
 
 ---
@@ -883,7 +895,7 @@ CineForge Matrix/
 ├── backlot/               # Backlot Matrix Studio (FastAPI, SSE change feed, Matrix UI)
 ├── remotion-composer/     # React / Remotion composition engine (1080p/4K video)
 ├── lib/                   # Checkpoints, pipeline loader, cost tracker, state machine
-└── tests/                 # 2,602 contract tests, integration tests, CLI/MCP & security tests
+└── tests/                 # 2,606 contract tests, integration tests, CLI/MCP & security tests
 ```
 
 ### Core Architecture Rules:
@@ -902,7 +914,7 @@ CineForge includes an extensive automated test suite covering BaseTool contracts
 # Run contract and library tests (zero API keys needed)
 make test-contracts
 
-# Run full test suite (2,602 passing tests)
+# Run full test suite (2,606 passing tests)
 pytest tests/ -v
 
 # Run Backlot backend smoke tests
