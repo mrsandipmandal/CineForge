@@ -191,8 +191,8 @@ def test_repair_workspace_env_config_and_broken_mcp_configs(tmp_path: Path, monk
             {
                 "mcpServers": {
                     "cineforge": {
-                        "command": "uvx",
-                        "args": ["--from", "cineforge", "cineforge-mcp"],
+                        "command": sys.executable,
+                        "args": ["-m", "cineforge_mcp"],
                         "env": {"CINEFORGE_HOME": str(valid_other_ws)},
                     }
                 }
