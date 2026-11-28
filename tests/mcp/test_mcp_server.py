@@ -179,3 +179,59 @@ async def test_mcp_structured_errors_for_invalid_inputs(tmp_path: Path, monkeypa
         )
         assert gate_err["saved"] is False
         assert "GATE VIOLATION" in gate_err["error"]
+
+
+@pytest.mark.asyncio
+async def test_mcp_curated_wrappers_forward_exact_tool_schema_keys(monkeypatch) -> None:
+    captured: list[tuple[str, dict, bool]] = []
+
+    def _fake_exec(tool_name: str, inputs=None, *, dry_run: bool = False):
+        captured.append((tool_name, dict(inputs or {}), dry_run))
+        return {"tool": tool_name, "success": True, "captured": dict(inputs or {})}
+
+    monkeypatch.setattr("cineforge_mcp.server._execute_registry_tool", _fake_exec)
+
+    async with _open_session() as session:
+        await session.call_tool(
+            "cineforge_generate_tts",
+            {"text": "Hello", "output_path": "a.wav", "language": "bn", "provider": "sarvam"},
+        )
+        await session.call_tool(
+            "cineforge_generate_image",
+            {"prompt": "Space", "output_path": "i.png", "provider": "bfl"},
+        )
+        await session.call_tool(
+            "cineforge_generate_video",
+            {"prompt": "Galaxy", "output_path": "v.mp4", "duration": 6, "image_path": "ref.png", "provider": "kling"},
+        )
+        await session.call_tool(
+            "cineforge_compose_video",
+            {"edit_decisions": {"cuts": []}, "asset_manifest": {}, "output_path": "out.mp4", "render_runtime": "ffmpeg"},
+        )
+        await session.call_tool("cineforge_analyze_video", {"video_path": "clip.mp4"})
+        await session.call_tool(
+            "cineforge_transcribe_audio",
+            {"audio_path": "narration.wav", "output_path": "/tmp/transcript/out.json", "language": "en"},
+        )
+        await session.call_tool(
+            "cineforge_enhance_video",
+            {"video_path": "raw.mp4", "output_path": "enh.mp4", "profile": "cinematic"},
+        )
+
+    by_tool = {name: payload for name, payload, _ in captured}
+    assert by_tool["tts_selector"]["language_code"] == "bn"
+    assert by_tool["tts_selector"]["preferred_provider"] == "sarvam"
+    assert "provider" not in by_tool["tts_selector"]
+
+    assert by_tool["image_selector"]["preferred_provider"] == "bfl"
+    assert by_tool["video_selector"]["duration"] == "6"
+    assert by_tool["video_selector"]["reference_image_path"] == "ref.png"
+    assert by_tool["video_selector"]["preferred_provider"] == "kling"
+
+    assert by_tool["video_compose"]["operation"] == "render"
+    assert by_tool["video_compose"]["edit_decisions"]["render_runtime"] == "ffmpeg"
+
+    assert by_tool["video_analyzer"]["source"] == "clip.mp4"
+    assert by_tool["transcriber"]["input_path"] == "narration.wav"
+    assert by_tool["transcriber"]["output_dir"] == "/tmp/transcript"
+    assert by_tool["video_quality_enhancer"]["input_path"] == "raw.mp4"

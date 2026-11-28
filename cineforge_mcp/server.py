@@ -418,13 +418,13 @@ def _register_core_tools(mcp: MCPServer) -> None:
         payload: dict[str, Any] = {
             "text": text,
             "output_path": output_path,
-            "language": language,
+            "language_code": language,
             **(extra_inputs or {}),
         }
         if voice:
             payload["voice"] = voice
         if provider:
-            payload["provider"] = provider
+            payload["preferred_provider"] = provider
         return _execute_registry_tool("tts_selector", payload)
 
     @mcp.tool()
@@ -443,7 +443,7 @@ def _register_core_tools(mcp: MCPServer) -> None:
             **(extra_inputs or {}),
         }
         if provider:
-            payload["provider"] = provider
+            payload["preferred_provider"] = provider
         return _execute_registry_tool("image_selector", payload)
 
     @mcp.tool()
@@ -457,17 +457,18 @@ def _register_core_tools(mcp: MCPServer) -> None:
         extra_inputs: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """Generate a video clip via `video_selector` (text-to-video or image-to-video)."""
+        dur_str = str(int(duration) if duration == int(duration) else duration)
         payload: dict[str, Any] = {
             "prompt": prompt,
             "output_path": output_path,
-            "duration": duration,
+            "duration": dur_str,
             "aspect_ratio": aspect_ratio,
             **(extra_inputs or {}),
         }
         if image_path:
-            payload["image_path"] = image_path
+            payload["reference_image_path"] = image_path
         if provider:
-            payload["provider"] = provider
+            payload["preferred_provider"] = provider
         return _execute_registry_tool("video_selector", payload)
 
     @mcp.tool()
@@ -507,6 +508,7 @@ def _register_core_tools(mcp: MCPServer) -> None:
         asset_manifest: dict[str, Any],
         output_path: str,
         render_runtime: Optional[str] = None,
+        operation: str = "render",
         extra_inputs: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """Render the final composed video using Remotion, HyperFrames, or FFmpeg via `video_compose`."""
@@ -514,6 +516,7 @@ def _register_core_tools(mcp: MCPServer) -> None:
         if render_runtime:
             decisions["render_runtime"] = render_runtime
         payload: dict[str, Any] = {
+            "operation": operation,
             "edit_decisions": decisions,
             "asset_manifest": asset_manifest,
             "output_path": output_path,
@@ -527,7 +530,7 @@ def _register_core_tools(mcp: MCPServer) -> None:
         extra_inputs: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """Analyze a reference or source video (transcript, scenes, pacing) via `video_analyzer`."""
-        payload: dict[str, Any] = {"video_path": video_path, **(extra_inputs or {})}
+        payload: dict[str, Any] = {"source": video_path, **(extra_inputs or {})}
         return _execute_registry_tool("video_analyzer", payload)
 
     @mcp.tool()
@@ -538,9 +541,10 @@ def _register_core_tools(mcp: MCPServer) -> None:
         extra_inputs: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """Transcribe audio or video with timestamps using local Whisper (`transcriber`)."""
-        payload: dict[str, Any] = {"audio_path": audio_path, **(extra_inputs or {})}
+        payload: dict[str, Any] = {"input_path": audio_path, **(extra_inputs or {})}
         if output_path:
-            payload["output_path"] = output_path
+            out_p = Path(output_path)
+            payload["output_dir"] = str(out_p.parent if out_p.suffix else out_p)
         if language:
             payload["language"] = language
         return _execute_registry_tool("transcriber", payload)
@@ -554,7 +558,7 @@ def _register_core_tools(mcp: MCPServer) -> None:
     ) -> dict[str, Any]:
         """Run non-destructive pre-export video quality enhancement (`video_quality_enhancer`)."""
         payload: dict[str, Any] = {
-            "video_path": video_path,
+            "input_path": video_path,
             "output_path": output_path,
             "profile": profile,
             **(extra_inputs or {}),
@@ -567,7 +571,7 @@ def _register_core_tools(mcp: MCPServer) -> None:
         inputs: Optional[dict[str, Any]] = None,
         dry_run: bool = False,
     ) -> dict[str, Any]:
-        """Universal dispatcher: execute (or dry-run) ANY of CineForge's 186+ BaseTool implementations."""
+        """Universal dispatcher: execute (or dry-run) ANY of CineForge's 187 BaseTool implementations."""
         return _execute_registry_tool(tool_name, inputs, dry_run=dry_run)
 
 
@@ -756,6 +760,9 @@ def create_mcp_server(
     return mcp
 
 
+SUPPORTED_TRANSPORTS = ("stdio", "streamable-http", "http", "sse")
+
+
 def serve_mcp(
     *,
     transport: str = "stdio",
@@ -764,7 +771,11 @@ def serve_mcp(
     all_tools: bool = False,
     profile: Optional[str] = None,
 ) -> None:
-    """Run the CineForge MCP server over stdio or streamable-http."""
+    """Run the CineForge MCP server over stdio, streamable-http, or sse."""
+    if transport not in SUPPORTED_TRANSPORTS:
+        raise ValueError(
+            f"Unsupported MCP transport {transport!r}. Choose from: {', '.join(SUPPORTED_TRANSPORTS)}"
+        )
     server = create_mcp_server(all_tools=all_tools, profile=profile)
     if transport in ("http", "streamable-http"):
         server.run(transport="streamable-http", host=host, port=port)

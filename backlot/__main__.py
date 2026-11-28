@@ -79,7 +79,7 @@ def cmd_open(project_id: str | None) -> int:
     return 0
 
 
-def cmd_serve(port: int, host: Optional[str] = None) -> int:
+def cmd_serve(port: int, host: str | None = None) -> int:
     import uvicorn
 
     bind_host = host or os.environ.get("BACKLOT_HOST", "127.0.0.1")

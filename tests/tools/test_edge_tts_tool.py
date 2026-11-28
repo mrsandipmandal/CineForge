@@ -81,7 +81,9 @@ def test_get_status_unavailable_when_edge_tts_missing(monkeypatch):
         ("bn-IN", "TanishaaNeural"),
         ("bn-BD", "NabanitaNeural"),
         ("hi-IN", "SwaraNeural"),
-        ("en-US", "AndrewMultilingualNeural"),
+        ("en-US", "AndrewNeural"),
+        ("en", "AndrewNeural"),
+        ("bn", "TanishaaNeural"),
         ("en-IN", "NeerjaExpressiveNeural"),
         ("ta-IN", "PallaviNeural"),
         ("te-IN", "ShrutiNeural"),
@@ -99,12 +101,12 @@ def test_explicit_voice_overrides_language():
 
 def test_no_voice_no_language_returns_default():
     voice = _resolve_voice(None, None)
-    assert "AndrewMultilingualNeural" in voice
+    assert "AndrewNeural" in voice
 
 
 def test_unknown_language_returns_default():
     voice = _resolve_voice(None, "xx-YY")
-    assert "AndrewMultilingualNeural" in voice
+    assert "AndrewNeural" in voice
 
 
 def test_lang_voice_map_has_indic_entries():
@@ -175,7 +177,7 @@ def test_execute_success_with_mocked_edge_tts(monkeypatch, tmp_path):
 
     assert result.success, result.error
     assert result.data["format"] == "mp3"
-    assert "AndrewMultilingualNeural" in result.data["voice"]
+    assert "AndrewNeural" in result.data["voice"]
     assert Path(result.data["output_path"]).exists()
 
 
@@ -233,3 +235,35 @@ def test_registry_discovers_edge_tts():
     registry.discover("tools")
     names = registry.list_all()
     assert "edge_tts" in names, f"edge_tts not found in registry. Found: {names[:10]}"
+
+
+def test_execute_retries_with_fallback_voice_on_no_audio_received(monkeypatch, tmp_path):
+    calls: list[str] = []
+
+    class _FakeCommunicate:
+        def __init__(self, *, text: str, voice: str, **_kwargs):
+            self.voice = voice
+            calls.append(voice)
+
+        async def save(self, path: str) -> None:
+            if self.voice != "en-US-AriaNeural":
+                raise RuntimeError("No audio was received. Please verify that your parameters are correct.")
+            Path(path).write_bytes(b"\xff\xfb" * 200)
+
+    fake_mod = ModuleType("edge_tts")
+    fake_mod.Communicate = _FakeCommunicate
+    monkeypatch.setattr("tools.audio.edge_tts_tool._have_edge_tts", lambda: True)
+
+    import sys
+
+    sys.modules["edge_tts"] = fake_mod
+    try:
+        out_file = tmp_path / "retry.mp3"
+        result = _make_tool().execute({"text": "Retry voice test", "output_path": str(out_file)})
+    finally:
+        del sys.modules["edge_tts"]
+
+    assert result.success, result.error
+    assert len(calls) == 2
+    assert result.data["voice"] == "en-US-AriaNeural"
+    assert out_file.is_file()

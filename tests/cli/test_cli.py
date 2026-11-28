@@ -368,3 +368,7 @@ def test_cli_error_handling_edges() -> None:
     bad_client = runner.invoke(app, ["mcp", "config", "--client", "bogus"])
     assert bad_client.exit_code == 1
     assert "Unsupported client" in bad_client.stdout
+
+    bad_transport = runner.invoke(app, ["mcp", "run", "--transport", "bogus"])
+    assert bad_transport.exit_code == 1
+    assert "Unsupported MCP transport" in bad_transport.stdout

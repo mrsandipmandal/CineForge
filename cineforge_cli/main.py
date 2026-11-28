@@ -1042,13 +1042,17 @@ def mcp_run(
         )
         raise typer.Exit(1) from exc
 
-    serve_mcp(
-        transport=transport,
-        host=host,
-        port=port,
-        all_tools=all_tools,
-        profile=profile,
-    )
+    try:
+        serve_mcp(
+            transport=transport,
+            host=host,
+            port=port,
+            all_tools=all_tools,
+            profile=profile,
+        )
+    except ValueError as exc:
+        console.print(f"[red]{escape(str(exc))}[/red]")
+        raise typer.Exit(1) from exc
 
 
 def _render_mcp_clients_table(rows: list[dict[str, Any]]) -> None:

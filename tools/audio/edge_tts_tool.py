@@ -44,7 +44,7 @@ _LANG_VOICE_MAP: dict[str, str] = {
     "bn-IN": "bn-IN-TanishaaNeural",
     "bn-BD": "bn-BD-NabanitaNeural",
     "hi-IN": "hi-IN-SwaraNeural",
-    "en-US": "en-US-AndrewMultilingualNeural",
+    "en-US": "en-US-AndrewNeural",
     "en-IN": "en-IN-NeerjaExpressiveNeural",
     "en-GB": "en-GB-SoniaNeural",
     "en-AU": "en-AU-NatashaNeural",
@@ -89,7 +89,8 @@ _LANG_VOICE_MAP: dict[str, str] = {
     "am-ET": "am-ET-MekdesNeural",
 }
 
-_DEFAULT_VOICE = "en-US-AndrewMultilingualNeural"
+_DEFAULT_VOICE = "en-US-AndrewNeural"
+_FALLBACK_VOICE = "en-US-AriaNeural"
 
 
 def _resolve_voice(voice: str | None, language: str | None) -> str:
@@ -97,7 +98,13 @@ def _resolve_voice(voice: str | None, language: str | None) -> str:
     if voice:
         return voice
     if language:
-        return _LANG_VOICE_MAP.get(language, _DEFAULT_VOICE)
+        if language in _LANG_VOICE_MAP:
+            return _LANG_VOICE_MAP[language]
+        lower = language.strip().lower()
+        for code, mapped_voice in _LANG_VOICE_MAP.items():
+            if code.lower() == lower or code.lower().split("-")[0] == lower:
+                return mapped_voice
+        return _DEFAULT_VOICE
     return _DEFAULT_VOICE
 
 
@@ -172,7 +179,7 @@ class EdgeTTSTool(BaseTool):
             "voice": {
                 "type": "string",
                 "description": (
-                    "Edge TTS voice name, e.g. 'en-US-AndrewMultilingualNeural'. "
+                    "Edge TTS voice name, e.g. 'en-US-AndrewNeural'. "
                     "Overrides 'language' when both are set."
                 ),
             },
@@ -266,7 +273,21 @@ class EdgeTTSTool(BaseTool):
             )
             asyncio.run(communicate.save(str(out)))
         except Exception as exc:  # pragma: no cover
-            return ToolResult(success=False, error=f"edge-tts synthesis failed: {exc}")
+            if not inputs.get("voice") and voice != _FALLBACK_VOICE and "no audio was received" in str(exc).lower():
+                try:
+                    voice = _FALLBACK_VOICE
+                    communicate = edge_tts.Communicate(
+                        text=text,
+                        voice=voice,
+                        rate=rate,
+                        volume=volume,
+                        pitch=pitch,
+                    )
+                    asyncio.run(communicate.save(str(out)))
+                except Exception as retry_exc:
+                    return ToolResult(success=False, error=f"edge-tts synthesis failed: {retry_exc}")
+            else:
+                return ToolResult(success=False, error=f"edge-tts synthesis failed: {exc}")
 
         elapsed = round(time.time() - start, 2)
 
