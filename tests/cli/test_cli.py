@@ -314,9 +314,9 @@ def test_cli_setup_pasted_keys_and_pty_masked_echo(tmp_path: Path, monkeypatch) 
     monkeypatch.setattr("cineforge_mcp.installer.detect_mcp_clients", lambda project_dir=None: [])
 
     answers_map = {
-        "GEMINI_API_KEY": 'GEMINI_API_KEY="AIzaSyPastedKey123456"',
-        "KLING_API_KEY": "kling_non_popular_key_77",
-        "FREESOUND_API_KEY": "fs_commented_key_99",
+        "GEMINI_API_KEY": 'GEMINI_API_KEY="test_gemini_111111111"',
+        "KLING_API_KEY": "test_kling_1111111111",
+        "FREESOUND_API_KEY": "test_free_1111111111",
     }
     responses = [answers_map.get(name, "") for name in spec_names] + ["n", "n", "n"]
     res = runner.invoke(app, ["--workspace", str(ws), "setup"], input="\n".join(responses) + "\n")
@@ -325,13 +325,13 @@ def test_cli_setup_pasted_keys_and_pty_masked_echo(tmp_path: Path, monkeypatch) 
     assert "── Kling official direct API ──" in res.stdout
     assert "── Additional Stock Media Sources ──" in res.stdout
     assert "[current: global, Enter to keep]" in res.stdout
-    assert "✓ Captured GEMINI_API_KEY (AIza••••3456 (21 chars))" in res.stdout
-    assert "✓ Captured KLING_API_KEY (klin••••y_77 (24 chars))" in res.stdout
-    assert "✓ Captured FREESOUND_API_KEY (fs_c••••y_99 (19 chars))" in res.stdout
+    assert "✓ Captured GEMINI_API_KEY (test••••1111 (21 chars))" in res.stdout
+    assert "✓ Captured KLING_API_KEY (test••••1111 (21 chars))" in res.stdout
+    assert "✓ Captured FREESOUND_API_KEY (test••••1111 (20 chars))" in res.stdout
     env_text = (ws / ".env").read_text(encoding="utf-8")
-    assert "GEMINI_API_KEY=AIzaSyPastedKey123456" in env_text
-    assert "KLING_API_KEY=kling_non_popular_key_77" in env_text
-    assert "FREESOUND_API_KEY=fs_commented_key_99" in env_text
+    assert "GEMINI_API_KEY=test_gemini_111111111" in env_text
+    assert "KLING_API_KEY=test_kling_1111111111" in env_text
+    assert "FREESOUND_API_KEY=test_free_1111111111" in env_text
     assert "# FREESOUND_API_KEY=" not in env_text
     assert "MINIMAX_REGION=global" in env_text
 
@@ -339,15 +339,15 @@ def test_cli_setup_pasted_keys_and_pty_masked_echo(tmp_path: Path, monkeypatch) 
     rerun = runner.invoke(
         app,
         ["--workspace", str(ws), "setup", "--keys-only"],
-        input="AIzaSyReplacedKey8888\n:done\n",
+        input="test_gemini_222222222\n:done\n",
     )
     assert rerun.exit_code == 0, rerun.stdout
-    assert "[set: AIza••••3456 (21 chars), Enter to keep]" in rerun.stdout
+    assert "[set: test••••1111 (21 chars), Enter to keep]" in rerun.stdout
     assert "Finished key entry." in rerun.stdout
     updated_env = (ws / ".env").read_text(encoding="utf-8")
     assert updated_env.count("GEMINI_API_KEY=") == 1
-    assert "GEMINI_API_KEY=AIzaSyReplacedKey8888" in updated_env
-    assert "KLING_API_KEY=kling_non_popular_key_77" in updated_env
+    assert "GEMINI_API_KEY=test_gemini_222222222" in updated_env
+    assert "KLING_API_KEY=test_kling_1111111111" in updated_env
 
     # 4. --popular-only prompts only the 9 popular keys and --skip-keys bypasses key prompts
     pop_ws = tmp_path / "pop-ws"
@@ -356,11 +356,11 @@ def test_cli_setup_pasted_keys_and_pty_masked_echo(tmp_path: Path, monkeypatch) 
     pop_res = runner.invoke(
         app,
         ["--workspace", str(pop_ws), "setup", "--popular-only", "--keys-only"],
-        input="AIzaPopOnly9999\n" + "\n" * (len(POPULAR_API_KEYS) - 1),
+        input="test_pop_111111111\n" + "\n" * (len(POPULAR_API_KEYS) - 1),
     )
     assert pop_res.exit_code == 0, pop_res.stdout
     assert f"({len(POPULAR_API_KEYS)} total)" in pop_res.stdout
-    assert "GEMINI_API_KEY=AIzaPopOnly9999" in (pop_ws / ".env").read_text(encoding="utf-8")
+    assert "GEMINI_API_KEY=test_pop_111111111" in (pop_ws / ".env").read_text(encoding="utf-8")
 
     skip_res = runner.invoke(app, ["--workspace", str(pop_ws), "setup", "--skip-keys"], input="n\nn\nn\n")
     assert skip_res.exit_code == 0, skip_res.stdout
