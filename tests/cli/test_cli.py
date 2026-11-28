@@ -14,13 +14,14 @@ runner = CliRunner()
 
 
 def test_cli_version_and_help() -> None:
-    res = runner.invoke(app, ["--version"])
-    assert res.exit_code == 0
-    assert "cineforge" in res.stdout
+    for flag in ("--version", "-V", "-v"):
+        res = runner.invoke(app, [flag])
+        assert res.exit_code == 0, flag
+        assert "cineforge" in res.stdout
 
     help_res = runner.invoke(app, ["--help"])
     assert help_res.exit_code == 0
-    for cmd in ("init", "setup", "doctor", "studio", "demo", "tools", "pipelines", "mcp"):
+    for cmd in ("init", "setup", "doctor", "studio", "demo", "tools", "pipelines", "mcp", "update", "repair"):
         assert cmd in help_res.stdout
 
 

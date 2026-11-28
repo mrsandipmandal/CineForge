@@ -160,6 +160,11 @@ cineforge demo code-to-screen
 
 # 6. Launch Backlot Control Room in your browser (http://127.0.0.1:4750)
 cineforge studio
+
+# 7. Check version (-v / -V / --version), self-update, or repair workspace/IDE configs
+cineforge -v
+cineforge update --check
+cineforge repair --dry-run
 ```
 
 #### 3. How to Use with AI Assistants via MCP (`cineforge-mcp`)
@@ -615,6 +620,8 @@ Keep this cheat sheet handy to control your studio from the command line or any 
 | :--- | :--- |
 | `cineforge setup` | Interactive guided setup (workspace, optional API keys, Remotion, Piper) |
 | `cineforge doctor` | Check FFmpeg, Node.js, Remotion, HyperFrames, and provider availability |
+| `cineforge update` | Check PyPI / git checkout version & upgrade CLI, MCP & skills safely |
+| `cineforge repair` | Diagnose and repair workspace, `.env`, Remotion, HyperFrames & IDE MCP configs |
 | `cineforge studio` | Launch the Backlot Matrix live control room in your default browser |
 | `cineforge demo` | Render zero-key Remotion showcase demos into `projects/demos/renders/` |
 | `cineforge mcp detect` | Detect installed IDEs / AI clients and check CineForge MCP status |

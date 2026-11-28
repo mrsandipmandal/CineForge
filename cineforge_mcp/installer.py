@@ -526,3 +526,127 @@ def install_mcp_config(
         "dry_run": dry_run,
         "entry": payload_wrapper,
     }
+
+
+def _extract_server_fields(client: str, section_entry: dict[str, Any]) -> tuple[str, list[str], dict[str, str]]:
+    """Normalize command, args, and env mapping from any supported client's MCP entry."""
+    if client == "opencode":
+        raw_cmd = section_entry.get("command")
+        if isinstance(raw_cmd, list):
+            cmd = str(raw_cmd[0]) if raw_cmd else ""
+            args = [str(x) for x in raw_cmd[1:]]
+        else:
+            cmd = str(raw_cmd or "")
+            args = []
+        raw_env = section_entry.get("environment") or {}
+    else:
+        cmd = str(section_entry.get("command") or "")
+        raw_args = section_entry.get("args") or []
+        args = [str(x) for x in raw_args] if isinstance(raw_args, list) else []
+        raw_env = section_entry.get("env") or {}
+    env = {str(k): str(v) for k, v in raw_env.items()} if isinstance(raw_env, dict) else {}
+    return cmd, args, env
+
+
+def _command_is_runnable(cmd: str) -> bool:
+    """Return True if *cmd* resolves on PATH or points to an existing executable file."""
+    cleaned = cmd.strip()
+    if not cleaned:
+        return False
+    p = Path(cleaned).expanduser()
+    if p.is_absolute() or os.sep in cleaned or (os.altsep and os.altsep in cleaned):
+        return p.is_file()
+    return shutil.which(cleaned) is not None
+
+
+def inspect_configured_mcp_entries(
+    *,
+    project_dir: Optional[Path] = None,
+    expected_workspace: Optional[Path] = None,
+    server_name: str = "cineforge",
+) -> list[dict[str, Any]]:
+    """Inspect all configured CineForge MCP client entries and flag broken paths/workspaces."""
+    proj = (project_dir or Path.cwd()).resolve()
+    resolved_ws = expected_workspace.expanduser().resolve() if expected_workspace else None
+    findings: list[dict[str, Any]] = []
+
+    for client in SUPPORTED_CLIENTS:
+        meta = _CLIENT_META[client]
+        candidates: list[tuple[str, Path]] = [
+            ("global", client_config_path(client, project_dir=proj, scope="global")),
+        ]
+        if meta["supports_project_scope"]:
+            proj_path = client_config_path(client, project_dir=proj, scope="project")
+            if proj_path != candidates[0][1]:
+                candidates.append(("project", proj_path))
+
+        root_key = next(iter(build_client_payload(client, {"command": "x", "args": []}).keys()))
+        for scope_name, cfg_path in candidates:
+            if not cfg_path.is_file():
+                continue
+            try:
+                data = _read_config_dict(cfg_path, client)
+            except Exception as exc:
+                findings.append(
+                    {
+                        "client": client,
+                        "display_name": meta["display_name"],
+                        "scope": scope_name,
+                        "config_path": str(cfg_path),
+                        "command": None,
+                        "workspace": None,
+                        "needs_repair": True,
+                        "reasons": [f"Malformed config file: {exc}"],
+                        "skill_target": meta["skill_target"],
+                    }
+                )
+                continue
+
+            section = data.get(root_key)
+            if not isinstance(section, dict) or server_name not in section:
+                continue
+            entry = section.get(server_name)
+            if not isinstance(entry, dict):
+                findings.append(
+                    {
+                        "client": client,
+                        "display_name": meta["display_name"],
+                        "scope": scope_name,
+                        "config_path": str(cfg_path),
+                        "command": None,
+                        "workspace": None,
+                        "needs_repair": True,
+                        "reasons": [f"Entry {server_name!r} is not a mapping"],
+                        "skill_target": meta["skill_target"],
+                    }
+                )
+                continue
+
+            cmd, _args, env = _extract_server_fields(client, entry)
+            ws_val = env.get("CINEFORGE_HOME", "")
+            reasons: list[str] = []
+            if not _command_is_runnable(cmd):
+                reasons.append(f"Executable missing or not on PATH: {cmd or '<empty>'}")
+            if ws_val:
+                ws_path = Path(ws_val).expanduser()
+                if not ws_path.is_dir():
+                    reasons.append(f"Workspace path does not exist: {ws_val}")
+                elif resolved_ws is not None and ws_path.resolve() != resolved_ws:
+                    reasons.append(f"Workspace mismatch ({ws_val} != {resolved_ws})")
+            elif resolved_ws is not None:
+                reasons.append(f"CINEFORGE_HOME unset (expected {resolved_ws})")
+
+            findings.append(
+                {
+                    "client": client,
+                    "display_name": meta["display_name"],
+                    "scope": scope_name,
+                    "config_path": str(cfg_path),
+                    "command": cmd,
+                    "workspace": ws_val or None,
+                    "needs_repair": bool(reasons),
+                    "reasons": reasons,
+                    "skill_target": meta["skill_target"],
+                }
+            )
+    return findings

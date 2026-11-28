@@ -67,6 +67,7 @@ def root_callback(
         False,
         "--version",
         "-V",
+        "-v",
         callback=_version_callback,
         is_eager=True,
         help="Show CineForge version and exit.",
@@ -1445,6 +1446,207 @@ def skills_install_cmd(
         console.print(f"[green]Installed[/green] [cyan]{tgt}[/cyan] ({len(paths)} file(s)):")
         for p in paths:
             console.print(f"  • {p}")
+
+
+def _render_update_report(report: dict[str, Any]) -> None:
+    """Render a Rich summary panel and step table for `cineforge update`."""
+    inst = report["install"]
+    pypi = report["pypi"]
+    curr = escape(str(inst["current_version"]))
+    latest = escape(str(pypi.get("latest_version") or "unknown"))
+    if pypi.get("ok"):
+        ver_status = (
+            f"[yellow]Update available:[/yellow] {curr} → [bold green]{latest}[/bold green]"
+            if pypi.get("update_available")
+            else f"[green]Up to date[/green] ({curr})"
+        )
+    else:
+        ver_status = f"{curr} ([yellow]PyPI unreachable: {escape(str(pypi.get('error') or 'offline'))}[/yellow])"
+
+    panel_lines = [
+        f"[bold]Version:[/bold]      {ver_status}",
+        f"[bold]Install Mode:[/bold] {escape(str(inst['mode']))}",
+        f"[bold]Workspace:[/bold]    {escape(str(report['workspace']))}",
+    ]
+    if inst.get("source_dir"):
+        panel_lines.append(f"[bold]Source Dir:[/bold]   {escape(str(inst['source_dir']))}")
+    console.print(Panel.fit("\n".join(panel_lines), title="CineForge Update"))
+
+    for warn in report.get("warnings") or []:
+        console.print(f"[yellow]Note:[/yellow] {escape(str(warn))}")
+
+    steps = report.get("steps") or []
+    if steps:
+        table = Table(title="Upgrade Plan / Steps")
+        table.add_column("Step", style="cyan")
+        table.add_column("Command")
+        table.add_column("Status")
+        for step in steps:
+            st = step["status"]
+            st_fmt = "[green]OK[/green]" if st == "ok" else ("[dim]planned[/dim]" if st == "planned" else "[red]FAILED[/red]")
+            table.add_row(
+                escape(str(step.get("description") or "-")),
+                escape(" ".join(step.get("command") or [])),
+                st_fmt,
+            )
+            if st == "failed" and step.get("stderr"):
+                console.print(f"[red]{escape(step['stderr'])}[/red]")
+        console.print(table)
+
+    for item in report.get("mcp_sync") or []:
+        console.print(f"  MCP [{escape(item['component'])}]: {escape(item['action'])}")
+    for item in report.get("skills_sync") or []:
+        console.print(f"  Skills [{escape(item['target'])} ({item['scope']})]: {item['status']} ({item['files']} files)")
+    if report.get("remotion"):
+        console.print(f"  Remotion: {escape(str(report['remotion'].get('message') or '-'))}")
+
+
+@app.command("update")
+def update_cmd(
+    check: bool = typer.Option(False, "--check", help="Check current vs latest PyPI version and exit without modifying anything."),
+    from_pypi: bool = typer.Option(False, "--from-pypi", help="Upgrade from PyPI even when installed from a local source directory."),
+    extras: Optional[str] = typer.Option(None, "--extras", "-e", help="Optional dependency extras to include (e.g. 'tts,whisper' or 'all')."),
+    sync_mcp: Optional[bool] = typer.Option(None, "--sync-mcp/--no-sync-mcp", help="Refresh existing configured IDE MCP server entries."),
+    sync_skills: Optional[bool] = typer.Option(None, "--sync-skills/--no-sync-skills", help="Refresh already-installed CineForge IDE workflow skills."),
+    with_remotion: bool = typer.Option(False, "--with-remotion", help="Also refresh/install workspace Remotion dependencies."),
+    project_dir: Optional[Path] = typer.Option(None, "--project-dir", "-d", help="Project directory used for project-scoped MCP/skill syncing."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show planned update commands without executing them."),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Run non-interactively without confirmation prompts."),
+    json_output: bool = typer.Option(False, "--json", help="Print machine-readable JSON output."),
+) -> None:
+    """Check for updates and upgrade CineForge (plus optional MCP configs & skills)."""
+    from cineforge_cli.maintenance import run_update
+
+    do_mcp = bool(sync_mcp) if sync_mcp is not None else yes
+    do_skills = bool(sync_skills) if sync_skills is not None else yes
+
+    if not check and not dry_run and not yes and not json_output:
+        preview = run_update(
+            project_dir=project_dir,
+            check_only=True,
+            from_pypi=from_pypi,
+            extras=extras,
+            sync_mcp=do_mcp,
+            sync_skills=do_skills,
+            with_remotion=with_remotion,
+        )
+        _render_update_report(preview)
+        if not preview["steps"] and not preview["mcp_sync"] and not preview["skills_sync"]:
+            return
+        try:
+            proceed = typer.confirm("Proceed with CineForge update now?", default=True)
+        except (typer.Abort, EOFError):
+            proceed = False
+        if not proceed:
+            console.print("[dim]Update cancelled.[/dim]")
+            return
+
+    report = run_update(
+        project_dir=project_dir,
+        check_only=check,
+        from_pypi=from_pypi,
+        extras=extras,
+        sync_mcp=do_mcp,
+        sync_skills=do_skills,
+        with_remotion=with_remotion,
+        dry_run=dry_run,
+    )
+    if json_output:
+        typer.echo(json.dumps(report, indent=2, default=str))
+    else:
+        _render_update_report(report)
+    if not report["success"]:
+        raise typer.Exit(1)
+
+
+def _render_repair_report(report: dict[str, Any]) -> None:
+    """Render a Rich status table for `cineforge repair`."""
+    table = Table(title=f"CineForge Repair ({escape(str(report['workspace']))})")
+    table.add_column("Component", style="cyan")
+    table.add_column("Status")
+    table.add_column("Action / Details")
+    table.add_column("Backup")
+
+    for act in report.get("actions") or []:
+        st = act["status"]
+        if st == "ok":
+            st_markup = "[green]OK[/green]"
+        elif st == "repaired":
+            st_markup = "[bold green]REPAIRED[/bold green]"
+        elif st == "needs_repair":
+            st_markup = "[yellow]NEEDS REPAIR[/yellow]"
+        elif st == "skipped":
+            st_markup = "[dim]SKIPPED[/dim]"
+        else:
+            st_markup = "[red]FAILED[/red]"
+        table.add_row(
+            escape(str(act.get("component") or "-")),
+            st_markup,
+            escape(str(act.get("action") or "-")),
+            escape(str(act.get("backup") or "-")),
+        )
+    console.print(table)
+
+
+@app.command("repair")
+def repair_cmd(
+    workspace_only: bool = typer.Option(False, "--workspace-only", help="Only verify/repair workspace directories, config.yaml, .env, and stale locks/temps."),
+    env: bool = typer.Option(False, "--env", help="Only sanitize and deduplicate workspace .env."),
+    remotion: bool = typer.Option(False, "--remotion", help="Force-verify/reinstall workspace Remotion composer dependencies."),
+    hyperframes: bool = typer.Option(False, "--hyperframes", help="Verify/re-warm the HyperFrames npx cache."),
+    mcp: bool = typer.Option(False, "--mcp", help="Inspect and repair broken or workspace-mismatched IDE MCP configs."),
+    reinstall_deps: bool = typer.Option(False, "--reinstall-deps", help="Reinstall/repair core Python runtime dependencies."),
+    project_dir: Optional[Path] = typer.Option(None, "--project-dir", "-d", help="Project directory used for project-scoped MCP inspection."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Diagnose issues and preview repair actions without writing files."),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Apply repairs without confirmation prompts."),
+    json_output: bool = typer.Option(False, "--json", help="Print machine-readable JSON output."),
+) -> None:
+    """Diagnose and non-destructively repair workspace, .env, runtimes, and IDE MCP configs."""
+    from cineforge_cli.maintenance import run_repair
+
+    if not dry_run and not yes and not json_output:
+        preview = run_repair(
+            project_dir=project_dir,
+            workspace_only=workspace_only,
+            fix_env=env,
+            fix_remotion=remotion,
+            fix_hyperframes=hyperframes,
+            fix_mcp=mcp,
+            reinstall_deps=reinstall_deps,
+            dry_run=True,
+        )
+        pending = [a for a in preview["actions"] if a["status"] == "needs_repair"]
+        _render_repair_report(preview)
+        if not pending:
+            console.print("[bold green]Everything looks healthy — no repairs needed.[/bold green]")
+            return
+        try:
+            proceed = typer.confirm(
+                f"Apply {len(pending)} repair action(s) now (.bak backups saved before edits)?",
+                default=True,
+            )
+        except (typer.Abort, EOFError):
+            proceed = False
+        if not proceed:
+            console.print("[dim]Repair cancelled.[/dim]")
+            return
+
+    report = run_repair(
+        project_dir=project_dir,
+        workspace_only=workspace_only,
+        fix_env=env,
+        fix_remotion=remotion,
+        fix_hyperframes=hyperframes,
+        fix_mcp=mcp,
+        reinstall_deps=reinstall_deps,
+        dry_run=dry_run,
+    )
+    if json_output:
+        typer.echo(json.dumps(report, indent=2, default=str))
+    else:
+        _render_repair_report(report)
+    if not report["success"]:
+        raise typer.Exit(1)
 
 
 def main(argv: Optional[list[str]] = None) -> None:
