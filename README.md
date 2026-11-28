@@ -14,7 +14,7 @@
 
 <p align="center">
   <a href="#-how-cineforge-works">🧠 How It Works</a> &nbsp;·&nbsp;
-  <a href="#-whats-new-in-v032">🚀 What's New in v0.3.2</a> &nbsp;·&nbsp;
+  <a href="#-whats-new-in-v033">🚀 What's New in v0.3.3</a> &nbsp;·&nbsp;
   <a href="#-quick-start--installation">⚡ Quick Start</a> &nbsp;·&nbsp;
   <a href="#-shortcuts--quick-commands-reference">⌨️ Shortcuts Cheat Sheet</a> &nbsp;·&nbsp;
   <a href="#-complete-documentation-index">📚 Documentation Index</a> &nbsp;·&nbsp;
@@ -29,8 +29,8 @@
   <img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14%20%7C%203.15-blue?style=flat-square" alt="Python">
   <img src="https://img.shields.io/badge/remotion-4.0-E50914?style=flat-square" alt="Remotion">
   <img src="https://img.shields.io/badge/ffmpeg-8.0%20%7C%209.0-007808?style=flat-square" alt="FFmpeg">
-  <img src="https://img.shields.io/badge/tests-2606%20passed-brightgreen?style=flat-square" alt="Tests">
-  <a href="https://github.com/mrsandipmandal/CineForge/releases"><img src="https://img.shields.io/badge/release-v0.3.2-orange?style=flat-square" alt="Release"></a>
+  <img src="https://img.shields.io/badge/tests-2611%20passed-brightgreen?style=flat-square" alt="Tests">
+  <a href="https://github.com/mrsandipmandal/CineForge/releases"><img src="https://img.shields.io/badge/release-v0.3.3-orange?style=flat-square" alt="Release"></a>
 </p>
 
 <p align="center"><strong>Connect & Community</strong></p>
@@ -526,8 +526,20 @@ print(res.success, res.artifacts)
 
 ---
 
+<a id="-whats-new-in-v033"></a>
+## 🚀 What's New in v0.3.3 (Patch Release)
+
+CineForge **v0.3.3** delivers complete CLI self-maintenance (`-v`, `update`, `repair`) and upgrades `cineforge setup` to walk through every documented `.env` variable with update/replace support (**2,611 passing tests**).
+
+- **Full `.env` Variable Setup Flow (`cineforge setup`)**: Dynamically reads all **102** documented API keys, credentials, URLs, ports, regions, and flags from `.env.example` (plus custom workspace `.env` keys) and prompts one-by-one by section, allowing already-set variables to be kept via `Enter` or updated inline, with `:done` early save, `--popular-only`, `--keys-only`, `--skip-keys`, and in-place `.env` uncommenting/deduplication (`write_env_keys()`).
+- **`cineforge -v` Version Alias**: Added `-v` alongside `--version` and `-V` on the root CLI.
+- **Self-Update (`cineforge update`)**: Auto-detects `uv-tool-pypi`, `uv-tool-local`, `git-editable`, and `pip-venv` installations, checks PyPI for newer releases (`--check`), skips `git pull --ff-only` safely on dirty checkouts, and supports `--from-pypi`, `--extras`, `--sync-mcp`, `--sync-skills`, `--with-remotion`, `--dry-run`, `--yes/-y`, and `--json`.
+- **Non-Destructive Repair (`cineforge repair`)**: Validates and repairs workspace directories, corrupted `config.yaml` (creating `.bak`), `.env` duplicate/CRLF/ANSI issues (creating `.bak`), stale `.backlot/*.lock` and partial mux temp files, Remotion/HyperFrames runtimes, core Python dependencies, and broken IDE MCP entries without disturbing healthy configs for other valid workspaces.
+
+---
+
 <a id="-whats-new-in-v032"></a>
-## 🚀 What's New in v0.3.2 (Patch Release)
+### ✨ Previous Patch: v0.3.2
 
 CineForge **v0.3.2** resolves real end-to-end integration bugs uncovered during comprehensive CLI, MCP, and video rendering verification (**2,606 passing tests**).
 
@@ -635,7 +647,7 @@ Keep this cheat sheet handy to control your studio from the command line or any 
 | `make demo` | Render all three zero-key showcase demos instantly |
 | `./render-demo.sh world-in-numbers` | Render the 45s data-visualization explainer demo |
 | `make test-contracts` | Run contract tests across all 187 production tools (zero API spend) |
-| `pytest tests/ -v` | Execute full test suite (2,606 passing tests) |
+| `pytest tests/ -v` | Execute full test suite (2,611 passing tests) |
 | `python -m backlot.server` | Start the Backlot backend daemon on port `4750` (or `8765`) |
 
 ---
